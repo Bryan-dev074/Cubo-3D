@@ -1,4 +1,10 @@
-import { useCallback, useRef, useState, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import {
   useThree,
   type RootState,
@@ -34,6 +40,7 @@ interface UseLayerGestureOptions {
   readonly invalidate: RootState["invalidate"];
   readonly onActiveChange: (active: boolean) => void;
   readonly onMoveRequest: (move: CubeMove) => void;
+  readonly onOrbitLockChange: (locked: boolean) => void;
   readonly pivotRefs: MutableRefObject<CubiePivotMap>;
   readonly previewRef: MutableRefObject<LayerVisualPreview>;
   readonly rootRef: MutableRefObject<Group | null>;
@@ -43,9 +50,12 @@ interface ActiveGesture {
   readonly candidates: readonly ProjectedCandidate[];
   readonly cubie: CubieState;
   readonly pointerId: number;
+  readonly pointerTarget: PointerCaptureTarget;
   readonly start: Vector2;
   last: Vector2;
+  lastAngle: number;
   lastTime: number;
+  angularVelocity: number;
   maxVelocity: number;
   move: CubeMove | null;
 }
@@ -62,6 +72,7 @@ export function useLayerGesture({
   invalidate,
   onActiveChange,
   onMoveRequest,
+  onOrbitLockChange,
   pivotRefs,
   previewRef,
   rootRef,
@@ -82,22 +93,41 @@ export function useLayerGesture({
   );
 
   const clearGesture = useCallback(
-    (event?: ThreeEvent<PointerEvent>) => {
+    (preservePreview = false) => {
       const gesture = gestureRef.current;
-      if (gesture && event) {
-        releasePointer(event, gesture.pointerId);
+      if (gesture) {
+        releasePointer(gesture.pointerTarget, gesture.pointerId);
       }
 
       gestureRef.current = null;
-      previewRef.current = {
-        move: null,
-        angle: 0,
-        selectedIds: EMPTY_SELECTION,
-      };
+      if (!preservePreview) {
+        previewRef.current = emptyPreview();
+      }
+      onOrbitLockChange(false);
       setActive(false);
       invalidate();
     },
-    [invalidate, previewRef, setActive],
+    [invalidate, onOrbitLockChange, previewRef, setActive],
+  );
+
+  useEffect(() => {
+    if (disabled && gestureRef.current) {
+      clearGesture();
+    }
+  }, [clearGesture, disabled]);
+
+  useEffect(
+    () => () => {
+      const gesture = gestureRef.current;
+      if (gesture) {
+        releasePointer(gesture.pointerTarget, gesture.pointerId);
+        gestureRef.current = null;
+        previewRef.current = emptyPreview();
+        onOrbitLockChange(false);
+        onActiveChange(false);
+      }
+    },
+    [onActiveChange, onOrbitLockChange, previewRef],
   );
 
   const handlersFor = useCallback(
@@ -108,7 +138,6 @@ export function useLayerGesture({
         }
 
         event.stopPropagation();
-        capturePointer(event);
         const point = new Vector2(event.clientX, event.clientY);
         const candidates = projectGestureCandidates({
           cubie,
@@ -119,23 +148,28 @@ export function useLayerGesture({
         });
 
         if (candidates.length === 0) {
-          releasePointer(event, event.pointerId);
           return;
         }
 
+        onOrbitLockChange(true);
+        const pointerTarget = capturePointer(event);
         gestureRef.current = {
           candidates,
           cubie,
           pointerId: event.pointerId,
+          pointerTarget,
           start: point.clone(),
           last: point,
+          lastAngle: 0,
           lastTime: event.timeStamp,
+          angularVelocity: 0,
           maxVelocity: 0,
           move: null,
         };
         previewRef.current = {
           move: null,
           angle: 0,
+          angularVelocity: 0,
           selectedIds: new Set([cubie.id]),
         };
         setActive(true);
@@ -167,15 +201,31 @@ export function useLayerGesture({
           const angle =
             Math.sign(move.turns) *
             MathUtils.clamp(drag.length() / 145, 0, MAX_PREVIEW_ANGLE);
+          const instantaneousAngularVelocity =
+            ((angle - gesture.lastAngle) / elapsed) * 1_000;
+          gesture.angularVelocity = MathUtils.clamp(
+            MathUtils.lerp(
+              gesture.angularVelocity,
+              instantaneousAngularVelocity,
+              0.72,
+            ),
+            -12,
+            12,
+          );
+          gesture.lastAngle = angle;
           previewRef.current = {
             move,
             angle,
+            angularVelocity: gesture.angularVelocity,
             selectedIds: new Set(selectLayerCubieIds(cube, move)),
           };
         } else {
+          gesture.lastAngle = 0;
+          gesture.angularVelocity = 0;
           previewRef.current = {
             move: null,
             angle: 0,
+            angularVelocity: 0,
             selectedIds: new Set([gesture.cubie.id]),
           };
         }
@@ -194,10 +244,17 @@ export function useLayerGesture({
         const move = gesture.move;
         const shouldCommit =
           move !== null && shouldCommitLayerGesture(distance, gesture.maxVelocity);
-        clearGesture(event);
 
         if (shouldCommit) {
+          previewRef.current = {
+            ...previewRef.current,
+            angularVelocity: gesture.angularVelocity,
+            selectedIds: EMPTY_SELECTION,
+          };
+          clearGesture(true);
           onMoveRequest(move);
+        } else {
+          clearGesture();
         }
       },
 
@@ -208,7 +265,17 @@ export function useLayerGesture({
         }
 
         event.stopPropagation();
-        clearGesture(event);
+        clearGesture();
+      },
+
+      onLostPointerCapture(event) {
+        const gesture = gestureRef.current;
+        if (!gesture || gesture.pointerId !== event.pointerId) {
+          return;
+        }
+
+        event.stopPropagation();
+        clearGesture();
       },
     }),
     [
@@ -218,6 +285,7 @@ export function useLayerGesture({
       disabled,
       invalidate,
       onMoveRequest,
+      onOrbitLockChange,
       previewRef,
       rootRef,
       setActive,
@@ -302,20 +370,29 @@ function localAxisToWorld(root: Group, axis: Axis): Vector3 {
   return local.transformDirection(root.matrixWorld).normalize();
 }
 
-function capturePointer(event: ThreeEvent<PointerEvent>): void {
-  const target = event.target as EventTarget & {
-    setPointerCapture?: (pointerId: number) => void;
-  };
-  target.setPointerCapture?.(event.pointerId);
+interface PointerCaptureTarget extends EventTarget {
+  hasPointerCapture?: (capturedPointerId: number) => boolean;
+  releasePointerCapture?: (capturedPointerId: number) => void;
+  setPointerCapture?: (pointerId: number) => void;
 }
 
-function releasePointer(event: ThreeEvent<PointerEvent>, pointerId: number): void {
-  const target = event.target as EventTarget & {
-    hasPointerCapture?: (capturedPointerId: number) => boolean;
-    releasePointerCapture?: (capturedPointerId: number) => void;
-  };
+function capturePointer(event: ThreeEvent<PointerEvent>): PointerCaptureTarget {
+  const target = event.target as PointerCaptureTarget;
+  target.setPointerCapture?.(event.pointerId);
+  return target;
+}
 
+function releasePointer(target: PointerCaptureTarget, pointerId: number): void {
   if (target.hasPointerCapture?.(pointerId) ?? true) {
     target.releasePointerCapture?.(pointerId);
   }
+}
+
+function emptyPreview(): LayerVisualPreview {
+  return {
+    move: null,
+    angle: 0,
+    angularVelocity: 0,
+    selectedIds: EMPTY_SELECTION,
+  };
 }

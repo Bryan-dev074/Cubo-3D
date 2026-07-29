@@ -32,6 +32,7 @@ interface MagicCubeProps {
   readonly onGestureActiveChange: (active: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
+  readonly onOrbitLockChange: (locked: boolean) => void;
   readonly pageVisible: boolean;
   readonly queue: readonly QueuedMove[];
   readonly reducedMotion: boolean;
@@ -47,6 +48,7 @@ export function MagicCube({
   onGestureActiveChange,
   onMoveComplete,
   onMoveRequest,
+  onOrbitLockChange,
   pageVisible,
   queue,
   reducedMotion,
@@ -57,6 +59,7 @@ export function MagicCube({
   const previewRef = useRef<LayerVisualPreview>({
     move: null,
     angle: 0,
+    angularVelocity: 0,
     selectedIds: EMPTY_SELECTION,
   });
   const resources = useMemo(() => createCubeRenderResources(), []);
@@ -85,6 +88,7 @@ export function MagicCube({
     invalidate,
     onActiveChange: onGestureActiveChange,
     onMoveRequest,
+    onOrbitLockChange,
     pivotRefs,
     previewRef,
     rootRef: rootRef as MutableRefObject<Group | null>,

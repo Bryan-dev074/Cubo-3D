@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CubeCanvas, detectWebGL } from "@/components/cube/CubeCanvas";
@@ -69,6 +70,34 @@ describe("CubeCanvas", () => {
     expect(screen.getByRole("heading", { name: "Tu navegador no puede mostrar el cubo 3D" }))
       .toBeVisible();
     expect(screen.queryByTestId("dynamic-cube-scene")).not.toBeInTheDocument();
+  });
+
+  it("retries WebGL detection, preserves the purchase CTA and mounts the recovered scene", async () => {
+    const user = userEvent.setup();
+    const webGLDetector = vi
+      .fn<() => boolean>()
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+
+    render(
+      <CubeCanvas
+        cube={createSolvedCube()}
+        onMoveComplete={vi.fn()}
+        onMoveRequest={vi.fn()}
+        purchaseHref={PURCHASE_HREF}
+        queue={[]}
+        webGLDetector={webGLDetector}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Comprar por WhatsApp" })).toHaveAttribute(
+      "href",
+      PURCHASE_HREF,
+    );
+    await user.click(screen.getByRole("button", { name: "Reintentar escena 3D" }));
+
+    expect(webGLDetector).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("dynamic-cube-scene")).toBeVisible();
   });
 
   it("mounts the dynamically loaded scene only when injected WebGL support succeeds", () => {

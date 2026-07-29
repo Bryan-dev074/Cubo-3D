@@ -17,7 +17,17 @@ export type CubiePivotMap = Map<string, Group>;
 export interface LayerVisualPreview {
   readonly move: CubeMove | null;
   readonly angle: number;
+  readonly angularVelocity: number;
   readonly selectedIds: ReadonlySet<string>;
+}
+
+export interface MoveAnimationState {
+  readonly angle: number;
+  readonly angularVelocity: number;
+}
+
+export interface MoveAnimationStep extends MoveAnimationState {
+  readonly done: boolean;
 }
 
 interface UseMoveQueueOptions {
@@ -44,6 +54,54 @@ export function moveTargetAngle(move: CubeMove): number {
   return move.turns * (Math.PI / 2);
 }
 
+export function createMoveAnimationStart(
+  move: CubeMove,
+  preview: LayerVisualPreview,
+): MoveAnimationState {
+  if (
+    preview.move?.axis === move.axis &&
+    preview.move.layer === move.layer &&
+    preview.move.turns === move.turns
+  ) {
+    return {
+      angle: preview.angle,
+      angularVelocity: preview.angularVelocity,
+    };
+  }
+
+  return { angle: 0, angularVelocity: 0 };
+}
+
+export function advanceMoveAnimation(
+  state: MoveAnimationState,
+  target: number,
+  delta: number,
+  reducedMotion: boolean,
+): MoveAnimationStep {
+  if (reducedMotion || state.angle === target) {
+    return { angle: target, angularVelocity: 0, done: true };
+  }
+
+  const safeDelta = Math.max(0, delta);
+  const direction = Math.sign(target - state.angle);
+  const alignedVelocity =
+    Math.sign(state.angularVelocity) === direction ? state.angularVelocity : 0;
+  const angularVelocity = alignedVelocity * Math.exp(-18 * safeDelta);
+  const easedAngle = MathUtils.damp(state.angle, target, 30, safeDelta);
+  const carriedAngle = easedAngle + angularVelocity * safeDelta * 0.32;
+  const angle = MathUtils.clamp(
+    carriedAngle,
+    Math.min(state.angle, target),
+    Math.max(state.angle, target),
+  );
+
+  if (Math.abs(target - angle) < 0.0015) {
+    return { angle: target, angularVelocity: 0, done: true };
+  }
+
+  return { angle, angularVelocity, done: false };
+}
+
 export function useMoveQueue({
   cube,
   invalidate,
@@ -55,6 +113,7 @@ export function useMoveQueue({
 }: UseMoveQueueOptions): Readonly<{ isAnimatingRef: MutableRefObject<boolean> }> {
   const activeEntryRef = useRef<QueuedMove | null>(null);
   const angleRef = useRef(0);
+  const velocityRef = useRef(0);
   const completedRef = useRef(false);
   const isAnimatingRef = useRef(false);
   const scratchRef = useRef(createTransformScratch());
@@ -63,6 +122,7 @@ export function useMoveQueue({
     if (!queue[0]) {
       activeEntryRef.current = null;
       angleRef.current = 0;
+      velocityRef.current = 0;
       completedRef.current = false;
       isAnimatingRef.current = false;
       applyVisualTransforms(
@@ -91,19 +151,29 @@ export function useMoveQueue({
 
     if (activeEntryRef.current !== activeEntry) {
       activeEntryRef.current = activeEntry;
-      angleRef.current = 0;
+      const start = createMoveAnimationStart(
+        activeEntry.move,
+        previewRef.current,
+      );
+      angleRef.current = start.angle;
+      velocityRef.current = start.angularVelocity;
+      previewRef.current = EMPTY_PREVIEW;
       completedRef.current = false;
     }
 
     isAnimatingRef.current = true;
     const target = moveTargetAngle(activeEntry.move);
-    angleRef.current = reducedMotion
-      ? target
-      : MathUtils.damp(angleRef.current, target, activeEntry.move.turns === 2 ? 9 : 12, delta);
-
-    if (Math.abs(target - angleRef.current) < 0.0015) {
-      angleRef.current = target;
-    }
+    const animation = advanceMoveAnimation(
+      {
+        angle: angleRef.current,
+        angularVelocity: velocityRef.current,
+      },
+      target,
+      delta,
+      reducedMotion,
+    );
+    angleRef.current = animation.angle;
+    velocityRef.current = animation.angularVelocity;
 
     applyVisualTransforms(
       cube,
@@ -111,12 +181,13 @@ export function useMoveQueue({
       {
         move: activeEntry.move,
         angle: angleRef.current,
+        angularVelocity: velocityRef.current,
         selectedIds: EMPTY_SELECTION,
       },
       scratchRef.current,
     );
 
-    if (angleRef.current === target) {
+    if (animation.done) {
       if (!completedRef.current) {
         completedRef.current = true;
         onMoveComplete();
@@ -131,6 +202,12 @@ export function useMoveQueue({
 }
 
 const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
+const EMPTY_PREVIEW: LayerVisualPreview = {
+  move: null,
+  angle: 0,
+  angularVelocity: 0,
+  selectedIds: EMPTY_SELECTION,
+};
 
 interface TransformScratch {
   readonly axis: Vector3;

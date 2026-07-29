@@ -23,8 +23,10 @@ const REVIEW_MODES: readonly {
 export function CubeLab() {
   const [state, dispatch] = useReducer(gameReducer, undefined, createInitialGameState);
   const [reviewMode, setReviewMode] = useState<CubeReviewMode>("neutral");
+  const [isSceneInteracting, setSceneInteracting] = useState(false);
   const purchaseHref = useMemo(() => buildWhatsAppUrl("es"), []);
   const isAnimating = state.queue.length > 0;
+  const controlsLocked = isAnimating || isSceneInteracting;
 
   const queueMove = (move: CubeMove) => {
     if (!isAnimating) {
@@ -33,7 +35,7 @@ export function CubeLab() {
   };
 
   const startScramble = () => {
-    if (!isAnimating) {
+    if (!controlsLocked) {
       dispatch({
         type: "start-scramble",
         moves: generateScramble({ length: 20, seed: 0xc0b03d }),
@@ -60,6 +62,7 @@ export function CubeLab() {
       <section aria-label="Escena de revisión del cubo" className="cube-lab__stage">
         <CubeCanvas
           cube={state.cube}
+          onInteractionLockChange={setSceneInteracting}
           onMoveComplete={() => dispatch({ type: "confirm-move" })}
           onMoveRequest={queueMove}
           purchaseHref={purchaseHref}
@@ -70,12 +73,12 @@ export function CubeLab() {
 
       <div className="cube-lab__toolbar">
         <section aria-label="Acciones de prueba" className="cube-lab__actions">
-          <button type="button" disabled={isAnimating} onClick={startScramble}>
+          <button type="button" disabled={controlsLocked} onClick={startScramble}>
             Mezclar 20 movimientos
           </button>
           <button
             type="button"
-            disabled={isAnimating}
+            disabled={controlsLocked}
             onClick={() => dispatch({ type: "reset" })}
           >
             Reiniciar
@@ -93,6 +96,7 @@ export function CubeLab() {
               key={mode.id}
               type="button"
               aria-pressed={reviewMode === mode.id}
+              disabled={controlsLocked}
               onClick={() => setReviewMode(mode.id)}
             >
               {mode.label}
@@ -103,7 +107,7 @@ export function CubeLab() {
 
       <FaceControls
         dictionary={dictionaries.es}
-        isAnimating={isAnimating}
+        isAnimating={controlsLocked}
         onMove={queueMove}
       />
     </main>

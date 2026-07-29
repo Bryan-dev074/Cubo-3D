@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import {
   useCallback,
+  useReducer,
   useRef,
   useSyncExternalStore,
 } from "react";
@@ -23,6 +24,7 @@ export interface CubeCanvasProps {
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly purchaseHref: string;
   readonly isCelebrating?: boolean;
+  readonly onInteractionLockChange?: (locked: boolean) => void;
   readonly reviewMode?: CubeReviewMode;
   readonly webGLDetector?: WebGLDetector;
 }
@@ -59,19 +61,32 @@ export function CubeCanvas({
   webGLDetector = detectWebGL,
   ...sceneProps
 }: CubeCanvasProps) {
+  const [detectionRevision, retryDetection] = useReducer(
+    (revision: number) => revision + 1,
+    0,
+  );
   const detectionRef = useRef<{
     readonly detector: WebGLDetector;
+    readonly revision: number;
     readonly result: boolean;
   } | null>(null);
   const readClientWebGL = useCallback(() => {
-    if (detectionRef.current?.detector !== webGLDetector) {
+    if (
+      detectionRef.current?.detector !== webGLDetector ||
+      detectionRef.current.revision !== detectionRevision
+    ) {
       detectionRef.current = {
         detector: webGLDetector,
+        revision: detectionRevision,
         result: webGLDetector(),
       };
     }
     return detectionRef.current.result;
-  }, [webGLDetector]);
+  }, [detectionRevision, webGLDetector]);
+  const handleRetry = useCallback(() => {
+    detectionRef.current = null;
+    retryDetection();
+  }, []);
   const hasWebGL = useSyncExternalStore(
     subscribeToStaticEnvironment,
     readClientWebGL,
@@ -89,14 +104,18 @@ export function CubeCanvas({
   if (!hasWebGL) {
     return (
       <div className="cube-canvas-shell">
-        <SceneFallback purchaseHref={purchaseHref} reason="webgl" />
+        <SceneFallback
+          onRetry={handleRetry}
+          purchaseHref={purchaseHref}
+          reason="webgl"
+        />
       </div>
     );
   }
 
   return (
     <div className="cube-canvas-shell">
-      <SceneErrorBoundary purchaseHref={purchaseHref}>
+      <SceneErrorBoundary key={detectionRevision} purchaseHref={purchaseHref}>
         <DynamicCubeScene {...sceneProps} />
       </SceneErrorBoundary>
     </div>

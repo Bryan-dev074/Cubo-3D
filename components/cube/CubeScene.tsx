@@ -26,9 +26,10 @@ import type { QueuedMove } from "@/lib/game/reducer";
 
 export type CubeReviewMode = "grazing" | "neutral" | "opposite";
 
-interface CubeSceneProps {
+export interface CubeSceneProps {
   readonly cube: readonly CubieState[];
   readonly isCelebrating?: boolean;
+  readonly onInteractionLockChange?: (locked: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly queue: readonly QueuedMove[];
@@ -70,6 +71,7 @@ const VIEW_CONFIG: Readonly<
 export function CubeScene({
   cube,
   isCelebrating = false,
+  onInteractionLockChange,
   onMoveComplete,
   onMoveRequest,
   queue,
@@ -81,6 +83,13 @@ export function CubeScene({
   const [isGestureActive, setGestureActive] = useState(false);
   const [isOrbiting, setOrbiting] = useState(false);
   const [isKeyboardInteracting, setKeyboardInteracting] = useState(false);
+  const handleGestureActiveChange = useCallback(
+    (active: boolean) => {
+      setGestureActive(active);
+      onInteractionLockChange?.(active);
+    },
+    [onInteractionLockChange],
+  );
 
   return (
     <div
@@ -124,7 +133,7 @@ export function CubeScene({
           isGestureActive={isGestureActive}
           isKeyboardInteracting={isKeyboardInteracting}
           isOrbiting={isOrbiting}
-          onGestureActiveChange={setGestureActive}
+          onGestureActiveChange={handleGestureActiveChange}
           onMoveComplete={onMoveComplete}
           onMoveRequest={onMoveRequest}
           onOrbitingChange={setOrbiting}
@@ -185,6 +194,14 @@ function CubeStudio({
     onOrbitingChange(false);
     invalidate();
   }, [invalidate, onOrbitingChange]);
+  const handleOrbitLockChange = useCallback(
+    (locked: boolean) => {
+      if (controlsRef.current) {
+        controlsRef.current.enabled = !locked && queue.length === 0;
+      }
+    },
+    [queue.length],
+  );
 
   return (
     <>
@@ -216,6 +233,7 @@ function CubeStudio({
         onGestureActiveChange={onGestureActiveChange}
         onMoveComplete={onMoveComplete}
         onMoveRequest={onMoveRequest}
+        onOrbitLockChange={handleOrbitLockChange}
         pageVisible={pageVisible}
         queue={queue}
         reducedMotion={reducedMotion}
@@ -235,7 +253,7 @@ function CubeStudio({
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enabled={!isGestureActive}
+        enabled={!isGestureActive && queue.length === 0}
         enableDamping={!reducedMotion}
         dampingFactor={0.075}
         enablePan={false}
