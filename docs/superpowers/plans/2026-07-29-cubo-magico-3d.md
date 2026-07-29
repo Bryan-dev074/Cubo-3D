@@ -6,7 +6,7 @@
 
 **Architecture:** Next.js App Router renderiza la estructura semántica y carga una isla cliente para idioma, juego y escena. Un motor puro de matrices enteras conserva las 26 piezas y sus movimientos; React Three Fiber representa ese estado y usa referencias imperativas para gestos y animaciones sin renderizar React en cada frame. La capa comercial, los controles alternativos, la celebración y los fallbacks permanecen en HTML accesible.
 
-**Tech Stack:** Next.js 16.2.12, React 19.2.8, TypeScript, Three.js 0.185.1, React Three Fiber 9.6.1, Drei 10.7.7, Motion 12.43.0, Phosphor Icons 2.1.10, Vitest 4.1.10, Testing Library 16.3.2 y Playwright 1.62.0.
+**Tech Stack:** Next.js 16.2.12, React 19.2.8, TypeScript 6.0.3, ESLint 9.39.5, Three.js 0.185.1, React Three Fiber 9.6.1, Drei 10.7.7, Motion 12.43.0, Phosphor Icons 2.1.10, Vitest 4.1.10, Testing Library 16.3.2 y Playwright 1.62.0.
 
 ---
 
@@ -89,7 +89,7 @@ export function buildWhatsAppUrl(locale: Locale): string;
 
 **Steps:**
 
-1. Create the package and test configuration. Pin these development dependencies: TypeScript 7.0.2, ESLint 10.8.0, eslint-config-next 16.2.12, `@types/node` 26.1.2, `@types/react` 19.2.17, `@types/react-dom` 19.2.3, `@vitejs/plugin-react` 6.0.4, jsdom 30.0.1, `@testing-library/jest-dom` 7.0.0, `@testing-library/user-event` 14.6.1 and `vite-tsconfig-paths` 6.1.1.
+1. Create the package and test configuration. Pin these development dependencies: TypeScript 6.0.3, ESLint 9.39.5, eslint-config-next 16.2.12, `@types/node` 26.1.2, `@types/react` 19.2.17, `@types/react-dom` 19.2.3, `@vitejs/plugin-react` 6.0.4, jsdom 30.0.1, `@testing-library/jest-dom` 7.0.0, `@testing-library/user-event` 14.6.1 and `vite-tsconfig-paths` 6.1.1. This compatibility correction preserves actual JS, TS and TSX lint coverage because the originally pinned ESLint 10 and TypeScript 7 toolchain was incompatible with the pinned Next ESLint configuration.
 2. Write failing dictionary parity, locale precedence and exact WhatsApp URL tests.
 3. Run `npm test -- tests/unit/i18n.test.ts tests/unit/whatsapp.test.ts` and record the expected missing-module failures.
 4. Implement typed dictionaries, locale detection and WhatsApp URL generation.

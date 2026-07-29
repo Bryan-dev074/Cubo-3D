@@ -1,25 +1,5 @@
-# Dependencies and build output
 node_modules/
 .next/
-out/
-coverage/
 playwright-report/
 test-results/
-
-# Local environment
-.env
-.env.local
-.env.*.local
-*.log
-
-# Tool-specific local hooks
-.claude/settings.local.json
-.codex/hooks.json
-.worktrees/
-.superpowers/
-
-# Operating systems and editors
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+tsconfig.tsbuildinfo
