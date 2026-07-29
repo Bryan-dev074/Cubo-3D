@@ -196,7 +196,9 @@ export function createTelemetrySnapshot(state: GameState, activeMove?: CubeMove)
 
 **Files:**
 
+- Create: `app/cube-lab/page.tsx`
 - Create: `components/cube/CubeCanvas.tsx`
+- Create: `components/cube/CubeLab.tsx`
 - Create: `components/cube/CubeScene.tsx`
 - Create: `components/cube/MagicCube.tsx`
 - Create: `components/cube/Cubie.tsx`
@@ -212,23 +214,27 @@ export function createTelemetrySnapshot(state: GameState, activeMove?: CubeMove)
 
 **Steps:**
 
-1. Write failing component tests for loading poster, localized WebGL failure, retry and preserved purchase link.
-2. Verify RED, then implement the fallback boundary and dynamic client-only canvas.
-3. Build 26 procedural cubies from the pure state. Use shared rounded geometry and shared satin materials; give stickers separate rounded geometry and derive visible colors from home coordinates plus orientation.
-4. Create a grounded studio scene with soft key and fill lights, contact shadow, adaptive DPR and adaptive shadow size. Add a very slow ambient turn only while idle; stop it during pointer interaction, keyboard interaction, page invisibility, reduced motion and celebration. Do not add bloom or depth of field.
-5. Animate queued quarter turns via refs and `useFrame`; commit the pure move only after the visual angle snaps to its target. Do not update React state every frame.
-6. Implement pointer capture and visual feedback from `pointerdown`. Resolve the intended layer with the pure gesture module, preview it and commit or cancel on release based on distance and velocity.
-7. Configure orbiting only from the background with pan and zoom disabled, vertical limits and moderate damping. Suspend orbit during a layer gesture.
-8. Add invalidation so an idle scene does not render continuously, while gestures, orbit and springs continue to animate.
-9. Add reduced-motion behavior, resource cleanup and a short disabled-state contract for concurrent controls. Detect WebGL through an exported environment function before mounting R3F, and let tests inject that function. Unit tests force both true and false; Playwright forces false by overriding canvas context before navigation.
-10. Wrap the dynamically loaded scene in `SceneErrorBoundary`. Test it deterministically with a child that throws once, asserting the localized explanation, poster, working WhatsApp CTA and retry path before confirming that retry remounts the child successfully.
-11. Run focused component tests, `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`.
-12. Commit with `feat: render interactive premium cubo`.
+1. Establish the procedural quality contract before code: 26 named and independently transformable cubie pivots, 54 sticker meshes, real body and sticker bevels, stable gaps, correct sticker orientation after moves, readable satin plastic under neutral and grazing light, grounded contact, and no fused or floating pieces across three-quarter and opposite orbit views.
+2. Write failing component tests for loading poster, localized WebGL failure, retry and preserved purchase link.
+3. Verify RED, then implement the fallback boundary and dynamic client-only canvas.
+4. Build 26 procedural cubies from the pure state. Use one named pivot per cubie, shared rounded geometry and shared satin materials; give the 54 stickers separate named rounded geometry and derive visible colors from home coordinates plus orientation.
+5. Create a grounded studio scene with soft key and fill lights, contact shadow, adaptive DPR and adaptive shadow size. Add a very slow ambient turn only while idle; stop it during pointer interaction, keyboard interaction, page invisibility, reduced motion and celebration. Do not add bloom or depth of field.
+6. Animate queued quarter turns via refs and `useFrame`; commit the pure move only after the visual angle snaps to its target. Do not update React state every frame.
+7. Implement pointer capture and visual feedback from `pointerdown`. Resolve the intended layer with the pure gesture module, preview it and commit or cancel on release based on distance and velocity.
+8. Configure orbiting only from the background with pan and zoom disabled, vertical limits and moderate damping. Suspend orbit during a layer gesture.
+9. Add invalidation so an idle scene does not render continuously, while gestures, orbit and springs continue to animate.
+10. Add reduced-motion behavior, resource cleanup and a short disabled-state contract for concurrent controls. Detect WebGL through an exported environment function before mounting R3F, and let tests inject that function. Unit tests force both true and false; Playwright forces false by overriding canvas context before navigation.
+11. Wrap the dynamically loaded scene in `SceneErrorBoundary`. Test it deterministically with a child that throws once, asserting the localized explanation, poster, working WhatsApp CTA and retry path before confirming that retry remounts the child successfully.
+12. Add the temporary no-index `/cube-lab` integration route. Capture neutral, grazing and opposite-orbit screenshots at a fixed desktop viewport and inspect them against the quality contract. Record precise mismatches and refine geometry, material or lighting before continuing.
+13. Run focused component tests, `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`.
+14. Commit with `feat: render interactive premium cubo`.
 
 ## Task 5: Build the complete commercial experience and resolution moment
 
 **Files:**
 
+- Delete: `app/cube-lab/page.tsx`
+- Delete: `components/cube/CubeLab.tsx`
 - Create: `components/experience/MagicCubeExperience.tsx`
 - Create: `components/experience/ExperienceHeader.tsx`
 - Create: `components/experience/HeroCopy.tsx`
@@ -261,7 +267,7 @@ FORM: Modular toy packaging, concept seed fed89b21 candidate 6, staged as a wide
 
 1. Write failing component tests for initial locale precedence, manual persistence, `lang` updates, exact ES/PT copy, state preservation on switch and localized WhatsApp links.
 2. Verify RED, then implement the locale hook and the full semantic experience shell.
-3. Reproduce the selected hybrid composition: cobalt packaging spine, left commercial hierarchy, oversized cube resting on unfolded plans, right live-telemetry column, header purchase action and integrated control dock. Keep the product as the only multicolor element.
+3. Remove the temporary cube lab after connecting its scene to the real experience. Reproduce the selected hybrid composition: cobalt packaging spine, left commercial hierarchy, oversized cube resting on unfolded plans, right live-telemetry column, header purchase action and integrated control dock. Keep the product as the only multicolor element.
 4. Write failing help-dialog tests for localized content, focus entry, Escape, close and focus restoration.
 5. Verify RED, implement the accessible dialog and compact first-use hint.
 6. Write failing success and status-announcer tests for the exact guard conditions, localized message, `Comprar ahora` link, last confirmed move, scramble completion, reset and scene error.
