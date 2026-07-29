@@ -16,6 +16,7 @@ test-results/
 .claude/settings.local.json
 .codex/hooks.json
 .worktrees/
+.superpowers/
 
 # Operating systems and editors
 .DS_Store

@@ -350,4 +350,3 @@ Objetivos:
 - Historial Git y rama `main` publicados.
 
 No se ejecutará el despliegue final en Vercel.
-

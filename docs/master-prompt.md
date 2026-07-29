@@ -116,7 +116,7 @@ Mensaje en portugués:
 ## Responsive y accesibilidad
 
 - Diseñar para 320 px en adelante sin scroll horizontal.
-- En móvil, usar una columna, reservar aproximadamente 45 a 52 d vh al cubo y mantener accesible la compra respetando `safe-area-inset-bottom`.
+- En móvil, usar una columna, reservar aproximadamente 45 a 52 `dvh` al cubo y mantener accesible la compra respetando `safe-area-inset-bottom`.
 - Un solo H1.
 - Objetivos táctiles mínimos de 44 por 44 px.
 - Foco visible y contraste suficiente.

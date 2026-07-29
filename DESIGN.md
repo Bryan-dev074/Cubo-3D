@@ -100,3 +100,5 @@ Los cubitos tienen biseles pequeños y separación real entre piezas. Los sticke
 La composición principal adopta la opción A del estudio visual: promesa y desafío en el tercio izquierdo, cubo monumental a la derecha y CTA siempre visible en el encabezado. De la opción C se integra solamente una banda de controles compacta que funciona como pliegue impreso del empaque. Se descarta la opción B porque la columna de especificaciones aumenta la densidad y requeriría información comercial no disponible.
 
 La tipografía de implementación será **Archivo Black** para el título de producto y **Archivo** para cuerpo, controles y microcopy. Comparten construcción industrial, admiten español y portugués y permiten distinguir voz de empaque y voz funcional sin introducir una serif editorial genérica.
+
+La dirección surgió del concept seed `fed89b21`, candidato 6: empaque modular de juguete con troquel. Este dato identifica el origen de la forma y no se muestra como contenido de la página.
