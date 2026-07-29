@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { applyMove, inverseMove } from "@/lib/cube/moves";
-import { createSolvedCube } from "@/lib/cube/state";
-import type { CubieState } from "@/lib/cube/types";
+import { assertCubeInvariants, createSolvedCube } from "@/lib/cube/state";
+import type { Axis, AxisValue, CubieState, QuarterTurn } from "@/lib/cube/types";
+
+const AXES: readonly Axis[] = ["x", "y", "z"];
+const LAYERS: readonly AxisValue[] = [-1, 0, 1];
+const TURNS: readonly QuarterTurn[] = [-1, 1, 2];
+const MOVE_CASES = AXES.flatMap((axis) =>
+  LAYERS.flatMap((layer) => TURNS.map((turns) => ({ axis, layer, turns }))),
+);
 
 describe("exact cubie state", () => {
   it("creates the 26 distinct cubies surrounding the absent core", () => {
@@ -45,4 +52,15 @@ describe("exact cubie state", () => {
     expect(rotated.find((cubie) => cubie.id === "1,1,1")?.position).toEqual([1, 1, 1]);
     expect(rotated.find((cubie) => cubie.id === "0,1,0")?.position).toEqual([0, 1, 0]);
   });
+
+  it.each(MOVE_CASES)(
+    "preserves invariants and restores exactly for $axis/$layer/$turns",
+    (move) => {
+      const solved = createSolvedCube();
+      const moved = applyMove(solved, move);
+
+      expect(() => assertCubeInvariants(moved)).not.toThrow();
+      expect(applyMove(moved, inverseMove(move))).toEqual(solved);
+    },
+  );
 });
