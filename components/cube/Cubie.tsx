@@ -19,8 +19,6 @@ export interface StickerDescriptor {
 }
 
 export interface CubiePointerHandlers {
-  readonly onLostPointerCapture: (event: ThreeEvent<PointerEvent>) => void;
-  readonly onPointerCancel: (event: ThreeEvent<PointerEvent>) => void;
   readonly onPointerDown: (event: ThreeEvent<PointerEvent>) => void;
   readonly onPointerMove: (event: ThreeEvent<PointerEvent>) => void;
   readonly onPointerUp: (event: ThreeEvent<PointerEvent>) => void;

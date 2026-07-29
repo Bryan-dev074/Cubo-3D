@@ -27,6 +27,7 @@ import type {
 
 const COMMIT_DISTANCE_PX = 34;
 const COMMIT_VELOCITY_PX_PER_SECOND = 460;
+const VELOCITY_SAMPLE_MAX_AGE_MS = 120;
 const MAX_PREVIEW_ANGLE = Math.PI * 0.14;
 const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
 
@@ -48,16 +49,20 @@ interface UseLayerGestureOptions {
 
 interface ActiveGesture {
   readonly candidates: readonly ProjectedCandidate[];
+  readonly captureTarget: PointerCaptureTarget;
   readonly cubie: CubieState;
+  readonly nativeTarget: EventTarget;
   readonly pointerId: number;
-  readonly pointerTarget: PointerCaptureTarget;
+  readonly nativeCancelHandler: EventListener;
   readonly start: Vector2;
   last: Vector2;
   lastAngle: number;
   lastTime: number;
-  angularVelocity: number;
-  maxVelocity: number;
   move: CubeMove | null;
+  velocitySampleAngle: number;
+  velocitySampleMove: CubeMove | null;
+  velocitySamplePoint: Vector2;
+  velocitySampleTime: number;
 }
 
 interface ProjectedCandidate {
@@ -96,10 +101,11 @@ export function useLayerGesture({
     (preservePreview = false) => {
       const gesture = gestureRef.current;
       if (gesture) {
-        releasePointer(gesture.pointerTarget, gesture.pointerId);
+        gestureRef.current = null;
+        removeNativeCancellationListeners(gesture);
+        releasePointer(gesture.captureTarget, gesture.pointerId);
       }
 
-      gestureRef.current = null;
       if (!preservePreview) {
         previewRef.current = emptyPreview();
       }
@@ -120,8 +126,9 @@ export function useLayerGesture({
     () => () => {
       const gesture = gestureRef.current;
       if (gesture) {
-        releasePointer(gesture.pointerTarget, gesture.pointerId);
         gestureRef.current = null;
+        removeNativeCancellationListeners(gesture);
+        releasePointer(gesture.captureTarget, gesture.pointerId);
         previewRef.current = emptyPreview();
         onOrbitLockChange(false);
         onActiveChange(false);
@@ -152,20 +159,33 @@ export function useLayerGesture({
         }
 
         onOrbitLockChange(true);
-        const pointerTarget = capturePointer(event);
-        gestureRef.current = {
+        const captureTarget = event.target as PointerCaptureTarget;
+        const nativeTarget = nativeCancellationTarget(event);
+        const nativeCancelHandler: EventListener = (nativeEvent) => {
+          if (nativePointerId(nativeEvent) === event.pointerId) {
+            clearGesture();
+          }
+        };
+        const gesture: ActiveGesture = {
           candidates,
+          captureTarget,
           cubie,
+          nativeTarget,
+          nativeCancelHandler,
           pointerId: event.pointerId,
-          pointerTarget,
           start: point.clone(),
           last: point,
           lastAngle: 0,
           lastTime: event.timeStamp,
-          angularVelocity: 0,
-          maxVelocity: 0,
           move: null,
+          velocitySampleAngle: 0,
+          velocitySampleMove: null,
+          velocitySamplePoint: point.clone(),
+          velocitySampleTime: event.timeStamp,
         };
+        gestureRef.current = gesture;
+        addNativeCancellationListeners(gesture);
+        capturePointer(captureTarget, event.pointerId);
         previewRef.current = {
           move: null,
           angle: 0,
@@ -186,8 +206,10 @@ export function useLayerGesture({
         const point = new Vector2(event.clientX, event.clientY);
         const drag = point.clone().sub(gesture.start);
         const elapsed = Math.max(1, event.timeStamp - gesture.lastTime);
-        const velocity = (point.distanceTo(gesture.last) / elapsed) * 1_000;
-        gesture.maxVelocity = Math.max(gesture.maxVelocity, velocity);
+        gesture.velocitySamplePoint.copy(gesture.last);
+        gesture.velocitySampleTime = gesture.lastTime;
+        gesture.velocitySampleAngle = gesture.lastAngle;
+        gesture.velocitySampleMove = gesture.move;
         gesture.last.copy(point);
         gesture.lastTime = event.timeStamp;
 
@@ -203,12 +225,8 @@ export function useLayerGesture({
             MathUtils.clamp(drag.length() / 145, 0, MAX_PREVIEW_ANGLE);
           const instantaneousAngularVelocity =
             ((angle - gesture.lastAngle) / elapsed) * 1_000;
-          gesture.angularVelocity = MathUtils.clamp(
-            MathUtils.lerp(
-              gesture.angularVelocity,
-              instantaneousAngularVelocity,
-              0.72,
-            ),
+          const angularVelocity = MathUtils.clamp(
+            instantaneousAngularVelocity,
             -12,
             12,
           );
@@ -216,12 +234,11 @@ export function useLayerGesture({
           previewRef.current = {
             move,
             angle,
-            angularVelocity: gesture.angularVelocity,
+            angularVelocity,
             selectedIds: new Set(selectLayerCubieIds(cube, move)),
           };
         } else {
           gesture.lastAngle = 0;
-          gesture.angularVelocity = 0;
           previewRef.current = {
             move: null,
             angle: 0,
@@ -240,15 +257,30 @@ export function useLayerGesture({
         }
 
         event.stopPropagation();
-        const distance = new Vector2(event.clientX, event.clientY).distanceTo(gesture.start);
-        const move = gesture.move;
+        const releasePoint = new Vector2(event.clientX, event.clientY);
+        const drag = releasePoint.clone().sub(gesture.start);
+        const move = resolveLayerGesture({
+          drag: [drag.x, drag.y],
+          candidates: gesture.candidates,
+        });
+        const distance = releasePoint.distanceTo(gesture.start);
+        const angle = move ? gesturePreviewAngle(drag, move) : 0;
+        const releaseVelocity = deriveReleaseVelocity({
+          angle,
+          gesture,
+          move,
+          point: releasePoint,
+          timeStamp: event.timeStamp,
+        });
         const shouldCommit =
-          move !== null && shouldCommitLayerGesture(distance, gesture.maxVelocity);
+          move !== null &&
+          shouldCommitLayerGesture(distance, releaseVelocity.linear);
 
-        if (shouldCommit) {
+        if (shouldCommit && move) {
           previewRef.current = {
-            ...previewRef.current,
-            angularVelocity: gesture.angularVelocity,
+            move,
+            angle,
+            angularVelocity: releaseVelocity.angular,
             selectedIds: EMPTY_SELECTION,
           };
           clearGesture(true);
@@ -258,25 +290,6 @@ export function useLayerGesture({
         }
       },
 
-      onPointerCancel(event) {
-        const gesture = gestureRef.current;
-        if (!gesture || gesture.pointerId !== event.pointerId) {
-          return;
-        }
-
-        event.stopPropagation();
-        clearGesture();
-      },
-
-      onLostPointerCapture(event) {
-        const gesture = gestureRef.current;
-        if (!gesture || gesture.pointerId !== event.pointerId) {
-          return;
-        }
-
-        event.stopPropagation();
-        clearGesture();
-      },
     }),
     [
       camera,
@@ -376,16 +389,124 @@ interface PointerCaptureTarget extends EventTarget {
   setPointerCapture?: (pointerId: number) => void;
 }
 
-function capturePointer(event: ThreeEvent<PointerEvent>): PointerCaptureTarget {
-  const target = event.target as PointerCaptureTarget;
-  target.setPointerCapture?.(event.pointerId);
-  return target;
+function nativeCancellationTarget(
+  event: ThreeEvent<PointerEvent>,
+): EventTarget {
+  const nativeTarget = event.nativeEvent.target;
+  if (
+    nativeTarget &&
+    "addEventListener" in nativeTarget &&
+    "removeEventListener" in nativeTarget
+  ) {
+    return nativeTarget;
+  }
+
+  return event.target as unknown as EventTarget;
+}
+
+function capturePointer(
+  target: PointerCaptureTarget,
+  pointerId: number,
+): void {
+  target.setPointerCapture?.(pointerId);
 }
 
 function releasePointer(target: PointerCaptureTarget, pointerId: number): void {
   if (target.hasPointerCapture?.(pointerId) ?? true) {
     target.releasePointerCapture?.(pointerId);
   }
+}
+
+function addNativeCancellationListeners(gesture: ActiveGesture): void {
+  gesture.nativeTarget.addEventListener(
+    "pointercancel",
+    gesture.nativeCancelHandler,
+  );
+  gesture.nativeTarget.addEventListener(
+    "lostpointercapture",
+    gesture.nativeCancelHandler,
+  );
+}
+
+function removeNativeCancellationListeners(gesture: ActiveGesture): void {
+  gesture.nativeTarget.removeEventListener(
+    "pointercancel",
+    gesture.nativeCancelHandler,
+  );
+  gesture.nativeTarget.removeEventListener(
+    "lostpointercapture",
+    gesture.nativeCancelHandler,
+  );
+}
+
+function nativePointerId(event: Event): number | null {
+  return "pointerId" in event && typeof event.pointerId === "number"
+    ? event.pointerId
+    : null;
+}
+
+interface ReleaseVelocityOptions {
+  readonly angle: number;
+  readonly gesture: ActiveGesture;
+  readonly move: CubeMove | null;
+  readonly point: Vector2;
+  readonly timeStamp: number;
+}
+
+function deriveReleaseVelocity({
+  angle,
+  gesture,
+  move,
+  point,
+  timeStamp,
+}: ReleaseVelocityOptions): Readonly<{
+  angular: number;
+  linear: number;
+}> {
+  const releaseAge = Math.max(0, timeStamp - gesture.lastTime);
+  if (!move || releaseAge >= VELOCITY_SAMPLE_MAX_AGE_MS) {
+    return { angular: 0, linear: 0 };
+  }
+
+  const elapsed = Math.max(1, timeStamp - gesture.velocitySampleTime);
+  const freshness = MathUtils.clamp(
+    1 - releaseAge / VELOCITY_SAMPLE_MAX_AGE_MS,
+    0,
+    1,
+  );
+  const linear =
+    (point.distanceTo(gesture.velocitySamplePoint) / elapsed) *
+    1_000 *
+    freshness;
+  const compatibleMove =
+    gesture.velocitySampleMove === null ||
+    sameMove(gesture.velocitySampleMove, move);
+  const angular = compatibleMove
+    ? MathUtils.clamp(
+        ((angle - gesture.velocitySampleAngle) / elapsed) *
+          1_000 *
+          freshness,
+        -12,
+        12,
+      )
+    : 0;
+
+  return { angular, linear };
+}
+
+function gesturePreviewAngle(drag: Vector2, move: CubeMove): number {
+  return (
+    Math.sign(move.turns) *
+    MathUtils.clamp(drag.length() / 145, 0, MAX_PREVIEW_ANGLE)
+  );
+}
+
+function sameMove(left: CubeMove, right: CubeMove): boolean {
+  return (
+    left.axis === right.axis &&
+    left.layer === right.layer &&
+    left.turns === right.turns
+  );
 }
 
 function emptyPreview(): LayerVisualPreview {
