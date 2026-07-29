@@ -12,8 +12,8 @@
 
 ## Global Constraints
 
-- La dirección visual obligatoria es **La caja abierta**: copy comercial en el tercio izquierdo, cubo monumental a la derecha, líneas de troquel sutiles y una franja compacta de controles integrada al empaque.
-- La composición seleccionada y su origen trazable están documentados en `DESIGN.md`: opción A para jerarquía y escala, con la banda de controles de la opción C.
+- La dirección visual obligatoria es **La caja abierta**: franja cobalto de empaque, copy comercial en el tercio izquierdo, cubo monumental apoyado sobre líneas de troquel y columna técnica a la derecha.
+- La composición seleccionada y su origen trazable están documentados en `DESIGN.md`: combinación elegida por el usuario entre los planos de la opción A y la interfaz instrumental de la opción B.
 - Archivo Black se usa para el título y Archivo para cuerpo, controles y microcopy mediante `next/font`.
 - La interfaz usa blanco humo frío, grafito y un único acento cobalto. Los seis colores clásicos pertenecen solo al cubo. Debe incluir tema oscuro por `prefers-color-scheme`, contraste reforzado por `prefers-contrast` y superficies sólidas por `prefers-reduced-transparency`.
 - No usar degradados morados, neón, glassmorphism, tarjetas genéricas, texto decorativo, precio, stock, reseñas ni especificaciones físicas inventadas.
@@ -24,6 +24,7 @@
 - El motor puro no importa React ni Three.js y conserva posición y orientación en enteros.
 - La celebración solo se emite después de una mezcla válida, al menos un movimiento confirmado del usuario, cola vacía y estado realmente resuelto.
 - No usar `transition: all`. Hover solamente bajo `hover:hover` y `pointer:fine`. Respetar `prefers-reduced-motion`.
+- La columna técnica usa solo datos derivados del motor: 26 piezas, 9 capas, giros de 90°, movimientos, último giro, estado y progreso de mezcla. Sus animaciones se conectan al dato, se pausan con Page Visibility y desaparecen bajo movimiento reducido.
 - Objetivos táctiles mínimos de 44×44 px, foco visible, un solo H1, `aria-live="polite"` y controles alternativos fuera del canvas.
 - Debe funcionar desde 320 px sin overflow horizontal y reservar espacio estable para el canvas.
 - La escena se carga solo en cliente, usa geometrías y materiales compartidos, DPR máximo 1.75 móvil y 2 escritorio, sombras 1024 móvil y máximo 2048 escritorio, sin bloom ni profundidad de campo obligatorios.
@@ -158,10 +159,12 @@ export function isSolved(cube: readonly CubieState[]): boolean;
 - Create: `lib/cube/gesture.ts`
 - Create: `lib/game/reducer.ts`
 - Create: `lib/game/selectors.ts`
+- Create: `lib/game/telemetry.ts`
 - Create: `components/experience/FaceControls.tsx`
 - Test: `tests/unit/scramble.test.ts`
 - Test: `tests/unit/gesture.test.ts`
 - Test: `tests/unit/game-reducer.test.ts`
+- Test: `tests/unit/telemetry.test.ts`
 - Test: `tests/components/face-controls.test.tsx`
 
 **Interfaces:**
@@ -171,6 +174,7 @@ export function generateScramble(options?: { readonly length?: number; readonly 
 export function resolveLayerGesture(input: GestureProjectionInput): CubeMove | null;
 export function gameReducer(state: GameState, action: GameAction): GameState;
 export function shouldCelebrate(state: GameState): boolean;
+export function createTelemetrySnapshot(state: GameState, activeMove?: CubeMove): CubeTelemetry;
 ```
 
 **Steps:**
@@ -181,10 +185,12 @@ export function shouldCelebrate(state: GameState): boolean;
 4. Verify RED, then implement pure gesture resolution without browser or Three.js dependencies.
 5. Write failing reducer tests for queue, confirmed moves, undo, reset, scramble lifecycle and celebration guards.
 6. Verify RED, implement reducer and selectors, and keep transient animation values outside state.
-7. Write component tests for visible natural-language face and inverse controls, localized names and disabled animation state while purchase remains unaffected. Dimension checks belong to Playwright because jsdom does not calculate layout.
-8. Implement `FaceControls` as an expandable HTML control group with visible localized labels such as `Derecha horario` and `Direita anti-horário`; notation can appear only as secondary help. Use Phosphor icons only where a familiar symbol exists.
-9. Run focused tests, then `npm test`, `npm run typecheck` and `npm run lint`.
-10. Commit with `feat: add cubo game controls and gestures`.
+7. Write failing telemetry tests for 26 pieces, 9 layers, 90-degree direction, 8 or 9 active piece identifiers, confirmed move count, localized-ready status keys and scramble progress over the actual queue.
+8. Verify RED, implement a typed telemetry snapshot that exposes data without importing React or Three.js.
+9. Write component tests for visible natural-language face and inverse controls, localized names and disabled animation state while purchase remains unaffected. Dimension checks belong to Playwright because jsdom does not calculate layout.
+10. Implement `FaceControls` as an expandable HTML control group with visible localized labels such as `Derecha horario` and `Direita anti-horário`; notation can appear only as secondary help. Use Phosphor icons only where a familiar symbol exists.
+11. Run focused tests, then `npm test`, `npm run typecheck` and `npm run lint`.
+12. Commit with `feat: add cubo game controls and gestures`.
 
 ## Task 4: Render and manipulate the premium 3D cube
 
@@ -230,6 +236,7 @@ export function shouldCelebrate(state: GameState): boolean;
 - Create: `components/experience/HelpDialog.tsx`
 - Create: `components/experience/SuccessMoment.tsx`
 - Create: `components/experience/LanguageSwitch.tsx`
+- Create: `components/experience/LiveTelemetry.tsx`
 - Create: `components/experience/PurchaseLink.tsx`
 - Create: `components/experience/experience.module.css`
 - Create: `components/experience/useLocale.ts`
@@ -238,14 +245,15 @@ export function shouldCelebrate(state: GameState): boolean;
 - Test: `tests/components/experience.test.tsx`
 - Test: `tests/components/help-dialog.test.tsx`
 - Test: `tests/components/success-moment.test.tsx`
+- Test: `tests/components/live-telemetry.test.tsx`
 
 **Direction Contract to place near `app/page.tsx`:**
 
 ```text
 THESIS: A premium cube package opens into the play surface and makes the product itself the sales argument.
-OWN-WORLD: Die-cut folds, registration marks, satin graphite plastic and compact printed controls belong specifically to product packaging and this cube.
+OWN-WORLD: Die-cut folds, registration marks, satin graphite plastic and live printed instruments belong specifically to product packaging and this cube.
 STORY: See the product, accept the scramble, learn direct manipulation, solve it, then carry the challenge into your hands through WhatsApp.
-FIRST VIEWPORT: One H1, promise, scramble action, monumental playable cube and purchase CTA remain visible without decorative detours.
+FIRST VIEWPORT: One H1, promise, scramble action, monumental playable cube, truthful live telemetry and purchase CTA remain visible without decorative detours.
 FORM: Modular toy packaging, concept seed fed89b21 candidate 6, staged as a wide desktop carton and single-column mobile fold.
 ```
 
@@ -253,15 +261,17 @@ FORM: Modular toy packaging, concept seed fed89b21 candidate 6, staged as a wide
 
 1. Write failing component tests for initial locale precedence, manual persistence, `lang` updates, exact ES/PT copy, state preservation on switch and localized WhatsApp links.
 2. Verify RED, then implement the locale hook and the full semantic experience shell.
-3. Reproduce the selected composition: left commercial hierarchy, oversized right cube, header purchase action, subtle fold lines and integrated control dock. Keep the product as the only multicolor element.
+3. Reproduce the selected hybrid composition: cobalt packaging spine, left commercial hierarchy, oversized cube resting on unfolded plans, right live-telemetry column, header purchase action and integrated control dock. Keep the product as the only multicolor element.
 4. Write failing help-dialog tests for localized content, focus entry, Escape, close and focus restoration.
 5. Verify RED, implement the accessible dialog and compact first-use hint.
 6. Write failing success and status-announcer tests for the exact guard conditions, localized message, `Comprar ahora` link, last confirmed move, scramble completion, reset and scene error.
 7. Verify RED, implement the success overlay and connect a restrained cube separation and 700 to 900 ms light sweep. Reduced motion uses color and opacity only.
-8. Ensure every control uses explicit transitions, press feedback, visible focus and fine-pointer-only hover. Use one `aria-live="polite"` announcer for last confirmed move, scramble completion, reset, scene error and resolution without duplicating speech.
-9. Add responsive rules for notebook, 390×844 and 320×700, including a safe-area-aware purchase action that never covers the canvas controls. Add system dark theme, `prefers-contrast: more` and `prefers-reduced-transparency` treatments, each covered by focused style or browser assertions.
-10. Run focused tests, `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`.
-11. Commit with `feat: complete bilingual cubo sales experience`.
+8. Write failing tests for all Spanish and Portuguese telemetry labels, active-piece matrix, active-layer diagram, direction, animated move value, last move, state and scramble progress.
+9. Implement `LiveTelemetry` from the typed snapshot. Use transform and opacity for meaningful ongoing micro-animation, pause it through Page Visibility, mark decorative meters `aria-hidden` and expose one non-live textual summary.
+10. Ensure every control uses explicit transitions, press feedback, visible focus and fine-pointer-only hover. Use one `aria-live="polite"` announcer for last confirmed move, scramble completion, reset, scene error and resolution without duplicating speech.
+11. Add responsive rules for notebook, 390×844 and 320×700, including a safe-area-aware purchase action that never covers the canvas controls. On mobile, reduce telemetry to a horizontal summary for movements, state and scramble progress with the full instrument in an expandable region. Add system dark theme, `prefers-contrast: more` and `prefers-reduced-transparency` treatments, each covered by focused style or browser assertions.
+12. Run focused tests, `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`.
+13. Commit with `feat: complete bilingual cubo sales experience`.
 
 ## Task 6: Verify the full story, optimize assets and publish production documentation
 
@@ -283,7 +293,7 @@ FORM: Modular toy packaging, concept seed fed89b21 candidate 6, staged as a wide
 
 1. Refine and reuse the vector poster created with the scene so it matches the final rendered cube, then add metadata assets. Keep the poster light and without third-party branding.
 2. Add metadata, OG image, robots and sitemap with a configurable production origin that defaults safely for local build.
-3. Write Playwright coverage for desktop, 390×844 and 320×700: first viewport, ES/PT, WhatsApp URL, keyboard, scramble, move, undo, reset, orbit, layer gesture, deterministic WebGL absence via a pre-navigation canvas override and no horizontal overflow. Use `boundingBox` assertions for every primary touch target to verify at least 44×44 px.
+3. Write Playwright coverage for desktop, 390×844 and 320×700: first viewport, ES/PT, WhatsApp URL, keyboard, scramble, move, undo, reset, orbit, layer gesture, responsive telemetry, deterministic WebGL absence via a pre-navigation canvas override and no horizontal overflow. Use `boundingBox` assertions for every primary touch target to verify at least 44×44 px.
 4. Capture deterministic light and dark screenshots from the solved initial state with reduced motion enabled and a fixed camera. Review them manually against the portable composition contract in `DESIGN.md`, record the reviewed files as Playwright artifacts and remove any element that does not serve product, challenge or purchase.
 5. Run animation review against Emil's rules and fix all high-confidence issues.
 6. Run web-interface and React best-practice reviews, then fix critical and important findings.

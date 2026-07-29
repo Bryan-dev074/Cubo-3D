@@ -16,7 +16,7 @@ Vender un cubo mágico físico mediante una demostración 3D jugable. La experie
 
 ## Positioning
 
-La página no presenta el producto con una animación decorativa: convierte el propio cubo en una demostración interactiva y en el centro del recorrido de compra.
+La página no presenta el producto con una animación decorativa: convierte el propio cubo en una demostración interactiva y en el centro del recorrido de compra. Una instrumentación técnica muestra datos reales del juego y responde a cada capa, giro y cambio de estado.
 
 ## Operating Context
 
@@ -33,6 +33,8 @@ La página no presenta el producto con una animación decorativa: convierte el p
 - Controles naturales con mouse y touch, con respuesta visual inmediata.
 - Acción explícita para desordenar el cubo.
 - Detección real del estado resuelto, no una celebración basada solamente en tiempo o número de movimientos.
+- Telemetría viva y bilingüe derivada del motor: 26 piezas, 9 capas, giros de 90°, movimientos, último giro, estado y progreso de mezcla.
+- Indicadores animados que representan la capa y las piezas activas; nunca métricas decorativas o especificaciones físicas inventadas.
 - Animación de felicitación al resolverlo y CTA de compra contextual.
 - CTA de compra siempre disponible y CTA reforzado después de completar el reto.
 - Todos los CTA comerciales deben abrir `wa.me/595982064334` con un mensaje bien redactado, en el idioma activo y con emojis moderados.
@@ -52,6 +54,7 @@ La página no presenta el producto con una animación decorativa: convierte el p
 - La referencia de proceso 3D es `img2threejs/img2threejs`.
 - Las referencias de criterio visual y motion son Impeccable, Emil Kowalski y Taste Skill.
 - El video `https://www.youtube.com/watch?v=rvJz-dmQO9Q` es inspiración de punto de partida, no una pieza para copiar.
+- La composición final combina el plano desplegado de la opción visual 1 con la columna técnica y la franja cobalto de la opción 2.
 
 ## Evidence on Hand
 

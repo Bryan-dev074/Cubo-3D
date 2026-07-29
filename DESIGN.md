@@ -97,8 +97,24 @@ Los cubitos tienen biseles pequeños y separación real entre piezas. Los sticke
 
 ## Selected Composition
 
-La composición principal adopta la opción A del estudio visual: promesa y desafío en el tercio izquierdo, cubo monumental a la derecha y CTA siempre visible en el encabezado. De la opción C se integra solamente una banda de controles compacta que funciona como pliegue impreso del empaque. Se descarta la opción B porque la columna de especificaciones aumenta la densidad y requeriría información comercial no disponible.
+La composición final combina las opciones A y B del estudio visual, según la elección del usuario. De A conserva el cubo apoyado sobre planos de troquel desplegados, la jerarquía comercial izquierda y la gran escala del producto. De B adopta la franja cobalto, el rigor instrumental y una columna técnica derecha. La columna no publica peso, materiales, magnetismo ni prestaciones no confirmadas: muestra telemetría real del cubo jugable.
 
 La tipografía de implementación será **Archivo Black** para el título de producto y **Archivo** para cuerpo, controles y microcopy. Comparten construcción industrial, admiten español y portugués y permiten distinguir voz de empaque y voz funcional sin introducir una serif editorial genérica.
 
 La dirección surgió del concept seed `fed89b21`, candidato 6: empaque modular de juguete con troquel. Este dato identifica el origen de la forma y no se muestra como contenido de la página.
+
+## Live Instrumentation
+
+La columna técnica funciona como un instrumento conectado al objeto, no como una lista de ventajas comerciales. Muestra:
+
+- Una matriz de 26 puntos; las piezas de la capa activa se encienden.
+- Un diagrama de 9 capas; la capa seleccionada se desplaza o resalta.
+- Un indicador de 90 grados que adopta la dirección del giro.
+- Un contador de movimientos con transición numérica.
+- El último giro con nombre natural localizado.
+- El estado actual: listo, desordenando, en juego o resuelto.
+- El progreso de mezcla sobre 20 movimientos.
+
+La instrumentación conserva actividad visual mínima y significativa. El punto de estado respira cuando está listo, los ticks direccionales avanzan durante un giro y la matriz reacciona solo a las piezas afectadas. Las animaciones se pausan cuando la pestaña queda oculta. Con movimiento reducido, los mismos cambios se expresan mediante estados estáticos de color, texto y contraste.
+
+En móvil, la columna se convierte en una banda horizontal de tres datos prioritarios. El resto queda disponible en un control expandible sin desplazar el cubo fuera del primer viewport.

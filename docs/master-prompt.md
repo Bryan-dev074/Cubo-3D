@@ -17,7 +17,7 @@ La dirección se llama **La caja abierta**. Convierte un empaque premium despleg
 - Fondo blanco humo frío y alternativa grafito según el esquema del sistema.
 - Interfaz monocromática con un solo acento azul cobalto.
 - Los seis colores clásicos pertenecen exclusivamente al cubo.
-- Composición asimétrica: promesa comercial a la izquierda y cubo monumental a la derecha.
+- Composición asimétrica: franja cobalto de empaque, promesa comercial a la izquierda, cubo monumental apoyado sobre el plano desplegado y columna técnica a la derecha.
 - Líneas de pliegue y registro sutiles inspiradas en troqueles de empaque.
 - Franja compacta de controles integrada como un pliegue del empaque.
 - Mucho aire, alto contraste y ausencia de tarjetas genéricas.
@@ -101,6 +101,22 @@ Mensaje en portugués:
 - Ofrecer deshacer, reiniciar y ayuda.
 - Deshabilitar acciones incompatibles durante una animación, pero nunca la compra.
 - Celebrar solo si hubo mezcla válida, el usuario hizo al menos un movimiento posterior, la cola está vacía y el estado es realmente resuelto.
+
+## Instrumentación viva
+
+Incorpora una columna técnica inspirada en un instrumento industrial, pero usa solamente información real derivada del motor:
+
+- `26 piezas` / `26 peças`, con una matriz de puntos que resalta las 8 o 9 piezas de la capa activa.
+- `9 capas` / `9 camadas`, con un mini diagrama que responde al eje y nivel seleccionado.
+- `Giros de 90°`, con indicador de dirección conectado al signo del movimiento.
+- `Movimientos` / `Movimentos`, con transición numérica.
+- `Último giro`, con nombre natural localizado.
+- `Estado`, con listo, desordenando, en juego y resuelto en ambos idiomas.
+- `Mezcla` / `Mistura`, con progreso real sobre 20 movimientos.
+
+La actividad constante debe ser mínima y significativa: respiración del estado al estar listo, ticks durante un giro, cambio de capa y pulso de piezas afectadas. Pausar al ocultar la pestaña y eliminar repetición bajo `prefers-reduced-motion`. Los indicadores visuales son `aria-hidden`; los mismos datos se exponen como texto sin convertir cada frame en un anuncio accesible.
+
+En móvil, condensar la instrumentación en una banda horizontal con movimientos, estado y progreso. Los demás datos quedan en un control expandible.
 
 ## Motion
 

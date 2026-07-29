@@ -27,6 +27,7 @@ La dirección se llama **La caja abierta**. La página se comporta como un empaq
 - Encabezado compacto con marca textual, selector `ES / PT` y CTA de compra.
 - Contenido comercial en el tercio izquierdo en escritorio.
 - Cubo 3D de gran escala ocupando el centro y lado derecho.
+- Franja cobalto de empaque y columna técnica conectada al estado real del cubo.
 - Botón de desafío y CTA comercial visibles.
 - Controles esenciales agrupados cerca del cubo.
 - En móvil: contenido, cubo y controles en una sola columna, con compra accesible junto al borde inferior.
@@ -47,6 +48,8 @@ La dirección se llama **La caja abierta**. La página se comporta como un empaq
 - Cambios ordinarios por debajo de 300 ms con `ease-out`.
 - Giros de capa mediante resorte interrumpible, sin rebote cuando provienen de botones y con una transferencia sutil de velocidad cuando provienen de un gesto.
 - Rotación ambiental mínima y detenida durante interacción.
+- Instrumentación con actividad continua muy sutil y semántica: matriz de piezas, indicador de capa, dirección, contador y estado responden a los datos que representan.
+- Pausar toda animación repetitiva cuando el documento no está visible.
 - Celebración excepcional con separación corta de piezas y barrido de luz.
 - `prefers-reduced-motion` sustituye desplazamientos por opacidad e iluminación.
 
@@ -82,6 +85,43 @@ La dirección se llama **La caja abierta**. La página se comporta como un empaq
 - Actualizar `document.documentElement.lang`.
 - Traducir copy, tooltips, diálogo de ayuda, estados, errores, etiquetas accesibles y mensaje de WhatsApp.
 - Mantener diccionarios tipados con paridad comprobable.
+
+### Telemetría
+
+Etiquetas en español:
+
+- `26 piezas`
+- `9 capas`
+- `Giros de 90°`
+- `Movimientos`
+- `Último giro`
+- `Estado`
+- `Mezcla`
+- Estados: `Listo`, `Desordenando`, `En juego`, `Resuelto`
+
+Etiquetas en portugués:
+
+- `26 peças`
+- `9 camadas`
+- `Giros de 90°`
+- `Movimentos`
+- `Último giro`
+- `Estado`
+- `Mistura`
+- Estados: `Pronto`, `Embaralhando`, `Em jogo`, `Resolvido`
+
+Los valores proceden únicamente del motor:
+
+- Total fijo de 26 cubitos visibles.
+- Total fijo de 9 capas entre los tres ejes.
+- Un movimiento confirmado representa 90 o 180 grados; el indicador ordinario muestra el cuarto de vuelta actual.
+- Contador de movimientos confirmados del usuario.
+- Último movimiento con cara o capa, dirección y nombre natural localizado.
+- Estado de ciclo.
+- Progreso de la cola de mezcla sobre sus 20 movimientos predeterminados.
+- Identificadores de las 8 o 9 piezas afectadas por la capa activa.
+
+La matriz de piezas enciende exclusivamente los cubitos afectados. El diagrama de capas cambia con eje y nivel. El indicador de dirección rota según el signo. El contador transiciona entre valores. El estado usa texto además de movimiento y color. La telemetría decorativa usa `aria-hidden`; un resumen textual accesible evita anuncios continuos.
 
 ## WhatsApp
 
@@ -250,6 +290,8 @@ Con movimiento reducido solo se usa un cambio breve de color y opacidad. El éxi
 
 `MagicCubeExperience` controla idioma, estado de interfaz, diálogo, mensajes y conexión con el motor.
 
+`LiveTelemetry` recibe un snapshot tipado y representa la instrumentación sin recalcular la lógica del cubo.
+
 ### Escena
 
 `CubeCanvas` carga React Three Fiber de forma dinámica. `MagicCube` representa los 26 cubitos y aplica animaciones imperativas dentro de `useFrame`, sin actualizar React por cada frame.
@@ -270,6 +312,7 @@ Los módulos de `lib/cube` no importan React ni Three.js. Todas las transformaci
 - Póster local inmediato.
 - Render bajo demanda cuando la escena está quieta.
 - Ningún valor continuo de puntero vive en React state.
+- Las animaciones repetitivas de telemetría usan `transform` y `opacity`, se detienen con Page Visibility y desaparecen bajo movimiento reducido.
 - Limpieza de listeners, geometrías, materiales y animaciones.
 
 Objetivos:
@@ -314,6 +357,7 @@ Objetivos:
 - Detección de estado resuelto con centros rotados.
 - Paridad de diccionarios y URL de WhatsApp.
 - Resolución de gesto desde proyecciones sintéticas.
+- Snapshot de telemetría, piezas activas, estado y progreso de mezcla.
 
 ### Componentes
 
@@ -323,6 +367,7 @@ Objetivos:
 - Ayuda.
 - Éxito y CTA.
 - Fallback de canvas.
+- Telemetría localizada y reacción a movimiento, capa, estado y mezcla.
 
 ### E2E
 
@@ -335,6 +380,7 @@ Objetivos:
 - URL de WhatsApp en ambos idiomas.
 - Sin overflow horizontal.
 - Capturas en temas claro y oscuro.
+- Columna técnica completa en escritorio y banda resumida en móvil.
 
 ## Entregables
 
