@@ -1,4 +1,5 @@
 import { applyMove, inverseMove } from "@/lib/cube/moves";
+import { assertValidScramble } from "@/lib/cube/scramble";
 import { isSolved } from "@/lib/cube/solved";
 import { createSolvedCube } from "@/lib/cube/state";
 import type { CubeMove, CubieState } from "@/lib/cube/types";
@@ -66,6 +67,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return confirmActiveMove(state);
 
     case "start-scramble":
+      assertValidScramble(action.moves);
       if (state.queue.length > 0) {
         return state;
       }

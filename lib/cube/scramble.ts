@@ -36,8 +36,52 @@ export function generateScramble(options: {
 
     const result = moves.reduce((cube, move) => applyMove(cube, move), createSolvedCube());
     if (!isSolved(result)) {
+      assertValidScramble(moves);
       return Object.freeze(moves);
     }
+  }
+}
+
+export function assertValidScramble(moves: readonly CubeMove[]): void {
+  if (moves.length < 18 || moves.length > 22) {
+    throw new Error("Invalid scramble: expected 18 to 22 moves");
+  }
+
+  for (let index = 0; index < moves.length; index += 1) {
+    const move = moves[index];
+    if (
+      (move.axis !== "x" && move.axis !== "y" && move.axis !== "z") ||
+      (move.layer !== -1 && move.layer !== 1)
+    ) {
+      throw new Error("Invalid scramble: external layers only");
+    }
+
+    if (move.turns !== -1 && move.turns !== 1) {
+      throw new Error("Invalid scramble: quarter turns only");
+    }
+
+    const previous = moves[index - 1];
+    if (!previous) {
+      continue;
+    }
+
+    const sameFace = move.axis === previous.axis && move.layer === previous.layer;
+    if (sameFace && move.turns === -previous.turns) {
+      throw new Error("Invalid scramble: immediate inverse");
+    }
+
+    if (sameFace) {
+      throw new Error("Invalid scramble: repeated face");
+    }
+
+    if (move.axis === previous.axis) {
+      throw new Error("Invalid scramble: consecutive moves on the same axis");
+    }
+  }
+
+  const result = moves.reduce((cube, move) => applyMove(cube, move), createSolvedCube());
+  if (isSolved(result)) {
+    throw new Error("Invalid scramble: sequence must leave a solved cube unsolved");
   }
 }
 

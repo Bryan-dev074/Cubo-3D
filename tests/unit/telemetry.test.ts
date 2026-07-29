@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { generateScramble } from "@/lib/cube/scramble";
 import type { CubeMove } from "@/lib/cube/types";
 import { createInitialGameState, gameReducer } from "@/lib/game/reducer";
 import { createTelemetrySnapshot } from "@/lib/game/telemetry";
@@ -41,39 +42,45 @@ describe("createTelemetrySnapshot", () => {
   });
 
   it("reports actual scramble progress from confirmed and still-queued scramble moves", () => {
+    const scramble = generateScramble({ length: 18, seed: 3401 });
     let state = createInitialGameState();
-    state = gameReducer(state, { type: "start-scramble", moves: [RIGHT, UP] });
+    state = gameReducer(state, { type: "start-scramble", moves: scramble });
 
-    expect(createTelemetrySnapshot(state, RIGHT).scrambleProgress).toEqual({
+    expect(createTelemetrySnapshot(state, scramble[0]).scrambleProgress).toEqual({
       confirmed: 0,
-      total: 2,
-      remaining: 2,
+      total: 18,
+      remaining: 18,
     });
 
     state = gameReducer(state, { type: "confirm-move" });
-    expect(createTelemetrySnapshot(state, UP).scrambleProgress).toEqual({
+    expect(createTelemetrySnapshot(state, scramble[1]).scrambleProgress).toEqual({
       confirmed: 1,
-      total: 2,
-      remaining: 1,
+      total: 18,
+      remaining: 17,
     });
 
-    state = gameReducer(state, { type: "confirm-move" });
+    for (let index = 1; index < scramble.length; index += 1) {
+      state = gameReducer(state, { type: "confirm-move" });
+    }
     expect(createTelemetrySnapshot(state).scrambleProgress).toEqual({
-      confirmed: 2,
-      total: 2,
+      confirmed: 18,
+      total: 18,
       remaining: 0,
     });
     expect(createTelemetrySnapshot(state).statusKey).toBe("playing");
   });
 
   it("reports confirmed user count and the last confirmed move without counting scramble", () => {
+    const scramble = generateScramble({ length: 18, seed: 3402 });
     let state = createInitialGameState();
-    state = gameReducer(state, { type: "start-scramble", moves: [RIGHT] });
-    state = gameReducer(state, { type: "confirm-move" });
+    state = gameReducer(state, { type: "start-scramble", moves: scramble });
+    for (let index = 0; index < scramble.length; index += 1) {
+      state = gameReducer(state, { type: "confirm-move" });
+    }
 
     let snapshot = createTelemetrySnapshot(state);
     expect(snapshot.confirmedUserMoves).toBe(0);
-    expect(snapshot.lastConfirmedMove).toEqual(RIGHT);
+    expect(snapshot.lastConfirmedMove).toEqual(scramble.at(-1));
 
     state = gameReducer(state, { type: "queue-move", move: UP });
     state = gameReducer(state, { type: "confirm-move" });

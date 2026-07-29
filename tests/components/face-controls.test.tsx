@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FaceControls } from "@/components/experience/FaceControls";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import type { Axis, AxisValue } from "@/lib/cube/types";
 
 const SPANISH_LAYERS = [
   "Derecha",
@@ -16,6 +17,32 @@ const SPANISH_LAYERS = [
   "Centro horizontal",
   "Centro frontal",
 ] as const;
+
+const MOVE_CASES = [
+  { label: "Derecha horario", axis: "x", layer: 1, turns: -1 },
+  { label: "Derecha antihorario", axis: "x", layer: 1, turns: 1 },
+  { label: "Izquierda horario", axis: "x", layer: -1, turns: 1 },
+  { label: "Izquierda antihorario", axis: "x", layer: -1, turns: -1 },
+  { label: "Superior horario", axis: "y", layer: 1, turns: -1 },
+  { label: "Superior antihorario", axis: "y", layer: 1, turns: 1 },
+  { label: "Inferior horario", axis: "y", layer: -1, turns: 1 },
+  { label: "Inferior antihorario", axis: "y", layer: -1, turns: -1 },
+  { label: "Frontal horario", axis: "z", layer: 1, turns: -1 },
+  { label: "Frontal antihorario", axis: "z", layer: 1, turns: 1 },
+  { label: "Trasera horario", axis: "z", layer: -1, turns: 1 },
+  { label: "Trasera antihorario", axis: "z", layer: -1, turns: -1 },
+  { label: "Centro vertical horario", axis: "x", layer: 0, turns: 1 },
+  { label: "Centro vertical antihorario", axis: "x", layer: 0, turns: -1 },
+  { label: "Centro horizontal horario", axis: "y", layer: 0, turns: 1 },
+  { label: "Centro horizontal antihorario", axis: "y", layer: 0, turns: -1 },
+  { label: "Centro frontal horario", axis: "z", layer: 0, turns: -1 },
+  { label: "Centro frontal antihorario", axis: "z", layer: 0, turns: 1 },
+] as const satisfies readonly {
+  readonly label: string;
+  readonly axis: Axis;
+  readonly layer: AxisValue;
+  readonly turns: -1 | 1;
+}[];
 
 afterEach(cleanup);
 
@@ -49,16 +76,16 @@ describe("FaceControls", () => {
     expect(within(group).queryByRole("button", { name: "R" })).not.toBeInTheDocument();
   });
 
-  it("emits the exact layer move selected through a natural-language control", async () => {
+  it.each(MOVE_CASES)("emits the exact $label move", async ({ label, axis, layer, turns }) => {
     const user = userEvent.setup();
     const onMove = vi.fn();
     render(<FaceControls dictionary={dictionaries.es} onMove={onMove} />);
 
     await user.click(screen.getByRole("button", { name: "Mostrar controles por capa" }));
-    await user.click(screen.getByRole("button", { name: "Derecha horario" }));
+    await user.click(screen.getByRole("button", { name: label }));
 
     expect(onMove).toHaveBeenCalledOnce();
-    expect(onMove).toHaveBeenCalledWith({ axis: "x", layer: 1, turns: -1 });
+    expect(onMove).toHaveBeenCalledWith({ axis, layer, turns });
   });
 
   it("disables only move controls during animation and leaves purchase unaffected", async () => {

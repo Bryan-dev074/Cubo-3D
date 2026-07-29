@@ -1,13 +1,44 @@
 import { describe, expect, it } from "vitest";
 
 import { inverseMove } from "@/lib/cube/moves";
+import { generateScramble } from "@/lib/cube/scramble";
 import { isSolved } from "@/lib/cube/solved";
 import type { CubeMove } from "@/lib/cube/types";
-import { createInitialGameState, gameReducer } from "@/lib/game/reducer";
+import { createInitialGameState, gameReducer, type GameState } from "@/lib/game/reducer";
 import { selectActiveMove, selectGameStatus, shouldCelebrate } from "@/lib/game/selectors";
 
 const RIGHT: CubeMove = { axis: "x", layer: 1, turns: 1 };
 const UP: CubeMove = { axis: "y", layer: 1, turns: -1 };
+const INVALID_BASE = generateScramble({ length: 18, seed: 3301 });
+
+function invalidScrambleAt(index: number, move: CubeMove): readonly CubeMove[] {
+  return INVALID_BASE.map((candidate, candidateIndex) =>
+    candidateIndex === index ? move : candidate,
+  );
+}
+
+function confirmMoves(state: GameState, count: number): GameState {
+  return Array.from({ length: count }).reduce<GameState>(
+    (current) => gameReducer(current, { type: "confirm-move" }),
+    state,
+  );
+}
+
+function completeChallenge(seed: number): GameState {
+  const scramble = generateScramble({ length: 18, seed });
+  let state = gameReducer(createInitialGameState(), {
+    type: "start-scramble",
+    moves: scramble,
+  });
+  state = confirmMoves(state, scramble.length);
+
+  for (const move of [...scramble].reverse().map(inverseMove)) {
+    state = gameReducer(state, { type: "queue-move", move });
+    state = gameReducer(state, { type: "confirm-move" });
+  }
+
+  return state;
+}
 
 describe("gameReducer", () => {
   it("queues visual moves without changing logical cube state or history", () => {
@@ -40,11 +71,12 @@ describe("gameReducer", () => {
   });
 
   it("tracks the real scramble lifecycle without counting scramble moves as user moves", () => {
+    const scramble = generateScramble({ length: 18, seed: 3101 });
     let state = createInitialGameState();
-    state = gameReducer(state, { type: "start-scramble", moves: [RIGHT, UP] });
+    state = gameReducer(state, { type: "start-scramble", moves: scramble });
 
     expect(state.scramble).toEqual({
-      total: 2,
+      total: 18,
       confirmed: 0,
       completed: false,
       valid: false,
@@ -54,12 +86,12 @@ describe("gameReducer", () => {
     state = gameReducer(state, { type: "confirm-move" });
     expect(state.scramble.confirmed).toBe(1);
     expect(state.confirmedUserMoves).toBe(0);
-    expect(state.lastConfirmedMove).toEqual(RIGHT);
+    expect(state.lastConfirmedMove).toEqual(scramble[0]);
 
-    state = gameReducer(state, { type: "confirm-move" });
+    state = confirmMoves(state, scramble.length - 1);
     expect(state.scramble).toEqual({
-      total: 2,
-      confirmed: 2,
+      total: 18,
+      confirmed: 18,
       completed: true,
       valid: true,
     });
@@ -73,11 +105,12 @@ describe("gameReducer", () => {
     state = gameReducer(state, { type: "queue-move", move: RIGHT });
     state = gameReducer(state, { type: "confirm-move" });
     const cubeBeforeScramble = state.cube;
+    const scramble = generateScramble({ length: 18, seed: 3102 });
 
-    const scrambleQueued = gameReducer(state, { type: "start-scramble", moves: [UP] });
+    const scrambleQueued = gameReducer(state, { type: "start-scramble", moves: scramble });
 
     expect(scrambleQueued.cube).toBe(cubeBeforeScramble);
-    expect(scrambleQueued.queue).toEqual([{ move: UP, origin: "scramble" }]);
+    expect(scrambleQueued.queue[0]).toEqual({ move: scramble[0], origin: "scramble" });
   });
 
   it("queues and confirms the inverse of the last confirmed user move for undo", () => {
@@ -106,10 +139,9 @@ describe("gameReducer", () => {
   });
 
   it("resets to a fresh solved lifecycle with no queue, history or celebration", () => {
+    const scramble = generateScramble({ length: 18, seed: 3103 });
     let state = createInitialGameState();
-    state = gameReducer(state, { type: "start-scramble", moves: [RIGHT] });
-    state = gameReducer(state, { type: "confirm-move" });
-    state = gameReducer(state, { type: "queue-move", move: inverseMove(RIGHT) });
+    state = gameReducer(state, { type: "start-scramble", moves: scramble });
     state = gameReducer(state, { type: "confirm-move" });
     state = gameReducer(state, { type: "mark-celebrated" });
 
@@ -132,49 +164,78 @@ describe("gameReducer", () => {
 
 describe("shouldCelebrate", () => {
   it("requires a valid completed scramble, a confirmed user move, an empty queue and solved cube", () => {
+    const scramble = generateScramble({ length: 18, seed: 3201 });
     let state = createInitialGameState();
     expect(shouldCelebrate(state)).toBe(false);
 
-    state = gameReducer(state, { type: "start-scramble", moves: [RIGHT] });
+    state = gameReducer(state, { type: "start-scramble", moves: scramble });
     expect(shouldCelebrate(state)).toBe(false);
 
-    state = gameReducer(state, { type: "confirm-move" });
+    state = confirmMoves(state, scramble.length);
     expect(state.scramble.valid).toBe(true);
     expect(shouldCelebrate(state)).toBe(false);
 
-    state = gameReducer(state, { type: "queue-move", move: inverseMove(RIGHT) });
-    expect(shouldCelebrate(state)).toBe(false);
+    const solution = [...scramble].reverse().map(inverseMove);
+    for (const move of solution.slice(0, -1)) {
+      state = gameReducer(state, { type: "queue-move", move });
+      state = gameReducer(state, { type: "confirm-move" });
+      expect(shouldCelebrate(state)).toBe(false);
+    }
 
+    state = gameReducer(state, { type: "queue-move", move: solution.at(-1)! });
+    expect(shouldCelebrate(state)).toBe(false);
     state = gameReducer(state, { type: "confirm-move" });
     expect(shouldCelebrate(state)).toBe(true);
     expect(selectGameStatus(state)).toBe("solved");
   });
 
   it("emits at most once per scramble cycle", () => {
-    let state = createInitialGameState();
-    state = gameReducer(state, { type: "start-scramble", moves: [RIGHT] });
-    state = gameReducer(state, { type: "confirm-move" });
-    state = gameReducer(state, { type: "queue-move", move: inverseMove(RIGHT) });
-    state = gameReducer(state, { type: "confirm-move" });
+    let state = completeChallenge(3202);
 
     expect(shouldCelebrate(state)).toBe(true);
     state = gameReducer(state, { type: "mark-celebrated" });
     expect(shouldCelebrate(state)).toBe(false);
   });
 
-  it("rejects a scramble cycle whose confirmed sequence finished solved", () => {
-    let state = createInitialGameState();
-    state = gameReducer(state, {
-      type: "start-scramble",
-      moves: [RIGHT, RIGHT, RIGHT, RIGHT],
-    });
+  it.each([
+    {
+      label: "too-short sequence",
+      moves: [RIGHT],
+      message: "Invalid scramble: expected 18 to 22 moves",
+    },
+    {
+      label: "central layer",
+      moves: invalidScrambleAt(0, { axis: "x", layer: 0, turns: 1 }),
+      message: "Invalid scramble: external layers only",
+    },
+    {
+      label: "half turn",
+      moves: invalidScrambleAt(0, { axis: "x", layer: 1, turns: 2 }),
+      message: "Invalid scramble: quarter turns only",
+    },
+    {
+      label: "immediate inverse",
+      moves: invalidScrambleAt(1, inverseMove(INVALID_BASE[0])),
+      message: "Invalid scramble: immediate inverse",
+    },
+    {
+      label: "repeated face",
+      moves: invalidScrambleAt(1, INVALID_BASE[0]),
+      message: "Invalid scramble: repeated face",
+    },
+    {
+      label: "consecutive axis",
+      moves: invalidScrambleAt(1, {
+        axis: INVALID_BASE[0].axis,
+        layer: INVALID_BASE[0].layer === 1 ? -1 : 1,
+        turns: 1,
+      }),
+      message: "Invalid scramble: consecutive moves on the same axis",
+    },
+  ])("rejects a malformed $label before it can create a celebration cycle", ({ moves, message }) => {
+    const initial = createInitialGameState();
 
-    for (let index = 0; index < 4; index += 1) {
-      state = gameReducer(state, { type: "confirm-move" });
-    }
-
-    expect(state.scramble.completed).toBe(true);
-    expect(state.scramble.valid).toBe(false);
-    expect(shouldCelebrate(state)).toBe(false);
+    expect(() => gameReducer(initial, { type: "start-scramble", moves })).toThrow(message);
+    expect(shouldCelebrate(initial)).toBe(false);
   });
 });
