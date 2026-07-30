@@ -40,6 +40,7 @@ export interface CubeSceneProps {
 
 interface SceneBudget {
   readonly dprCap: number;
+  readonly isMobile: boolean;
   readonly shadowSize: 512 | 1024;
 }
 
@@ -61,21 +62,35 @@ const VIEW_CONFIG: Readonly<
   >
 > = Object.freeze({
   neutral: {
-    camera: [5.45, 4.35, 5.8],
+    camera: [6.45, 5.15, 6.85],
     key: [4.8, 7.2, 4.5],
-    keyIntensity: 3.25,
+    keyIntensity: 145,
   },
   grazing: {
-    camera: [6.35, 1.75, 6.5],
+    camera: [7.5, 2.05, 7.7],
     key: [5.8, 2.1, 1.6],
-    keyIntensity: 4.15,
+    keyIntensity: 165,
   },
   opposite: {
-    camera: [-5.65, 3.85, -5.9],
+    camera: [-6.7, 4.55, -7],
     key: [-4.5, 6.4, -3.8],
-    keyIntensity: 3.45,
+    keyIntensity: 150,
   },
 });
+
+const MOBILE_CAMERA_POSITIONS: Readonly<
+  Record<CubeReviewMode, readonly [number, number, number]>
+> = Object.freeze({
+  neutral: [5.7, 4.55, 6.05],
+  grazing: [6.85, 1.88, 7],
+  opposite: [-6.15, 4.2, -6.4],
+});
+const DESKTOP_CUBE_POSITION = [0.36, 0.45, 0] as const;
+const DESKTOP_CAMERA_TARGET = [0.08, -0.04, 0] as const;
+const MOBILE_CUBE_POSITION = [0, -0.04, 0] as const;
+const MOBILE_CAMERA_TARGET = [0, -0.04, 0] as const;
+const DESKTOP_CUBE_SCALE = 0.94;
+const MOBILE_CUBE_SCALE = 0.99;
 
 export function CubeScene({
   cube,
@@ -88,6 +103,10 @@ export function CubeScene({
   reviewMode = "neutral",
 }: CubeSceneProps) {
   const budget = useSceneBudget();
+  const mobileCameraPosition = MOBILE_CAMERA_POSITIONS[reviewMode];
+  const cameraPosition = budget.isMobile
+    ? mobileCameraPosition
+    : VIEW_CONFIG[reviewMode].camera;
   const pageVisible = usePageVisibility();
   const reducedMotion = useReducedMotionPreference();
   const [isGestureActive, setGestureActive] = useState(false);
@@ -120,17 +139,18 @@ export function CubeScene({
           far: 40,
           fov: 34,
           near: 0.1,
-          position: VIEW_CONFIG[reviewMode].camera,
+          position: cameraPosition,
         }}
         onCreated={({ gl }) => {
           gl.outputColorSpace = SRGBColorSpace;
           gl.toneMapping = ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.08;
+          gl.toneMappingExposure = 1;
         }}
       >
         <AdaptiveDpr pixelated={false} />
         <CubeStudio
           budget={budget}
+          cameraPosition={cameraPosition}
           cube={cube}
           isCelebrating={isCelebrating}
           isGestureActive={isGestureActive}
@@ -152,6 +172,7 @@ interface CubeStudioProps extends Required<
   Pick<CubeSceneProps, "isCelebrating" | "reviewMode">
 > {
   readonly budget: SceneBudget;
+  readonly cameraPosition: readonly [number, number, number];
   readonly cube: readonly CubieState[];
   readonly isGestureActive: boolean;
   readonly onGestureActiveChange: (active: boolean) => void;
@@ -165,6 +186,7 @@ interface CubeStudioProps extends Required<
 
 function CubeStudio({
   budget,
+  cameraPosition,
   cube,
   isCelebrating,
   isGestureActive,
@@ -179,6 +201,15 @@ function CubeStudio({
 }: CubeStudioProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const view = VIEW_CONFIG[reviewMode];
+  const cubePosition = budget.isMobile
+    ? MOBILE_CUBE_POSITION
+    : DESKTOP_CUBE_POSITION;
+  const cameraTarget = budget.isMobile
+    ? MOBILE_CAMERA_TARGET
+    : DESKTOP_CAMERA_TARGET;
+  const cubeScale = budget.isMobile
+    ? MOBILE_CUBE_SCALE
+    : DESKTOP_CUBE_SCALE;
   const handleOrbitLockChange = useCallback(
     (locked: boolean) => {
       if (controlsRef.current) {
@@ -191,17 +222,38 @@ function CubeStudio({
   return (
     <>
       <fog attach="fog" args={[palette.fog, 14, 26]} />
-      <ambientLight color={palette.ambient} intensity={0.55} />
-      <hemisphereLight args={[palette.fill, palette.ground, 1.15]} />
-      <directionalLight
+      <ambientLight color={palette.ambient} intensity={0.42} />
+      <hemisphereLight args={[palette.fill, palette.ground, 0.82]} />
+      <spotLight
+        angle={0.78}
         color="#fff8ed"
+        decay={2}
         intensity={view.keyIntensity}
+        penumbra={0.92}
         position={view.key}
       />
-      <directionalLight color="#cfe0ff" intensity={1.35} position={[-4.5, 3.2, 5.2]} />
-      <directionalLight color="#ffffff" intensity={1.6} position={[1.5, 4.8, -6]} />
+      <spotLight
+        angle={0.92}
+        color="#dce9ff"
+        decay={2}
+        intensity={76}
+        penumbra={1}
+        position={[-4.8, 3.8, 5.4]}
+      />
+      <spotLight
+        angle={0.82}
+        color="#ffffff"
+        decay={2}
+        intensity={88}
+        penumbra={0.96}
+        position={[2.2, 5.4, -6.2]}
+      />
 
-      <CameraRig controlsRef={controlsRef} reviewMode={reviewMode} />
+      <CameraRig
+        cameraPosition={cameraPosition}
+        cameraTarget={cameraTarget}
+        controlsRef={controlsRef}
+      />
       <MagicCube
         cube={cube}
         isCelebrating={isCelebrating}
@@ -210,6 +262,8 @@ function CubeStudio({
         onMoveRequest={onMoveRequest}
         onOrbitLockChange={handleOrbitLockChange}
         pageVisible={pageVisible}
+        presentationPosition={cubePosition}
+        presentationScale={cubeScale}
         queue={queue}
         reducedMotion={reducedMotion}
       />
@@ -218,11 +272,15 @@ function CubeStudio({
         color="#1d252b"
         far={4}
         frames={1}
-        opacity={0.3}
-        position={[0, -1.58, 0]}
+        opacity={0.25}
+        position={[
+          cubePosition[0],
+          cubePosition[1] - cubeScale * 1.49,
+          0,
+        ]}
         resolution={budget.shadowSize}
-        scale={8}
-        blur={2.7}
+        scale={7.2}
+        blur={2.8}
       />
 
       <OrbitControls
@@ -237,30 +295,32 @@ function CubeStudio({
         maxPolarAngle={Math.PI * 0.69}
         minPolarAngle={Math.PI * 0.2}
         rotateSpeed={0.62}
-        target={[0, 0, 0]}
+        target={cameraTarget}
       />
     </>
   );
 }
 
 function CameraRig({
+  cameraPosition,
+  cameraTarget,
   controlsRef,
-  reviewMode,
 }: {
+  readonly cameraPosition: readonly [number, number, number];
+  readonly cameraTarget: readonly [number, number, number];
   readonly controlsRef: RefObject<OrbitControlsImpl | null>;
-  readonly reviewMode: CubeReviewMode;
 }) {
   const camera = useThree((state) => state.camera);
   const invalidate = useThree((state) => state.invalidate);
 
   useEffect(() => {
-    camera.position.set(...VIEW_CONFIG[reviewMode].camera);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(...cameraPosition);
+    camera.lookAt(...cameraTarget);
     camera.updateProjectionMatrix();
-    controlsRef.current?.target.set(0, 0, 0);
+    controlsRef.current?.target.set(...cameraTarget);
     controlsRef.current?.update();
     invalidate();
-  }, [camera, controlsRef, invalidate, reviewMode]);
+  }, [camera, cameraPosition, cameraTarget, controlsRef, invalidate]);
 
   return null;
 }
@@ -269,8 +329,8 @@ function useSceneBudget(): SceneBudget {
   const readBudget = useCallback(
     (): SceneBudget =>
       window.innerWidth < 720
-        ? { dprCap: 1.5, shadowSize: 512 }
-        : { dprCap: 1.75, shadowSize: 1024 },
+        ? { dprCap: 1.5, isMobile: true, shadowSize: 512 }
+        : { dprCap: 1.75, isMobile: false, shadowSize: 1024 },
     [],
   );
   const [budget, setBudget] = useState<SceneBudget>(() => readBudget());

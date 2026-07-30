@@ -6,9 +6,9 @@ import {
 } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
-export const CUBIE_SPACING = 1.04;
-export const BODY_SIZE = 0.94;
-export const STICKER_OFFSET = 0.477;
+export const CUBIE_SPACING = 1;
+export const BODY_SIZE = 0.95;
+export const STICKER_OFFSET = 0.482;
 
 export type StickerColor = "blue" | "green" | "orange" | "red" | "white" | "yellow";
 
@@ -20,29 +20,29 @@ export interface CubeRenderResources {
 }
 
 const STICKER_COLORS: Readonly<Record<StickerColor, number>> = Object.freeze({
-  blue: 0x145bc5,
-  green: 0x31844b,
-  orange: 0xf47b20,
-  red: 0xe6382d,
-  white: 0xf0f1ec,
-  yellow: 0xf3c316,
+  blue: 0x1557b8,
+  green: 0x347b47,
+  orange: 0xe87922,
+  red: 0xd83d32,
+  white: 0xeaebe8,
+  yellow: 0xe9ba18,
 });
 
 export function createCubeRenderResources(): CubeRenderResources {
   const bodyGeometry = new RoundedBoxGeometry(BODY_SIZE, BODY_SIZE, BODY_SIZE, 5, 0.105);
   bodyGeometry.name = "shared-rounded-cubie-body";
 
-  const stickerGeometry = new RoundedBoxGeometry(0.735, 0.735, 0.038, 5, 0.075);
+  const stickerGeometry = new RoundedBoxGeometry(0.75, 0.75, 0.034, 5, 0.068);
   stickerGeometry.name = "shared-rounded-sticker";
 
   const bodyMaterial = new MeshPhysicalMaterial({
     name: "shared-graphite-satin-plastic",
-    color: new Color(0x111416),
+    color: new Color(0x15191b),
     metalness: 0,
-    roughness: 0.38,
-    clearcoat: 0.18,
-    clearcoatRoughness: 0.46,
-    envMapIntensity: 0.64,
+    roughness: 0.48,
+    clearcoat: 0.06,
+    clearcoatRoughness: 0.72,
+    envMapIntensity: 0.46,
   });
 
   const stickerMaterials = Object.fromEntries(
@@ -52,10 +52,10 @@ export function createCubeRenderResources(): CubeRenderResources {
         name: `shared-${name}-sticker-satin`,
         color: new Color(color),
         metalness: 0,
-        roughness: 0.23,
-        clearcoat: 0.34,
-        clearcoatRoughness: 0.3,
-        envMapIntensity: 0.68,
+        roughness: 0.52,
+        clearcoat: 0.08,
+        clearcoatRoughness: 0.66,
+        envMapIntensity: 0.5,
       }),
     ]),
   ) as Record<StickerColor, MeshPhysicalMaterial>;

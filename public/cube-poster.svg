@@ -6,13 +6,13 @@
       <feGaussianBlur stdDeviation="20"/>
     </filter>
     <filter id="cube-depth" x="-20%" y="-20%" width="150%" height="160%">
-      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#11181d" flood-opacity=".2"/>
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#1d252b" flood-opacity=".16"/>
     </filter>
   </defs>
 
-  <rect width="960" height="720" fill="#edf1f3"/>
+  <rect width="960" height="720" fill="#f8f8f7"/>
 
-  <g data-surface="unfolded-plan" fill="none" stroke="#829099" stroke-width="1.5" opacity=".42">
+  <g data-surface="unfolded-plan" fill="none" stroke="#929ca2" stroke-width="1.5" opacity=".38">
     <path d="M58 468 212 379 342 411 464 301 690 323 856 446 771 607 545 574 434 666 269 592 112 628Z" stroke-dasharray="9 10"/>
     <path d="M212 379 269 592M342 411 434 666M464 301 545 574M690 323 771 607" stroke-dasharray="9 10"/>
     <path d="M112 628 58 468 24 488 48 602ZM771 607 856 446 914 484 867 584Z"/>
@@ -24,14 +24,15 @@
 
   <path d="M92 155h126" stroke="#0f4fd4" stroke-width="8"/>
   <path d="M742 641h126" stroke="#0f4fd4" stroke-width="8"/>
-  <ellipse cx="493" cy="603" rx="245" ry="39" fill="#172027" opacity=".22" filter="url(#contact-shadow)"/>
+  <g data-object="cube" transform="translate(86 65) scale(.82)">
+  <ellipse cx="493" cy="603" rx="255" ry="42" fill="#1d252b" opacity=".17" filter="url(#contact-shadow)"/>
 
   <g filter="url(#cube-depth)">
-    <path d="M480 90 744 236 480 382 216 236Z" fill="#111416"/>
-    <path d="M216 236 480 382 480 653 216 507Z" fill="#0d1012"/>
-    <path d="M480 382 744 236 744 507 480 653Z" fill="#15191c"/>
+    <path d="M480 90 744 236 480 382 216 236Z" fill="#15191b"/>
+    <path d="M216 236 480 382 480 653 216 507Z" fill="#121618"/>
+    <path d="M480 382 744 236 744 507 480 653Z" fill="#181d20"/>
 
-    <g data-face="top" transform="matrix(.88 .487 -.88 .487 480 90)" fill="#f0f1ec" stroke="#111416" stroke-width="13">
+    <g data-face="top" transform="matrix(.88 .487 -.88 .487 480 90)" fill="#eaebe8" stroke="#15191b" stroke-width="13">
       <rect x="7" y="7" width="86" height="86" rx="11"/>
       <rect x="107" y="7" width="86" height="86" rx="11"/>
       <rect x="207" y="7" width="86" height="86" rx="11"/>
@@ -43,7 +44,7 @@
       <rect x="207" y="207" width="86" height="86" rx="11"/>
     </g>
 
-    <g data-face="front" transform="matrix(.88 .487 0 .903 216 236)" fill="#145bc5" stroke="#111416" stroke-width="13">
+    <g data-face="front" transform="matrix(.88 .487 0 .903 216 236)" fill="#1557b8" stroke="#15191b" stroke-width="13">
       <rect x="7" y="7" width="86" height="86" rx="11"/>
       <rect x="107" y="7" width="86" height="86" rx="11"/>
       <rect x="207" y="7" width="86" height="86" rx="11"/>
@@ -55,7 +56,7 @@
       <rect x="207" y="207" width="86" height="86" rx="11"/>
     </g>
 
-    <g data-face="right" transform="matrix(.88 -.487 0 .903 480 382)" fill="#e6382d" stroke="#111416" stroke-width="13">
+    <g data-face="right" transform="matrix(.88 -.487 0 .903 480 382)" fill="#d83d32" stroke="#15191b" stroke-width="13">
       <rect x="7" y="7" width="86" height="86" rx="11"/>
       <rect x="107" y="7" width="86" height="86" rx="11"/>
       <rect x="207" y="7" width="86" height="86" rx="11"/>
@@ -68,5 +69,6 @@
     </g>
 
     <path d="M229 236 480 375 731 236" fill="none" stroke="#ffffff" stroke-width="3" opacity=".22"/>
+  </g>
   </g>
 </svg>

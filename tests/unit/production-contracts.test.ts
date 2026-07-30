@@ -50,6 +50,29 @@ describe("production rendering contracts", () => {
     expect(source).not.toContain("dprCap: 2");
   });
 
+  it("selects a dedicated mobile camera so the complete cube stays in frame", () => {
+    const sceneSource = readFileSync(
+      resolve(process.cwd(), "components/cube/CubeScene.tsx"),
+      "utf8",
+    );
+
+    expect(sceneSource).toContain("mobileCameraPosition");
+  });
+
+  it("uses satin graphite and sticker materials instead of glossy plastic", () => {
+    const materialSource = readFileSync(
+      resolve(process.cwd(), "components/cube/cube-materials.ts"),
+      "utf8",
+    );
+
+    expect(materialSource).toMatch(
+      /bodyMaterial[\s\S]*?roughness:\s*0\.[4-6]\d*[,\s][\s\S]*?clearcoat:\s*0\.0\d[,\s]/,
+    );
+    expect(materialSource).toMatch(
+      /stickerMaterials[\s\S]*?roughness:\s*0\.[4-6]\d*[,\s][\s\S]*?clearcoat:\s*0\.[01]\d*[,\s]/,
+    );
+  });
+
   it("runs the performance lab with the normal motion preference", () => {
     const source = readFileSync(
       resolve(process.cwd(), "tests/e2e/performance.spec.ts"),

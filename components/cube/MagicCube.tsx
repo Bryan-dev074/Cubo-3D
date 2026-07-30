@@ -34,11 +34,14 @@ interface MagicCubeProps {
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly onOrbitLockChange: (locked: boolean) => void;
   readonly pageVisible: boolean;
+  readonly presentationPosition: readonly [number, number, number];
+  readonly presentationScale: number;
   readonly queue: readonly QueuedMove[];
   readonly reducedMotion: boolean;
 }
 
 const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
+
 export function MagicCube({
   cube,
   isCelebrating,
@@ -47,6 +50,8 @@ export function MagicCube({
   onMoveRequest,
   onOrbitLockChange,
   pageVisible,
+  presentationPosition,
+  presentationScale,
   queue,
   reducedMotion,
 }: MagicCubeProps) {
@@ -159,6 +164,8 @@ export function MagicCube({
     <group
       ref={rootRef}
       name="magic-cube-root"
+      position={presentationPosition}
+      scale={presentationScale}
       userData={{
         sculptRuntime: {
           stableIds: cube.map((cubie) => cubie.id),
