@@ -36,6 +36,23 @@ describe("production rendering contracts", () => {
     expect(sceneSource).toContain("autoRotate={false}");
   });
 
+  it("updates the high-frequency move count without entry motion", () => {
+    const telemetrySource = readFileSync(
+      resolve(process.cwd(), "components/experience/LiveTelemetry.tsx"),
+      "utf8",
+    );
+    const experienceStyles = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(telemetrySource).not.toContain(
+      "key={snapshot.confirmedUserMoves}",
+    );
+    expect(experienceStyles).not.toContain("animation: number-enter");
+    expect(experienceStyles).not.toContain("@keyframes number-enter");
+  });
+
   it("renders the expensive contact shadow once instead of on every idle invalidation", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/cube/CubeScene.tsx"),

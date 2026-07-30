@@ -168,6 +168,12 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(plan.tagName).toBe("svg");
     expect(plan).toHaveAttribute("aria-hidden", "true");
     expect(plan).toHaveTextContent("CUBO 3D");
+    expect(
+      within(plan).getByTestId("plan-copy-clear-upper-curve"),
+    ).toHaveAttribute("d", expect.stringMatching(/^M550\b/));
+    expect(
+      within(plan).getByTestId("plan-copy-clear-registration"),
+    ).toHaveAttribute("transform", "translate(321 0)");
     expect(stage).not.toContainElement(plan);
     expect(plan.parentElement).toHaveAttribute("data-testid", "workspace");
   });
@@ -177,6 +183,7 @@ describe("MagicCubeExperience locale and commerce", () => {
     render(<MagicCubeExperience />);
 
     const primaryActions = screen.getByTestId("primary-dock-actions");
+    expect(within(primaryActions).getAllByRole("button")).toHaveLength(3);
     expect(within(primaryActions).getByRole("button", { name: "Desordenar" })).toBeVisible();
     expect(within(primaryActions).getByRole("button", { name: "Reiniciar" })).toBeVisible();
     expect(within(primaryActions).getByRole("button", { name: "Ayuda" })).toBeVisible();

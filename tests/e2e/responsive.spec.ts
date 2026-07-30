@@ -148,6 +148,58 @@ test("tablet keeps the technical column inside the viewport", async ({
   await context.close();
 });
 
+test("wide coarse touch keeps the utility dock operable", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    colorScheme: "light",
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: "reduce",
+    viewport: { width: 1024, height: 768 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await openExperience(page);
+  await waitForWebGLScene(page);
+
+  expect(
+    await page.evaluate(
+      () =>
+        window.matchMedia("(hover: none)").matches ||
+        window.matchMedia("(pointer: coarse)").matches,
+    ),
+  ).toBe(true);
+
+  await page
+    .getByRole("button", { name: "Más controles" })
+    .tap({ timeout: 5_000 });
+  const closeUtilities = page.getByRole("button", {
+    name: "Cerrar controles adicionales",
+  });
+  await expect(closeUtilities).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: "Deshacer" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mostrar controles por capa" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Mostrar controles por capa" })
+    .tap();
+  await expect(
+    page.getByRole("group", { name: "Giros por capa" }),
+  ).toBeVisible();
+
+  await closeUtilities.tap();
+  await expect(
+    page.getByRole("button", { name: "Más controles" }),
+  ).toHaveAttribute("aria-expanded", "false");
+
+  await diagnostics.assertClean();
+  await context.close();
+});
+
 for (const viewport of MOBILE_VIEWPORTS) {
   test(`${viewport.name} keeps the hero, cube entry, touch targets and safe areas intact`, async ({
     browser,

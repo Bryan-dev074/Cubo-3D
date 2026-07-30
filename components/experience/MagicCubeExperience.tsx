@@ -377,8 +377,10 @@ function PlanDrawing({
         </g>
 
         <g className={styles.planCutLines}>
-          <path d="M370 190 382 58Q384 42 400 40H520Q536 42 538 58L550 190" />
-          <path d="M550 190 562 95Q564 78 581 76H700Q717 78 719 95L730 190" />
+          <path
+            d="M550 190 562 95Q564 78 581 76H700Q717 78 719 95L730 190"
+            data-testid="plan-copy-clear-upper-curve"
+          />
           <path d="M730 190 744 129Q747 114 762 112H894Q908 115 910 130L910 190" />
           <path d="M190 370 177 432Q174 447 190 452L351 452Q367 449 370 433L370 370" />
           <path d="M370 370 386 488Q389 504 405 506H519Q535 504 538 488L550 370" />
@@ -419,8 +421,13 @@ function PlanDrawing({
         </g>
 
         <g className={styles.planRegistration}>
-          <path d="M110 82h36M128 64v36" />
-          <circle cx="128" cy="82" r="8" />
+          <g
+            data-testid="plan-copy-clear-registration"
+            transform="translate(321 0)"
+          >
+            <path d="M110 82h36M128 64v36" />
+            <circle cx="128" cy="82" r="8" />
+          </g>
           <path d="M954 414h36M972 396v36" />
           <circle cx="972" cy="414" r="8" />
         </g>

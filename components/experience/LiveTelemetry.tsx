@@ -150,7 +150,6 @@ export function LiveTelemetry({
 
           <TelemetryField label={dictionary.telemetryMoves}>
             <span
-              key={snapshot.confirmedUserMoves}
               className={`${styles.instrumentValue} ${styles.moveNumber}`}
               data-testid="telemetry-move-count-full"
             >
