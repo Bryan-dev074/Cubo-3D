@@ -39,6 +39,7 @@ interface MagicCubeProps {
 }
 
 const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
+const CELEBRATION_DURATION_MS = 820;
 
 export function MagicCube({
   cube,
@@ -62,6 +63,7 @@ export function MagicCube({
     angularVelocity: 0,
     selectedIds: EMPTY_SELECTION,
   });
+  const celebrationStartRef = useRef<number | null>(null);
   const resources = useMemo(() => createCubeRenderResources(), []);
 
   useEffect(
@@ -114,12 +116,51 @@ export function MagicCube({
     return () => window.clearInterval(timer);
   }, [ambientTurnEnabled, invalidate]);
 
-  useFrame((_, delta) => {
-    if (!ambientTurnEnabled || !rootRef.current) {
+  useEffect(() => {
+    if (!isCelebrating || reducedMotion || !pageVisible) {
+      celebrationStartRef.current = null;
+      invalidate();
       return;
     }
 
-    rootRef.current.rotation.y += Math.min(delta, 0.2) * 0.055;
+    celebrationStartRef.current = performance.now();
+    let frame = 0;
+    const animate = (time: number) => {
+      invalidate();
+      if (
+        celebrationStartRef.current !== null &&
+        time - celebrationStartRef.current < CELEBRATION_DURATION_MS
+      ) {
+        frame = window.requestAnimationFrame(animate);
+      }
+    };
+    frame = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      celebrationStartRef.current = null;
+      invalidate();
+    };
+  }, [invalidate, isCelebrating, pageVisible, reducedMotion]);
+
+  useFrame((_, delta) => {
+    if (ambientTurnEnabled && rootRef.current) {
+      rootRef.current.rotation.y += Math.min(delta, 0.2) * 0.055;
+    }
+
+    const celebrationStart = celebrationStartRef.current;
+    if (celebrationStart === null) {
+      return;
+    }
+
+    const progress = Math.min(
+      1,
+      (performance.now() - celebrationStart) / CELEBRATION_DURATION_MS,
+    );
+    const separation = celebrationSeparationScale(progress, reducedMotion);
+    for (const pivot of pivotRefs.current.values()) {
+      pivot.position.multiplyScalar(separation);
+    }
   });
 
   const registerPivot = useCallback(
@@ -165,4 +206,16 @@ export function MagicCube({
       ))}
     </group>
   );
+}
+
+export function celebrationSeparationScale(
+  progress: number,
+  reducedMotion: boolean,
+): number {
+  if (reducedMotion) {
+    return 1;
+  }
+
+  const normalized = Math.min(1, Math.max(0, progress));
+  return 1 + Math.sin(normalized * Math.PI) * 0.06;
 }

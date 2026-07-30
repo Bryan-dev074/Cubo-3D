@@ -45,7 +45,12 @@ export function FaceControls({
         aria-expanded={isExpanded}
         onClick={() => setIsExpanded((expanded) => !expanded)}
       >
-        <span>{isExpanded ? dictionary.controlsHide : dictionary.controlsShow}</span>
+        <span className="face-controls__label-full">
+          {isExpanded ? dictionary.controlsHide : dictionary.controlsShow}
+        </span>
+        <span aria-hidden="true" className="face-controls__label-compact">
+          {dictionary.telemetryLayers}
+        </span>
         <CaretDown aria-hidden="true" size={18} weight="bold" />
       </button>
 

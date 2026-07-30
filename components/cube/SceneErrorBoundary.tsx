@@ -3,9 +3,12 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 import { SceneFallback } from "@/components/cube/SceneFallback";
+import type { Locale } from "@/lib/i18n/types";
 
 interface SceneErrorBoundaryProps {
   readonly children: ReactNode;
+  readonly locale?: Locale;
+  readonly onSceneError?: (reason: "error") => void;
   readonly onRetry?: () => void;
   readonly purchaseHref: string;
 }
@@ -30,6 +33,7 @@ export class SceneErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Cube scene failed", error, errorInfo);
+    this.props.onSceneError?.("error");
   }
 
   private retry = () => {
@@ -44,6 +48,7 @@ export class SceneErrorBoundary extends Component<
     if (this.state.error) {
       return (
         <SceneFallback
+          locale={this.props.locale}
           onRetry={this.retry}
           purchaseHref={this.props.purchaseHref}
           reason="error"

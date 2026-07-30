@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import {
   useCallback,
+  useEffect,
   useReducer,
   useRef,
   useSyncExternalStore,
@@ -14,6 +15,7 @@ import { SceneErrorBoundary } from "@/components/cube/SceneErrorBoundary";
 import { SceneFallback } from "@/components/cube/SceneFallback";
 import type { CubieState, CubeMove } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
+import type { Locale } from "@/lib/i18n/types";
 
 export type WebGLDetector = () => boolean;
 
@@ -24,7 +26,9 @@ export interface CubeCanvasProps {
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly purchaseHref: string;
   readonly isCelebrating?: boolean;
+  readonly locale?: Locale;
   readonly onInteractionLockChange?: (locked: boolean) => void;
+  readonly onSceneError?: (reason: "error" | "webgl") => void;
   readonly reviewMode?: CubeReviewMode;
   readonly webGLDetector?: WebGLDetector;
 }
@@ -57,6 +61,8 @@ export function detectWebGL(): boolean {
 }
 
 export function CubeCanvas({
+  locale = "es",
+  onSceneError,
   purchaseHref,
   webGLDetector = detectWebGL,
   ...sceneProps
@@ -93,10 +99,16 @@ export function CubeCanvas({
     readServerWebGL,
   );
 
+  useEffect(() => {
+    if (hasWebGL === false) {
+      onSceneError?.("webgl");
+    }
+  }, [hasWebGL, onSceneError]);
+
   if (hasWebGL === null) {
     return (
       <div className="cube-canvas-shell">
-        <CubeLoadingPoster eager />
+        <CubeLoadingPoster eager locale={locale} />
       </div>
     );
   }
@@ -105,6 +117,7 @@ export function CubeCanvas({
     return (
       <div className="cube-canvas-shell">
         <SceneFallback
+          locale={locale}
           onRetry={handleRetry}
           purchaseHref={purchaseHref}
           reason="webgl"
@@ -115,8 +128,13 @@ export function CubeCanvas({
 
   return (
     <div className="cube-canvas-shell">
-      <SceneErrorBoundary key={detectionRevision} purchaseHref={purchaseHref}>
-        <DynamicCubeScene {...sceneProps} />
+      <SceneErrorBoundary
+        key={detectionRevision}
+        locale={locale}
+        onSceneError={onSceneError}
+        purchaseHref={purchaseHref}
+      >
+        <DynamicCubeScene {...sceneProps} locale={locale} />
       </SceneErrorBoundary>
     </div>
   );

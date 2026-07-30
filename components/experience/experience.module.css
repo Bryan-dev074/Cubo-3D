@@ -1,0 +1,1199 @@
+.experience {
+  --paper: #f2f5f6;
+  --paper-raised: #fbfcfc;
+  --graphite: #20262a;
+  --graphite-soft: #596269;
+  --smoke: #d5dce0;
+  --line: rgba(32, 38, 42, 0.22);
+  --cobalt: #0f4fd4;
+  --cobalt-deep: #083cae;
+  position: relative;
+  display: grid;
+  grid-template-columns: clamp(4rem, 5.5vw, 5.5rem) minmax(0, 1fr);
+  min-width: 20rem;
+  min-height: 100dvh;
+  overflow: clip;
+  color: var(--graphite);
+  background: var(--paper);
+}
+
+.carton {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 100dvh;
+}
+
+.cobaltSpine {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  overflow: hidden;
+  color: #fff;
+  background: var(--cobalt);
+}
+
+.cobaltSpine::before,
+.cobaltSpine::after {
+  position: absolute;
+  right: -0.72rem;
+  width: 1.45rem;
+  height: 5.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-left: 0;
+  border-radius: 0 2rem 2rem 0;
+  content: "";
+}
+
+.cobaltSpine::before {
+  top: 11%;
+}
+
+.cobaltSpine::after {
+  bottom: 11%;
+}
+
+.cobaltSpine span {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.3vw, 2rem);
+  letter-spacing: 0.08em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.header {
+  position: relative;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 4.3rem;
+  padding: 0.65rem clamp(1rem, 2vw, 2rem);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  letter-spacing: -0.035em;
+  text-decoration: none;
+}
+
+.headerActions,
+.languageSwitch,
+.dockActions,
+.successActions {
+  display: flex;
+  align-items: center;
+}
+
+.headerActions {
+  gap: clamp(0.45rem, 1.5vw, 1rem);
+}
+
+.languageSwitch {
+  gap: 0.125rem;
+}
+
+.languageButton,
+.scrambleButton,
+.purchaseButton,
+.mobilePurchase,
+.controlDock button,
+.successMoment button,
+.successPurchase,
+.dialogClose {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid transparent;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 140ms var(--ease-out),
+    background-color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out),
+    opacity 140ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+.languageButton {
+  display: grid;
+  place-items: center;
+  padding: 0.4rem;
+  color: var(--graphite-soft);
+  background: transparent;
+}
+
+.languageButton[aria-pressed="true"] {
+  color: var(--cobalt);
+  border-bottom-color: currentColor;
+}
+
+.purchaseButton,
+.mobilePurchase,
+.successPurchase {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.05rem;
+  color: #fff;
+  background: var(--cobalt);
+  text-decoration: none;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns:
+    minmax(14.5rem, 25%)
+    minmax(24rem, 1fr)
+    clamp(13.75rem, 18vw, 16.25rem);
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 clamp(0.8rem, 1.7vw, 1.7rem) clamp(0.7rem, 1.4vw, 1.2rem);
+}
+
+.heroCopy {
+  position: relative;
+  z-index: 4;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 2.5rem) clamp(0.75rem, 2vw, 2rem) clamp(1rem, 3vw, 2rem);
+}
+
+.heroCopy h1 {
+  max-width: 10ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.35rem, 3.8vw, 4.6rem);
+  line-height: 0.91;
+  letter-spacing: -0.065em;
+  text-wrap: balance;
+}
+
+.heroCopy h1 span {
+  display: block;
+  white-space: nowrap;
+}
+
+.promise {
+  max-width: 27rem;
+  margin: clamp(0.9rem, 2vw, 1.5rem) 0 0;
+  color: var(--graphite-soft);
+  font-size: clamp(0.94rem, 1.25vw, 1.1rem);
+  line-height: 1.5;
+}
+
+.scrambleButton {
+  margin-top: clamp(1.1rem, 2.4vw, 1.8rem);
+  padding: 0.8rem 1.15rem;
+  color: #fff;
+  background: var(--cobalt);
+}
+
+.registrationMark {
+  width: 2.8rem;
+  height: 0.22rem;
+  margin-bottom: clamp(0.75rem, 2vw, 1.5rem);
+  background: var(--cobalt);
+}
+
+.stage {
+  position: relative;
+  z-index: 2;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cubeFrame {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+}
+
+.cubeFrame::after {
+  position: absolute;
+  inset: 7% -28% 7% 102%;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transform: skewX(-18deg);
+  pointer-events: none;
+  content: "";
+}
+
+.stage[data-celebrating="true"] .cubeFrame::after {
+  animation: success-light-sweep 820ms var(--ease-out) both;
+}
+
+.cubeFrame :global(.cube-canvas-shell) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cubeFrame :global(.cube-canvas-shell > div),
+.cubeFrame :global(.cube-canvas-shell > div > div),
+.cubeFrame :global(.cube-scene),
+.cubeFrame :global(.cube-scene canvas) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cubeFrame :global(.cube-scene) {
+  outline: none;
+}
+
+.cubeFrame :global(.cube-scene:focus-visible) {
+  box-shadow: inset 0 0 0 3px var(--cobalt);
+}
+
+.planDrawing {
+  position: absolute;
+  z-index: 1;
+  inset: 4% -8% -7% -11%;
+  width: 119%;
+  height: 105%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 8 8;
+  stroke-width: 1.2;
+  pointer-events: none;
+}
+
+.planDrawing circle,
+.planDrawing path:nth-last-child(-n + 3) {
+  stroke-dasharray: none;
+}
+
+.firstUseHint {
+  position: absolute;
+  z-index: 6;
+  right: 1rem;
+  bottom: 0.6rem;
+  max-width: min(27rem, calc(100% - 2rem));
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border-left: 2px solid var(--cobalt);
+  color: var(--graphite-soft);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.telemetry {
+  position: relative;
+  z-index: 7;
+  grid-column: 3;
+  grid-row: 1 / 3;
+  min-width: 0;
+  padding: clamp(0.8rem, 1.5vw, 1.25rem) 0 0 clamp(0.8rem, 1.5vw, 1.25rem);
+  border-left: 1px dashed var(--line);
+}
+
+.mobileTelemetrySummary {
+  display: none;
+}
+
+.telemetryDisclosure {
+  height: 100%;
+}
+
+.telemetryDisclosure > summary {
+  display: none;
+}
+
+.fullInstrument {
+  display: grid;
+  align-content: center;
+  height: 100%;
+}
+
+.telemetryField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3.7rem;
+  padding: 0.55rem 0.15rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.telemetryField:first-child {
+  min-height: 6rem;
+}
+
+.telemetryField h2,
+.instrumentLabel {
+  margin: 0;
+  font-size: 0.71rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.telemetryFieldBody {
+  display: contents;
+}
+
+.instrumentValue {
+  color: var(--cobalt);
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.6vw, 1.55rem);
+  line-height: 1;
+}
+
+.textValue,
+.statusValue {
+  justify-self: end;
+  max-width: 8.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.statusValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.statusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: var(--cobalt);
+  animation: telemetry-breathe 2.6s var(--ease-in-out) infinite;
+}
+
+.pieceMatrix {
+  display: grid;
+  grid-template-columns: repeat(6, 0.42rem);
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pieceCell {
+  position: relative;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--graphite-soft);
+  opacity: 0.38;
+  animation: telemetry-scan 3.2s var(--ease-in-out) infinite;
+  animation-delay: calc(var(--scan-index) * 55ms);
+}
+
+.pieceCell[data-piece-active="true"] {
+  background: var(--cobalt);
+  opacity: 1;
+  animation: none;
+}
+
+.pieceCell[data-piece-cue="ring"]::after {
+  position: absolute;
+  inset: -0.19rem;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+  content: "";
+}
+
+.layerDiagram {
+  display: grid;
+  grid-template-columns: repeat(3, 0.82rem);
+  gap: 0.18rem 0.28rem;
+}
+
+.layerCell {
+  width: 0.82rem;
+  height: 0.28rem;
+  border: 1px solid var(--graphite-soft);
+  background: transparent;
+  opacity: 0.45;
+  transform: translateX(0);
+  transition:
+    background-color 180ms var(--ease-out),
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+}
+
+.layerCell[data-layer-active="true"] {
+  border-width: 2px;
+  border-color: var(--cobalt);
+  background: var(--cobalt);
+  opacity: 1;
+  transform: translateX(0.22rem);
+}
+
+.turnDial {
+  position: relative;
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.turnDial span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.95rem;
+  height: 2px;
+  background: var(--cobalt);
+  transform: translate(-0.1rem, -50%) rotate(0deg);
+  transform-origin: 0.1rem 50%;
+  transition: transform 220ms var(--ease-out);
+}
+
+.turnDial span::after {
+  position: absolute;
+  top: -0.22rem;
+  right: -0.05rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-top: 2px solid var(--cobalt);
+  border-right: 2px solid var(--cobalt);
+  transform: rotate(45deg);
+  content: "";
+}
+
+.turnDial[data-direction="positive"] span {
+  transform: translate(-0.1rem, -50%) rotate(90deg);
+}
+
+.turnDial[data-direction="negative"] span {
+  transform: translate(-0.1rem, -50%) rotate(-90deg);
+}
+
+.moveNumber {
+  animation: number-enter 180ms var(--ease-out) both;
+}
+
+.telemetry progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.25rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  accent-color: var(--cobalt);
+  background: var(--smoke);
+}
+
+.telemetry[data-motion-paused="true"] *,
+.telemetry[data-motion-paused="true"] *::before,
+.telemetry[data-motion-paused="true"] *::after {
+  animation-play-state: paused !important;
+}
+
+.controlDock {
+  position: relative;
+  z-index: 11;
+  display: flex;
+  grid-column: 1 / 3;
+  grid-row: 2;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-width: 0;
+  min-height: 4.1rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: var(--paper-raised);
+}
+
+.dockActions {
+  gap: 0.25rem;
+}
+
+.dockActions button,
+.controlDock :global(.face-controls__toggle) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border-color: var(--line);
+  color: var(--graphite);
+  background: transparent;
+}
+
+.controlDock :global(.face-controls) {
+  position: relative;
+}
+
+.controlDock :global(.face-controls__toggle) {
+  cursor: pointer;
+}
+
+.controlDock :global(.face-controls__toggle svg) {
+  transition: transform 160ms var(--ease-out);
+}
+
+.controlDock :global(.face-controls__toggle[aria-expanded="true"] svg) {
+  transform: rotate(180deg);
+}
+
+.controlDock :global(.face-controls__label-compact) {
+  display: none;
+}
+
+.controlDock :global(.face-controls__grid) {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.55rem);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(12rem, 1fr));
+  gap: 0.35rem;
+  width: min(46rem, calc(100vw - 7rem));
+  max-height: min(58dvh, 31rem);
+  margin: 0;
+  padding: 0.6rem;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  box-shadow: 0 1.1rem 3rem rgba(18, 27, 32, 0.18);
+}
+
+.controlDock :global(.face-controls__move) {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  border-color: var(--line);
+  color: var(--graphite);
+  background: var(--paper);
+  text-align: left;
+}
+
+.controlDock button:disabled,
+.scrambleButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.mobilePurchase {
+  display: none;
+}
+
+.successMoment {
+  position: absolute;
+  z-index: 14;
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  bottom: clamp(2.8rem, 7vw, 5rem);
+  width: min(24rem, calc(100% - 1.5rem));
+  padding: 1.1rem;
+  border: 1px solid var(--cobalt);
+  background: var(--paper-raised);
+  box-shadow: 0 1.2rem 3rem rgba(14, 26, 35, 0.18);
+  animation: success-enter 260ms var(--ease-out) both;
+}
+
+.successMoment h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  letter-spacing: -0.04em;
+}
+
+.successMoment p {
+  margin: 0.45rem 2rem 1rem 0;
+  color: var(--graphite-soft);
+  line-height: 1.45;
+}
+
+.successClose,
+.dialogClose {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--graphite);
+  background: transparent;
+}
+
+.successClose {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+}
+
+.successActions {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.successActions > button {
+  padding: 0.65rem 0.85rem;
+  border-color: var(--line);
+  color: var(--graphite);
+  background: transparent;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(16, 23, 28, 0.62);
+  animation: backdrop-enter 180ms var(--ease-out) both;
+}
+
+.helpDialog {
+  position: relative;
+  width: min(31rem, 100%);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 2px solid var(--cobalt);
+  background: var(--paper-raised);
+  box-shadow: 0 1.5rem 4rem rgba(8, 15, 20, 0.28);
+  animation: dialog-enter 220ms var(--ease-out) both;
+}
+
+.helpDialog h2 {
+  margin: 0.35rem 2.5rem 0.7rem 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 2.7rem);
+  letter-spacing: -0.04em;
+}
+
+.helpDialog p:last-child {
+  margin: 0;
+  color: var(--graphite-soft);
+  line-height: 1.5;
+}
+
+.helpDialog .dialogClose {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+}
+
+.sceneFallbackPurchase {
+  color: #fff;
+  background: var(--cobalt);
+}
+
+.srOnly {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.experience button:focus-visible,
+.experience a:focus-visible,
+.experience summary:focus-visible,
+.helpDialog button:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: 3px;
+}
+
+.experience button:active:not(:disabled),
+.experience a:active,
+.helpDialog button:active {
+  transform: scale(0.97);
+}
+
+@keyframes telemetry-scan {
+  0%,
+  65%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.78);
+  }
+
+  14% {
+    opacity: 0.62;
+    transform: scale(1);
+  }
+}
+
+@keyframes telemetry-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes number-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes success-light-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(0) skewX(-18deg);
+  }
+
+  35% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-185%) skewX(-18deg);
+  }
+}
+
+@keyframes success-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes backdrop-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .purchaseButton:hover,
+  .mobilePurchase:hover,
+  .successPurchase:hover,
+  .scrambleButton:hover:not(:disabled) {
+    background: var(--cobalt-deep);
+  }
+
+  .languageButton:hover,
+  .controlDock button:hover:not(:disabled),
+  .successActions > button:hover {
+    color: var(--cobalt);
+    border-color: var(--cobalt);
+  }
+}
+
+@media (max-width: 1040px) {
+  .workspace {
+    grid-template-columns: minmax(13rem, 27%) minmax(21rem, 1fr) 13.75rem;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(2.25rem, 4.4vw, 3.6rem);
+  }
+
+  .telemetryField {
+    min-height: 3.35rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .experience {
+    display: block;
+    overflow-x: clip;
+  }
+
+  .cobaltSpine {
+    position: absolute;
+    inset: 0 0 auto;
+    width: 100%;
+    height: 0.42rem;
+    min-height: 0;
+  }
+
+  .cobaltSpine::before,
+  .cobaltSpine::after,
+  .cobaltSpine span {
+    display: none;
+  }
+
+  .carton {
+    display: block;
+    min-height: 100dvh;
+    padding-top: 0.42rem;
+  }
+
+  .header {
+    min-height: 3.8rem;
+    padding: 0.45rem 0.75rem;
+  }
+
+  .wordmark {
+    max-width: 8rem;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .headerActions {
+    gap: 0.3rem;
+  }
+
+  .header .purchaseButton {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .heroCopy {
+    order: 1;
+    padding: clamp(0.7rem, 3vw, 1rem) 1rem 0.45rem;
+  }
+
+  .registrationMark {
+    width: 2.2rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .heroCopy h1 {
+    max-width: 9ch;
+    font-size: clamp(2.25rem, 11vw, 3.5rem);
+    line-height: 0.88;
+  }
+
+  .promise {
+    max-width: 31rem;
+    margin-top: 0.55rem;
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+
+  .scrambleButton {
+    width: 100%;
+    margin-top: 0.65rem;
+  }
+
+  .stage {
+    order: 2;
+    width: 100%;
+    height: clamp(45dvh, 48dvh, 52dvh);
+    min-height: 19rem;
+  }
+
+  .planDrawing {
+    inset: 0 -18% -7%;
+    width: 132%;
+  }
+
+  .firstUseHint {
+    right: 0.75rem;
+    bottom: 0.5rem;
+    left: 0.75rem;
+    max-width: none;
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+  }
+
+  .controlDock {
+    order: 3;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    width: calc(100% - 1.5rem);
+    min-height: 0;
+    margin: 0 0.75rem;
+    padding: 0.55rem;
+    border: 1px solid var(--line);
+  }
+
+  .dockActions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dockActions button {
+    min-width: 2.75rem;
+    padding-inline: 0.35rem;
+  }
+
+  .dockActions button span {
+    display: none;
+  }
+
+  .controlDock :global(.face-controls) {
+    display: contents;
+  }
+
+  .controlDock :global(.face-controls__toggle) {
+    min-width: 4.7rem;
+    padding-inline: 0.45rem;
+  }
+
+  .controlDock :global(.face-controls__label-full) {
+    display: none;
+  }
+
+  .controlDock :global(.face-controls__label-compact) {
+    display: inline;
+  }
+
+  .controlDock :global(.face-controls__grid) {
+    position: static;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-height: 48dvh;
+    margin-top: 0.45rem;
+    box-shadow: none;
+  }
+
+  .telemetry {
+    order: 4;
+    width: calc(100% - 1.5rem);
+    margin: 0.75rem;
+    padding: 0;
+    border: 1px solid var(--line);
+  }
+
+  .mobileTelemetrySummary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .mobileTelemetrySummary > div {
+    min-width: 0;
+    padding: 0.65rem 0.55rem;
+    border-right: 1px solid var(--line);
+  }
+
+  .mobileTelemetrySummary > div:last-child {
+    border-right: 0;
+  }
+
+  .mobileTelemetrySummary span,
+  .mobileTelemetrySummary strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileTelemetrySummary span {
+    color: var(--graphite-soft);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .mobileTelemetrySummary strong {
+    margin-top: 0.2rem;
+    color: var(--cobalt);
+    font-size: 0.9rem;
+  }
+
+  .telemetryDisclosure {
+    height: auto;
+    border-top: 1px solid var(--line);
+  }
+
+  .telemetryDisclosure > summary {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .telemetryDisclosure:not([open]) > .fullInstrument {
+    display: none;
+  }
+
+  .fullInstrument {
+    height: auto;
+    padding: 0 0.7rem 0.7rem;
+  }
+
+  .telemetryField {
+    min-height: 3.4rem;
+  }
+
+  .mobilePurchase {
+    display: flex;
+    width: calc(100% - 1.5rem);
+    min-height: calc(3.3rem + env(safe-area-inset-bottom));
+    margin: 0 0.75rem;
+    padding: 0.75rem 1rem
+      calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .successMoment {
+    right: 0.75rem;
+    bottom: 2.85rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .wordmark {
+    display: none;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .languageButton {
+    min-width: 2.75rem;
+    padding-inline: 0.25rem;
+  }
+
+  .stage {
+    height: 45dvh;
+    min-height: 18rem;
+  }
+
+  .telemetry {
+    margin-top: 0.25rem;
+  }
+
+  .dockActions button {
+    font-size: 0.72rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .experience {
+    --paper: #1b2125;
+    --paper-raised: #242b30;
+    --graphite: #f2f5f6;
+    --graphite-soft: #b8c1c7;
+    --smoke: #3a444a;
+    --line: rgba(231, 238, 242, 0.24);
+    --cobalt: #4d7ff2;
+    --cobalt-deep: #6c96f7;
+  }
+
+  .firstUseHint {
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+  }
+
+  .cubeFrame :global(.cube-poster img) {
+    filter: brightness(0.72) contrast(1.08);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .experience {
+    --paper: #fff;
+    --paper-raised: #fff;
+    --graphite: #000;
+    --graphite-soft: #161616;
+    --line: #000;
+    --cobalt: #003ebd;
+    --cobalt-deep: #002f91;
+  }
+
+  .experience button,
+  .experience a,
+  .controlDock,
+  .telemetry,
+  .helpDialog,
+  .successMoment {
+    border-width: 2px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .firstUseHint,
+  .dialogBackdrop {
+    background: var(--paper);
+  }
+
+  .dialogBackdrop {
+    outline: 9999px solid var(--graphite);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experience *,
+  .experience *::before,
+  .experience *::after,
+  .dialogBackdrop,
+  .helpDialog {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .stage[data-celebrating="true"] .cubeFrame::after {
+    animation-name: reduced-success-light;
+  }
+
+  .layerCell[data-layer-active="true"],
+  .turnDial[data-direction] span {
+    transform: none;
+  }
+}
+
+@keyframes reduced-success-light {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0.22;
+  }
+}

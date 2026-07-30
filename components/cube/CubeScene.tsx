@@ -23,12 +23,15 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { MagicCube } from "@/components/cube/MagicCube";
 import type { CubeMove, CubieState } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
+import { dictionaries } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/types";
 
 export type CubeReviewMode = "grazing" | "neutral" | "opposite";
 
 export interface CubeSceneProps {
   readonly cube: readonly CubieState[];
   readonly isCelebrating?: boolean;
+  readonly locale?: Locale;
   readonly onInteractionLockChange?: (locked: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
@@ -39,6 +42,13 @@ export interface CubeSceneProps {
 interface SceneBudget {
   readonly dprCap: number;
   readonly shadowSize: 1024 | 2048;
+}
+
+interface ScenePalette {
+  readonly ambient: string;
+  readonly fill: string;
+  readonly fog: string;
+  readonly ground: string;
 }
 
 const VIEW_CONFIG: Readonly<
@@ -71,6 +81,7 @@ const VIEW_CONFIG: Readonly<
 export function CubeScene({
   cube,
   isCelebrating = false,
+  locale = "es",
   onInteractionLockChange,
   onMoveComplete,
   onMoveRequest,
@@ -80,6 +91,7 @@ export function CubeScene({
   const budget = useSceneBudget();
   const pageVisible = usePageVisibility();
   const reducedMotion = useReducedMotionPreference();
+  const darkMode = useDarkModePreference();
   const [isGestureActive, setGestureActive] = useState(false);
   const [isOrbiting, setOrbiting] = useState(false);
   const [isKeyboardInteracting, setKeyboardInteracting] = useState(false);
@@ -96,7 +108,7 @@ export function CubeScene({
       className="cube-scene"
       data-review-mode={reviewMode}
       role="img"
-      aria-label="Cubo Mágico 3D interactivo"
+      aria-label={dictionaries[locale].stageLabel}
       tabIndex={0}
       onBlur={() => setKeyboardInteracting(false)}
       onKeyDown={() => setKeyboardInteracting(true)}
@@ -138,6 +150,7 @@ export function CubeScene({
           onMoveRequest={onMoveRequest}
           onOrbitingChange={setOrbiting}
           pageVisible={pageVisible}
+          palette={darkMode ? DARK_PALETTE : LIGHT_PALETTE}
           queue={queue}
           reducedMotion={reducedMotion}
           reviewMode={reviewMode}
@@ -160,6 +173,7 @@ interface CubeStudioProps extends Required<
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly onOrbitingChange: (active: boolean) => void;
   readonly pageVisible: boolean;
+  readonly palette: ScenePalette;
   readonly queue: readonly QueuedMove[];
   readonly reducedMotion: boolean;
 }
@@ -176,6 +190,7 @@ function CubeStudio({
   onMoveRequest,
   onOrbitingChange,
   pageVisible,
+  palette,
   queue,
   reducedMotion,
   reviewMode,
@@ -205,10 +220,9 @@ function CubeStudio({
 
   return (
     <>
-      <color attach="background" args={["#edf1f3"]} />
-      <fog attach="fog" args={["#edf1f3", 14, 26]} />
-      <ambientLight color="#dfe8ef" intensity={0.55} />
-      <hemisphereLight args={["#ffffff", "#aab3b9", 1.15]} />
+      <fog attach="fog" args={[palette.fog, 14, 26]} />
+      <ambientLight color={palette.ambient} intensity={0.55} />
+      <hemisphereLight args={[palette.fill, palette.ground, 1.15]} />
       <directionalLight
         castShadow
         color="#fff8ed"
@@ -336,4 +350,33 @@ function useReducedMotionPreference(): boolean {
   }, []);
 
   return reduced;
+}
+
+const LIGHT_PALETTE: ScenePalette = Object.freeze({
+  ambient: "#dfe8ef",
+  fill: "#ffffff",
+  fog: "#edf1f3",
+  ground: "#aab3b9",
+});
+
+const DARK_PALETTE: ScenePalette = Object.freeze({
+  ambient: "#8a99a3",
+  fill: "#dce6ec",
+  fog: "#1b2125",
+  ground: "#39434a",
+});
+
+function useDarkModePreference(): boolean {
+  const [dark, setDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => setDark(media.matches);
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
+  return dark;
 }
