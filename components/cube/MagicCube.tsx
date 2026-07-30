@@ -29,8 +29,6 @@ import type { QueuedMove } from "@/lib/game/reducer";
 interface MagicCubeProps {
   readonly cube: readonly CubieState[];
   readonly isCelebrating: boolean;
-  readonly isKeyboardInteracting: boolean;
-  readonly isOrbiting: boolean;
   readonly onGestureActiveChange: (active: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
@@ -44,8 +42,6 @@ const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
 export function MagicCube({
   cube,
   isCelebrating,
-  isKeyboardInteracting,
-  isOrbiting,
   onGestureActiveChange,
   onMoveComplete,
   onMoveRequest,
@@ -84,7 +80,7 @@ export function MagicCube({
     reducedMotion,
   });
 
-  const { handlersFor, isGestureActive } = useLayerGesture({
+  const { handlersFor } = useLayerGesture({
     cube,
     disabled: queue.length > 0 || isCelebrating,
     invalidate,
@@ -95,26 +91,6 @@ export function MagicCube({
     previewRef,
     rootRef: rootRef as MutableRefObject<Group | null>,
   });
-
-  const ambientTurnEnabled =
-    pageVisible &&
-    !reducedMotion &&
-    !isCelebrating &&
-    !isKeyboardInteracting &&
-    !isOrbiting &&
-    !isGestureActive &&
-    queue.length === 0;
-
-  useEffect(() => {
-    if (!ambientTurnEnabled) {
-      return;
-    }
-
-    // A coarse invalidation cadence preserves the slow display turn without
-    // turning the demand-driven canvas into an unrestricted render loop.
-    const timer = window.setInterval(() => invalidate(), 180);
-    return () => window.clearInterval(timer);
-  }, [ambientTurnEnabled, invalidate]);
 
   useEffect(() => {
     const restoreCanonicalPositions = () => {
@@ -149,11 +125,7 @@ export function MagicCube({
     };
   }, [cube, invalidate, isCelebrating, pageVisible, reducedMotion]);
 
-  useFrame((_, delta) => {
-    if (ambientTurnEnabled && rootRef.current) {
-      rootRef.current.rotation.y += Math.min(delta, 0.2) * 0.055;
-    }
-
+  useFrame(() => {
     const celebrationStart = celebrationStartRef.current;
     if (celebrationStart === null) {
       return;

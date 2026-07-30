@@ -1,8 +1,24 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import path, { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("production rendering contracts", () => {
+  it("keeps the cube static when the user is idle", () => {
+    const magicCubeSource = readFileSync(
+      path.join(process.cwd(), "components/cube/MagicCube.tsx"),
+      "utf8",
+    );
+    const sceneSource = readFileSync(
+      path.join(process.cwd(), "components/cube/CubeScene.tsx"),
+      "utf8",
+    );
+
+    expect(magicCubeSource).not.toContain("setInterval");
+    expect(magicCubeSource).not.toContain("ambientTurnEnabled");
+    expect(sceneSource).toContain('frameloop="demand"');
+    expect(sceneSource).toContain("autoRotate={false}");
+  });
+
   it("renders the expensive contact shadow once instead of on every idle invalidation", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/cube/CubeScene.tsx"),

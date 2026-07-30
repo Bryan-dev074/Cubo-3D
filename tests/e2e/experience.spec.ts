@@ -17,6 +17,19 @@ test.use({
   viewport: { width: 1440, height: 900 },
 });
 
+test("the cube canvas is pixel-stable while idle", async ({ page }) => {
+  await page.goto("/");
+  const canvas = page.locator("canvas");
+  await expect(canvas).toBeVisible();
+  await page.waitForTimeout(350);
+
+  const before = await canvas.screenshot();
+  await page.waitForTimeout(700);
+  const after = await canvas.screenshot();
+
+  expect(after.equals(before)).toBe(true);
+});
+
 test("renders the semantic product shell and complete metadata", async ({
   page,
   request,

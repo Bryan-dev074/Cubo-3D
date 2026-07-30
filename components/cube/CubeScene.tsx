@@ -92,8 +92,6 @@ export function CubeScene({
   const reducedMotion = useReducedMotionPreference();
   const darkMode = useDarkModePreference();
   const [isGestureActive, setGestureActive] = useState(false);
-  const [isOrbiting, setOrbiting] = useState(false);
-  const [isKeyboardInteracting, setKeyboardInteracting] = useState(false);
   const handleGestureActiveChange = useCallback(
     (active: boolean) => {
       setGestureActive(active);
@@ -109,9 +107,6 @@ export function CubeScene({
       role="img"
       aria-label={dictionaries[locale].stageLabel}
       tabIndex={0}
-      onBlur={() => setKeyboardInteracting(false)}
-      onKeyDown={() => setKeyboardInteracting(true)}
-      onKeyUp={() => setKeyboardInteracting(false)}
     >
       <Canvas
         dpr={[1, budget.dprCap]}
@@ -139,12 +134,9 @@ export function CubeScene({
           cube={cube}
           isCelebrating={isCelebrating}
           isGestureActive={isGestureActive}
-          isKeyboardInteracting={isKeyboardInteracting}
-          isOrbiting={isOrbiting}
           onGestureActiveChange={handleGestureActiveChange}
           onMoveComplete={onMoveComplete}
           onMoveRequest={onMoveRequest}
-          onOrbitingChange={setOrbiting}
           pageVisible={pageVisible}
           palette={darkMode ? DARK_PALETTE : LIGHT_PALETTE}
           queue={queue}
@@ -162,12 +154,9 @@ interface CubeStudioProps extends Required<
   readonly budget: SceneBudget;
   readonly cube: readonly CubieState[];
   readonly isGestureActive: boolean;
-  readonly isKeyboardInteracting: boolean;
-  readonly isOrbiting: boolean;
   readonly onGestureActiveChange: (active: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
-  readonly onOrbitingChange: (active: boolean) => void;
   readonly pageVisible: boolean;
   readonly palette: ScenePalette;
   readonly queue: readonly QueuedMove[];
@@ -179,32 +168,17 @@ function CubeStudio({
   cube,
   isCelebrating,
   isGestureActive,
-  isKeyboardInteracting,
-  isOrbiting,
   onGestureActiveChange,
   onMoveComplete,
   onMoveRequest,
-  onOrbitingChange,
   pageVisible,
   palette,
   queue,
   reducedMotion,
   reviewMode,
 }: CubeStudioProps) {
-  const invalidate = useThree((state) => state.invalidate);
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const view = VIEW_CONFIG[reviewMode];
-
-  const handleOrbitStart = useCallback(() => {
-    if (!isGestureActive) {
-      onOrbitingChange(true);
-    }
-  }, [isGestureActive, onOrbitingChange]);
-
-  const handleOrbitEnd = useCallback(() => {
-    onOrbitingChange(false);
-    invalidate();
-  }, [invalidate, onOrbitingChange]);
   const handleOrbitLockChange = useCallback(
     (locked: boolean) => {
       if (controlsRef.current) {
@@ -231,8 +205,6 @@ function CubeStudio({
       <MagicCube
         cube={cube}
         isCelebrating={isCelebrating}
-        isKeyboardInteracting={isKeyboardInteracting}
-        isOrbiting={isOrbiting}
         onGestureActiveChange={onGestureActiveChange}
         onMoveComplete={onMoveComplete}
         onMoveRequest={onMoveRequest}
@@ -257,6 +229,7 @@ function CubeStudio({
         ref={controlsRef}
         makeDefault
         enabled={!isGestureActive && queue.length === 0}
+        autoRotate={false}
         enableDamping={!reducedMotion}
         dampingFactor={0.075}
         enablePan={false}
@@ -265,9 +238,6 @@ function CubeStudio({
         minPolarAngle={Math.PI * 0.2}
         rotateSpeed={0.62}
         target={[0, 0, 0]}
-        onChange={() => invalidate()}
-        onEnd={handleOrbitEnd}
-        onStart={handleOrbitStart}
       />
     </>
   );
