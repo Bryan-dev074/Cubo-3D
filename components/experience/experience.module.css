@@ -18,6 +18,26 @@
   background: var(--paper);
 }
 
+.skipLink {
+  position: fixed;
+  z-index: 90;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  color: #fff;
+  background: var(--cobalt-surface);
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 1rem));
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
 .carton {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -78,6 +98,9 @@
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   font-family: var(--font-display);
   font-size: clamp(1rem, 1.5vw, 1.25rem);
   letter-spacing: -0.035em;
@@ -114,12 +137,9 @@
   font-weight: 700;
   cursor: pointer;
   transition:
-    color 140ms var(--ease-out),
-    background-color 140ms var(--ease-out),
-    border-color 140ms var(--ease-out),
-    box-shadow 140ms var(--ease-out),
     opacity 140ms var(--ease-out),
     transform 140ms var(--ease-out);
+  touch-action: manipulation;
 }
 
 .languageButton {
@@ -175,7 +195,7 @@
   font-family: var(--font-display);
   font-size: clamp(2.35rem, 3.8vw, 4.6rem);
   line-height: 0.91;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.04em;
   text-wrap: balance;
 }
 
@@ -215,6 +235,7 @@
   min-height: 0;
   overflow: hidden;
   isolation: isolate;
+  scroll-margin-top: 4.5rem;
 }
 
 .cubeFrame {
@@ -259,6 +280,7 @@
 
 .cubeFrame :global(.cube-scene) {
   outline: none;
+  touch-action: none;
 }
 
 .cubeFrame :global(.cube-scene:focus-visible) {
@@ -361,6 +383,7 @@
   font-family: var(--font-display);
   font-size: clamp(1rem, 1.6vw, 1.55rem);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .textValue,
@@ -370,6 +393,10 @@
   font-size: 0.75rem;
   font-weight: 700;
   text-align: right;
+}
+
+.mobileTelemetrySummary strong {
+  font-variant-numeric: tabular-nums;
 }
 
 .statusValue {
@@ -435,7 +462,6 @@
   opacity: 0.45;
   transform: translateX(0);
   transition:
-    background-color 180ms var(--ease-out),
     opacity 180ms var(--ease-out),
     transform 180ms var(--ease-out);
 }
@@ -577,6 +603,7 @@
   border: 1px solid var(--line);
   background: var(--paper-raised);
   box-shadow: 0 1.1rem 3rem rgba(18, 27, 32, 0.18);
+  overscroll-behavior: contain;
 }
 
 .controlDock :global(.face-controls__move) {
@@ -664,6 +691,7 @@
   padding: 1rem;
   background: rgba(16, 23, 28, 0.62);
   animation: backdrop-enter 180ms var(--ease-out) both;
+  overscroll-behavior: contain;
 }
 
 .helpDialog {
@@ -674,6 +702,7 @@
   background: var(--paper-raised);
   box-shadow: 0 1.5rem 4rem rgba(8, 15, 20, 0.28);
   animation: dialog-enter 220ms var(--ease-out) both;
+  overscroll-behavior: contain;
 }
 
 .helpDialog h2 {
@@ -844,7 +873,7 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .experience {
     display: block;
     overflow-x: clip;

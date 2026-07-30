@@ -1,29 +1,72 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title description">
   <title id="title">Vista previa del Cubo Mágico 3D</title>
-  <desc id="description">Cubo de colores con piezas negras redondeadas sobre un fondo de estudio claro.</desc>
+  <desc id="description">Cubo de 26 piezas en vista de tres cuartos, apoyado sobre un plano de empaque desplegado.</desc>
   <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f8fafb"/>
-      <stop offset="1" stop-color="#dfe5e9"/>
-    </linearGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
-      <feGaussianBlur stdDeviation="22"/>
+    <filter id="contact-shadow" x="-35%" y="-120%" width="170%" height="340%">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+    <filter id="cube-depth" x="-20%" y="-20%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#11181d" flood-opacity=".2"/>
     </filter>
   </defs>
-  <rect width="960" height="720" fill="url(#background)"/>
-  <ellipse cx="500" cy="590" rx="260" ry="62" fill="#17202a" opacity=".18" filter="url(#shadow)"/>
-  <g transform="translate(480 345) rotate(-30) skewX(7)">
-    <rect x="-232" y="-232" width="464" height="464" rx="52" fill="#111417"/>
-    <g stroke="#111417" stroke-width="16">
-      <rect x="-216" y="-216" width="132" height="132" rx="28" fill="#f23b30"/>
-      <rect x="-66" y="-216" width="132" height="132" rx="28" fill="#f28b22"/>
-      <rect x="84" y="-216" width="132" height="132" rx="28" fill="#f2f2ee"/>
-      <rect x="-216" y="-66" width="132" height="132" rx="28" fill="#2f8a4a"/>
-      <rect x="-66" y="-66" width="132" height="132" rx="28" fill="#f5c518"/>
-      <rect x="84" y="-66" width="132" height="132" rx="28" fill="#1559d6"/>
-      <rect x="-216" y="84" width="132" height="132" rx="28" fill="#1559d6"/>
-      <rect x="-66" y="84" width="132" height="132" rx="28" fill="#f2f2ee"/>
-      <rect x="84" y="84" width="132" height="132" rx="28" fill="#f23b30"/>
+
+  <rect width="960" height="720" fill="#edf1f3"/>
+
+  <g data-surface="unfolded-plan" fill="none" stroke="#829099" stroke-width="1.5" opacity=".42">
+    <path d="M58 468 212 379 342 411 464 301 690 323 856 446 771 607 545 574 434 666 269 592 112 628Z" stroke-dasharray="9 10"/>
+    <path d="M212 379 269 592M342 411 434 666M464 301 545 574M690 323 771 607" stroke-dasharray="9 10"/>
+    <path d="M112 628 58 468 24 488 48 602ZM771 607 856 446 914 484 867 584Z"/>
+    <circle cx="73" cy="90" r="9"/>
+    <path d="M73 61v58M44 90h58"/>
+    <circle cx="872" cy="102" r="9"/>
+    <path d="M872 73v58M843 102h58"/>
+  </g>
+
+  <path d="M92 155h126" stroke="#0f4fd4" stroke-width="8"/>
+  <path d="M742 641h126" stroke="#0f4fd4" stroke-width="8"/>
+  <ellipse cx="493" cy="603" rx="245" ry="39" fill="#172027" opacity=".22" filter="url(#contact-shadow)"/>
+
+  <g filter="url(#cube-depth)">
+    <path d="M480 90 744 236 480 382 216 236Z" fill="#111416"/>
+    <path d="M216 236 480 382 480 653 216 507Z" fill="#0d1012"/>
+    <path d="M480 382 744 236 744 507 480 653Z" fill="#15191c"/>
+
+    <g data-face="top" transform="matrix(.88 .487 -.88 .487 480 90)" fill="#f0f1ec" stroke="#111416" stroke-width="13">
+      <rect x="7" y="7" width="86" height="86" rx="11"/>
+      <rect x="107" y="7" width="86" height="86" rx="11"/>
+      <rect x="207" y="7" width="86" height="86" rx="11"/>
+      <rect x="7" y="107" width="86" height="86" rx="11"/>
+      <rect x="107" y="107" width="86" height="86" rx="11"/>
+      <rect x="207" y="107" width="86" height="86" rx="11"/>
+      <rect x="7" y="207" width="86" height="86" rx="11"/>
+      <rect x="107" y="207" width="86" height="86" rx="11"/>
+      <rect x="207" y="207" width="86" height="86" rx="11"/>
     </g>
+
+    <g data-face="front" transform="matrix(.88 .487 0 .903 216 236)" fill="#145bc5" stroke="#111416" stroke-width="13">
+      <rect x="7" y="7" width="86" height="86" rx="11"/>
+      <rect x="107" y="7" width="86" height="86" rx="11"/>
+      <rect x="207" y="7" width="86" height="86" rx="11"/>
+      <rect x="7" y="107" width="86" height="86" rx="11"/>
+      <rect x="107" y="107" width="86" height="86" rx="11"/>
+      <rect x="207" y="107" width="86" height="86" rx="11"/>
+      <rect x="7" y="207" width="86" height="86" rx="11"/>
+      <rect x="107" y="207" width="86" height="86" rx="11"/>
+      <rect x="207" y="207" width="86" height="86" rx="11"/>
+    </g>
+
+    <g data-face="right" transform="matrix(.88 -.487 0 .903 480 382)" fill="#e6382d" stroke="#111416" stroke-width="13">
+      <rect x="7" y="7" width="86" height="86" rx="11"/>
+      <rect x="107" y="7" width="86" height="86" rx="11"/>
+      <rect x="207" y="7" width="86" height="86" rx="11"/>
+      <rect x="7" y="107" width="86" height="86" rx="11"/>
+      <rect x="107" y="107" width="86" height="86" rx="11"/>
+      <rect x="207" y="107" width="86" height="86" rx="11"/>
+      <rect x="7" y="207" width="86" height="86" rx="11"/>
+      <rect x="107" y="207" width="86" height="86" rx="11"/>
+      <rect x="207" y="207" width="86" height="86" rx="11"/>
+    </g>
+
+    <path d="M229 236 480 375 731 236" fill="none" stroke="#ffffff" stroke-width="3" opacity=".22"/>
   </g>
 </svg>

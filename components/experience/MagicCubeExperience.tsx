@@ -184,7 +184,15 @@ export function MagicCubeExperience() {
         <span>CUBO 3D</span>
       </aside>
 
-      <div ref={backgroundRef} className={styles.carton}>
+      <div
+        ref={backgroundRef}
+        className={styles.carton}
+        data-help-dialog-background="true"
+      >
+        <a className={styles.skipLink} href="#cube-stage">
+          {dictionary.skipToCube}
+        </a>
+
         <ExperienceHeader
           dictionary={dictionary}
           locale={locale}
@@ -203,6 +211,8 @@ export function MagicCubeExperience() {
             aria-label={dictionary.stageLabel}
             className={styles.stage}
             data-celebrating={String(celebrationActive)}
+            id="cube-stage"
+            tabIndex={-1}
           >
             <PlanDrawing />
             <div className={styles.cubeFrame}>

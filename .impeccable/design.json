@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-30T09:43:14.0312221-03:00",
+  "title": "Design System: Cubo Mágico 3D",
+  "extensions": {
+    "colorMeta": {
+      "cobalt-action": {
+        "role": "primary",
+        "displayName": "Cobalto de acción",
+        "canonical": "#0f4fd4",
+        "tonalRamp": [
+          "oklch(20% 0.12 260)",
+          "oklch(28% 0.15 260)",
+          "oklch(36% 0.18 260)",
+          "oklch(44% 0.2 260)",
+          "oklch(54% 0.18 260)",
+          "oklch(66% 0.14 260)",
+          "oklch(80% 0.08 260)",
+          "oklch(94% 0.025 260)"
+        ]
+      },
+      "cool-paper": {
+        "role": "neutral",
+        "displayName": "Papel frío",
+        "canonical": "#f2f5f6",
+        "tonalRamp": [
+          "oklch(15% 0.008 230)",
+          "oklch(26% 0.008 230)",
+          "oklch(38% 0.008 230)",
+          "oklch(52% 0.008 230)",
+          "oklch(66% 0.008 230)",
+          "oklch(78% 0.008 230)",
+          "oklch(88% 0.008 230)",
+          "oklch(96% 0.008 230)"
+        ]
+      },
+      "raised-paper": {
+        "role": "neutral",
+        "displayName": "Papel elevado",
+        "canonical": "#fbfcfc",
+        "tonalRamp": [
+          "oklch(15% 0.004 230)",
+          "oklch(27% 0.004 230)",
+          "oklch(39% 0.004 230)",
+          "oklch(53% 0.004 230)",
+          "oklch(67% 0.004 230)",
+          "oklch(80% 0.004 230)",
+          "oklch(90% 0.004 230)",
+          "oklch(98% 0.004 230)"
+        ]
+      },
+      "mold-graphite": {
+        "role": "neutral",
+        "displayName": "Grafito de molde",
+        "canonical": "#20262a",
+        "tonalRamp": [
+          "oklch(15% 0.012 235)",
+          "oklch(24% 0.012 235)",
+          "oklch(35% 0.012 235)",
+          "oklch(48% 0.012 235)",
+          "oklch(61% 0.012 235)",
+          "oklch(74% 0.012 235)",
+          "oklch(86% 0.012 235)",
+          "oklch(95% 0.012 235)"
+        ]
+      },
+      "soft-graphite": {
+        "role": "neutral",
+        "displayName": "Grafito suave",
+        "canonical": "#596269",
+        "tonalRamp": [
+          "oklch(15% 0.014 235)",
+          "oklch(26% 0.014 235)",
+          "oklch(38% 0.014 235)",
+          "oklch(51% 0.014 235)",
+          "oklch(64% 0.014 235)",
+          "oklch(76% 0.014 235)",
+          "oklch(87% 0.014 235)",
+          "oklch(95% 0.014 235)"
+        ]
+      },
+      "technical-smoke": {
+        "role": "neutral",
+        "displayName": "Humo técnico",
+        "canonical": "#d5dce0",
+        "tonalRamp": [
+          "oklch(15% 0.01 230)",
+          "oklch(27% 0.01 230)",
+          "oklch(39% 0.01 230)",
+          "oklch(52% 0.01 230)",
+          "oklch(65% 0.01 230)",
+          "oklch(77% 0.01 230)",
+          "oklch(87% 0.01 230)",
+          "oklch(95% 0.01 230)"
+        ]
+      },
+      "dark-paper": {
+        "role": "neutral",
+        "displayName": "Papel nocturno",
+        "canonical": "#1b2125",
+        "tonalRamp": [
+          "oklch(15% 0.01 235)",
+          "oklch(25% 0.01 235)",
+          "oklch(37% 0.01 235)",
+          "oklch(50% 0.01 235)",
+          "oklch(63% 0.01 235)",
+          "oklch(75% 0.01 235)",
+          "oklch(87% 0.01 235)",
+          "oklch(95% 0.01 235)"
+        ]
+      },
+      "dark-cobalt": {
+        "role": "primary",
+        "displayName": "Cobalto informativo nocturno",
+        "canonical": "#6c96f7",
+        "tonalRamp": [
+          "oklch(20% 0.1 260)",
+          "oklch(29% 0.13 260)",
+          "oklch(39% 0.16 260)",
+          "oklch(50% 0.17 260)",
+          "oklch(61% 0.16 260)",
+          "oklch(72% 0.13 260)",
+          "oklch(83% 0.08 260)",
+          "oklch(94% 0.025 260)"
+        ]
+      },
+      "dark-fill-light": {
+        "role": "neutral",
+        "displayName": "Relleno frío nocturno",
+        "canonical": "#dce6ec",
+        "tonalRamp": [
+          "oklch(15% 0.012 225)",
+          "oklch(27% 0.012 225)",
+          "oklch(39% 0.012 225)",
+          "oklch(52% 0.012 225)",
+          "oklch(65% 0.012 225)",
+          "oklch(77% 0.012 225)",
+          "oklch(87% 0.012 225)",
+          "oklch(95% 0.012 225)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display de empaque",
+        "purpose": "Título principal y encabezados de momentos clave."
+      },
+      "body": {
+        "displayName": "Cuerpo comercial",
+        "purpose": "Promesa, ayuda e instrucciones bilingües."
+      },
+      "label": {
+        "displayName": "Rótulo técnico",
+        "purpose": "Nombres de instrumentos y estados compactos."
+      },
+      "instrument": {
+        "displayName": "Dato vivo",
+        "purpose": "Contadores y valores que responden al cubo."
+      },
+      "fallback-title": {
+        "displayName": "Título de recuperación",
+        "purpose": "Estado localizado cuando la escena no puede mostrarse."
+      },
+      "spine": {
+        "displayName": "Marca vertical",
+        "purpose": "Identidad CUBO 3D de la espina cobalto."
+      },
+      "wordmark": {
+        "displayName": "Wordmark de cabecera",
+        "purpose": "Identidad compacta en escritorio y teléfono ancho."
+      },
+      "success-title": {
+        "displayName": "Título resuelto",
+        "purpose": "Único momento comercial extraordinario."
+      },
+      "dialog-title": {
+        "displayName": "Título de ayuda",
+        "purpose": "Jerarquía principal dentro del diálogo modal."
+      },
+      "notebook-display": {
+        "displayName": "Display de portátil",
+        "purpose": "Ajuste del hero en anchos de escritorio compactos."
+      },
+      "mobile-display": {
+        "displayName": "Display móvil",
+        "purpose": "Título de dos líneas entre 320 y 900 px."
+      },
+      "compact-label": {
+        "displayName": "Etiqueta mínima",
+        "purpose": "Resumen móvil de telemetría."
+      },
+      "caption": {
+        "displayName": "Caption de escena",
+        "purpose": "Instrucción de primer uso sin competir con el cubo."
+      },
+      "compact-action": {
+        "displayName": "Acción compacta",
+        "purpose": "Compra y disclosure en cabeceras móviles."
+      },
+      "mobile-body": {
+        "displayName": "Cuerpo móvil",
+        "purpose": "Promesa legible sin desplazar la escena."
+      },
+      "control": {
+        "displayName": "Control táctil",
+        "purpose": "Etiquetas de acciones del muelle y la telemetría."
+      }
+    },
+    "shadows": [
+      {
+        "name": "fallback-ambient",
+        "value": "0 1rem 2.4rem rgba(18, 27, 32, 0.16)",
+        "purpose": "Separa la recuperación de WebGL del poster local."
+      },
+      {
+        "name": "controls-float",
+        "value": "0 1.1rem 3rem rgba(18, 27, 32, 0.18)",
+        "purpose": "Eleva la rejilla de capas sobre el escenario."
+      },
+      {
+        "name": "success-float",
+        "value": "0 1.2rem 3rem rgba(14, 26, 35, 0.18)",
+        "purpose": "Sostiene el momento de resolución sin dominar la escena."
+      },
+      {
+        "name": "dialog-float",
+        "value": "0 1.5rem 4rem rgba(8, 15, 20, 0.28)",
+        "purpose": "Máxima elevación HTML, reservada para la ayuda modal."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-physical",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Respuesta rápida de controles, capas, paneles y foco visual."
+      },
+      {
+        "name": "ease-in-out-instrument",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "Actividad lenta y reversible de la telemetría en reposo."
+      },
+      {
+        "name": "state-fast",
+        "value": "140ms",
+        "purpose": "Opacidad, transformación y presión de controles rutinarios; color y borde cambian sin interpolación."
+      },
+      {
+        "name": "instrument-response",
+        "value": "180ms–220ms",
+        "purpose": "Actualización de números, capa activa y dial."
+      },
+      {
+        "name": "success-light",
+        "value": "820ms",
+        "purpose": "Barrido extraordinario que ocurre solo al resolver."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-phone",
+        "value": "340px"
+      },
+      {
+        "name": "mobile-stack",
+        "value": "900px"
+      },
+      {
+        "name": "notebook-tight",
+        "value": "1040px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción cobalto para desordenar o comprar.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">DESORDENAR CUBO</button>",
+      "css": ".ds-btn-primary { min-width: 44px; min-height: 44px; padding: 0.8rem 1.15rem; border: 1px solid transparent; border-radius: 0; color: #fff; background: #0f4fd4; font: 700 0.95rem/1 Archivo, Arial, sans-serif; cursor: pointer; transition: transform 140ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-primary:focus-visible { outline: 3px solid #0f4fd4; outline-offset: 3px; } .ds-btn-primary:active { transform: scale(0.97); } @media (hover:hover) and (pointer:fine) { .ds-btn-primary:hover { background: #083cae; } }"
+    },
+    {
+      "name": "Secondary Control",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Control técnico para deshacer, reiniciar o abrir ayuda.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">DESHACER</button>",
+      "css": ".ds-btn-secondary { min-width: 44px; min-height: 44px; padding: 0.55rem 0.75rem; border: 1px solid rgba(32,38,42,0.22); border-radius: 0; color: #20262a; background: transparent; font: 700 0.9rem/1 Archivo, Arial, sans-serif; cursor: pointer; transition: transform 140ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-secondary:focus-visible { outline: 3px solid #0f4fd4; outline-offset: 3px; } .ds-btn-secondary:active { transform: scale(0.97); } @media (hover:hover) and (pointer:fine) { .ds-btn-secondary:hover { color: #0f4fd4; border-color: #0f4fd4; } }"
+    },
+    {
+      "name": "Language Switch",
+      "kind": "nav",
+      "description": "Selector ES/PT que conserva el estado jugable.",
+      "html": "<nav class=\"ds-language\" aria-label=\"Idioma\"><button aria-pressed=\"true\">ES</button><button aria-pressed=\"false\">PT</button></nav>",
+      "css": ".ds-language { display: inline-flex; gap: 2px; font-family: Archivo, Arial, sans-serif; } .ds-language button { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0.4rem; border: 1px solid transparent; border-radius: 0; color: #596269; background: transparent; font-weight: 700; cursor: pointer; } .ds-language button[aria-pressed=\"true\"] { color: #0f4fd4; border-bottom-color: currentColor; } .ds-language button:focus-visible { outline: 3px solid #0f4fd4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Control Dock",
+      "kind": "custom",
+      "description": "Muelle plano con acciones del juego y acceso a nueve capas.",
+      "html": "<div class=\"ds-dock\" role=\"region\" aria-label=\"Controles del cubo\"><button>DESHACER</button><button>REINICIAR</button><button>AYUDA</button><button>CAPAS</button></div>",
+      "css": ".ds-dock { display: flex; align-items: center; justify-content: center; gap: 0.25rem; min-height: 4.1rem; padding: 0.45rem 0.7rem; border: 1px solid rgba(32,38,42,0.22); background: #fbfcfc; } .ds-dock button { min-width: 44px; min-height: 44px; padding: 0.55rem 0.75rem; border: 1px solid rgba(32,38,42,0.22); border-radius: 0; color: #20262a; background: transparent; font: 700 0.8rem/1 Archivo, Arial, sans-serif; } .ds-dock button:focus-visible { outline: 3px solid #0f4fd4; outline-offset: 3px; }"
+    },
+    {
+      "name": "Live Instrumentation",
+      "kind": "custom",
+      "refersTo": "instrumentation-panel",
+      "description": "Columna de datos reales conectada a las piezas y movimientos.",
+      "html": "<section class=\"ds-instrument\" aria-label=\"Telemetría completa\"><div><span>PIEZAS</span><strong>26</strong></div><div><span>MOVIMIENTOS</span><strong>08</strong></div><div><span>ESTADO</span><strong>EN JUEGO</strong></div></section>",
+      "css": ".ds-instrument { width: 230px; padding: 0.8rem 0 0 1.25rem; border-left: 1px dashed rgba(32,38,42,0.22); color: #20262a; background: #f2f5f6; font-family: Archivo, Arial, sans-serif; } .ds-instrument div { display: grid; grid-template-columns: 1fr auto; align-items: center; min-height: 3.7rem; border-bottom: 1px solid rgba(32,38,42,0.22); } .ds-instrument span { font-size: 0.71rem; font-weight: 800; letter-spacing: 0.055em; } .ds-instrument strong { color: #0f4fd4; font: 400 1.4rem/1 'Archivo Black', Arial, sans-serif; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Success Moment",
+      "kind": "card",
+      "refersTo": "success-panel",
+      "description": "Confirmación comercial que aparece solo tras una resolución válida.",
+      "html": "<aside class=\"ds-success\"><h2>LO RESOLVISTE.</h2><p>Ahora llevá el desafío a tus manos.</p><button>COMPRAR AHORA</button></aside>",
+      "css": ".ds-success { width: min(24rem, 100%); padding: 1.1rem; border: 1px solid #0f4fd4; border-radius: 0; color: #20262a; background: #fbfcfc; box-shadow: 0 1.2rem 3rem rgba(14,26,35,0.18); font-family: Archivo, Arial, sans-serif; } .ds-success h2 { margin: 0; font: 400 clamp(1.7rem,3vw,2.5rem)/1 'Archivo Black', Arial, sans-serif; letter-spacing: -0.04em; } .ds-success p { margin: 0.45rem 0 1rem; color: #596269; } .ds-success button { min-height: 44px; padding: 0.7rem 1.05rem; border: 1px solid transparent; color: #fff; background: #0f4fd4; font-weight: 700; } .ds-success button:focus-visible { outline: 3px solid #0f4fd4; outline-offset: 3px; }"
+    },
+    {
+      "name": "WebGL Recovery",
+      "kind": "card",
+      "description": "Fallback localizado con vista previa, reintento y compra.",
+      "html": "<section class=\"ds-fallback\"><h2>NO PUDIMOS CARGAR EL CUBO 3D</h2><p>Podés reintentar o comprar el cubo igualmente.</p><div><button>REINTENTAR</button><a href=\"#\">COMPRAR POR WHATSAPP</a></div></section>",
+      "css": ".ds-fallback { max-width: 30rem; padding: 1rem; border: 1px solid rgba(32,38,42,0.24); color: #20262a; background: #fbfcfc; box-shadow: 0 1rem 2.4rem rgba(18,27,32,0.16); font-family: Archivo, Arial, sans-serif; } .ds-fallback h2 { margin: 0 0 0.45rem; font: 400 1.35rem/1 'Archivo Black', Arial, sans-serif; letter-spacing: -0.03em; } .ds-fallback div { display: flex; gap: 0.5rem; margin-top: 0.85rem; } .ds-fallback button, .ds-fallback a { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0.65rem 0.85rem; border: 1px solid #20262a; color: #20262a; background: #fbfcfc; font-weight: 700; text-decoration: none; } .ds-fallback a { color: #fff; border-color: #0f4fd4; background: #0f4fd4; } .ds-fallback button:focus-visible, .ds-fallback a:focus-visible { outline: 3px solid #0f4fd4; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La caja abierta",
+    "overview": "El mundo visual toma la lógica de un empaque premium desplegado y la convierte en una superficie interactiva. La interfaz enmarca el producto sin encerrarlo: el cubo ocupa el espacio con escala física, mientras el contenido comercial aparece como información impresa sobre un embalaje preciso y contemporáneo.\n\nLa composición final combina planos de troquel, jerarquía comercial a la izquierda y una franja cobalto con instrumentación viva. El color pertenece ante todo al cubo; la interfaz se mantiene sobria para que cada sticker, giro y cambio de estado sea legible. El movimiento surge de la manipulación directa y de datos reales, no de ornamentación desconectada.",
+    "keyCharacteristics": [
+      "Composición asimétrica con un objeto 3D dominante.",
+      "Superficies frías y limpias, sin nostalgia artesanal.",
+      "Tipografía grotesca geométrica con jerarquía compacta.",
+      "Controles táctiles que se sienten físicos desde el contacto.",
+      "Telemetría constante pero significativa, conectada al estado real.",
+      "Un solo momento extraordinario: la resolución legítima del cubo."
+    ],
+    "rules": [
+      {
+        "name": "The Product Owns Color Rule",
+        "body": "El multicolor se concentra en el cubo. La interfaz no replica sus seis caras en botones, fondos o etiquetas.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "El cobalto es el único acento de interfaz.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Line Rule",
+        "body": "El título principal ocupa como máximo dos líneas en cualquier ancho.",
+        "section": "typography"
+      },
+      {
+        "name": "The Plain Language Rule",
+        "body": "Las instrucciones usan verbos directos y no dependen de terminología de speedcubing.",
+        "section": "typography"
+      },
+      {
+        "name": "The First Viewport Rule",
+        "body": "Producto, promesa, desafío y compra aparecen sin desplazamiento en un portátil estándar y en un teléfono contemporáneo.",
+        "section": "layout"
+      },
+      {
+        "name": "The Grounded Object Rule",
+        "body": "El cubo siempre conserva una referencia de suelo o contacto; nunca flota dentro de un vacío digital.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Una superficie en reposo no recibe sombra por costumbre; la elevación comunica superposición real.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Functional Radius Rule",
+        "body": "El radio expresa la geometría de un indicador o del producto; no se aplica a cada contenedor.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do mantener el cubo como el elemento visual más grande.",
+      "Do mostrar feedback desde `pointerdown`.",
+      "Do conservar copy, controles y CTA como HTML semántico fuera del canvas.",
+      "Do adaptar DPR, contraste, transparencia y movimiento al dispositivo.",
+      "Do usar la telemetría únicamente para información derivada del cubo real.",
+      "Do conservar equivalentes accesibles cuando el gesto o WebGL no estén disponibles."
+    ],
+    "donts": [
+      "Don't usar gradientes morados, brillos neón o fondos de malla genéricos.",
+      "Don't encerrar el cubo dentro de una tarjeta.",
+      "Don't convertir cada color de sticker en un color de interfaz.",
+      "Don't añadir precio, stock, garantía, reseñas o prestaciones no confirmadas.",
+      "Don't depender de hover, notación experta o texto dentro del canvas.",
+      "Don't usar la marca Rubik ni logotipos de terceros."
+    ]
+  }
+}

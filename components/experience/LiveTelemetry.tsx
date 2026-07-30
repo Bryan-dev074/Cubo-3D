@@ -47,7 +47,7 @@ export function LiveTelemetry({
       return;
     }
 
-    const mobile = window.matchMedia("(max-width: 700px)");
+    const mobile = window.matchMedia("(max-width: 900px)");
     const syncViewportSemantics = () => {
       disclosure.open = !mobile.matches;
     };

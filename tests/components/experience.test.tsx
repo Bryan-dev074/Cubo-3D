@@ -105,6 +105,23 @@ beforeEach(() => {
 });
 
 describe("MagicCubeExperience locale and commerce", () => {
+  it("offers a localized skip link to the interactive cube stage", () => {
+    render(<MagicCubeExperience />);
+
+    const skipLink = screen.getByRole("link", {
+      name: "Ir al cubo interactivo",
+    });
+    expect(skipLink).toHaveAttribute("href", "#cube-stage");
+    expect(
+      skipLink.closest('[data-help-dialog-background="true"]'),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("region", {
+        name: "Cubo Mágico 3D interactivo",
+      }),
+    ).toHaveAttribute("id", "cube-stage");
+  });
+
   it("keeps the product title in exactly two intentional visual lines", () => {
     render(<MagicCubeExperience />);
 
@@ -337,13 +354,42 @@ describe("commercial CSS contract", () => {
     );
 
     expect(css).toContain("env(safe-area-inset-bottom)");
-    expect(css).toContain("@media (max-width: 700px)");
+    expect(css).toContain("@media (max-width: 900px)");
     expect(css).toContain("45dvh");
     expect(css).toContain("@media (hover: hover) and (pointer: fine)");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (prefers-contrast: more)");
     expect(css).toContain("@media (prefers-reduced-transparency: reduce)");
+    expect(css).toContain("touch-action: manipulation");
+    expect(css).toContain("touch-action: none");
+    expect(css).toContain("overscroll-behavior: contain");
+    expect(css).toContain("font-variant-numeric: tabular-nums");
     expect(css).not.toMatch(/transition\s*:\s*all\b/);
+
+    const globalCss = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    );
+    for (const transition of [
+      ...css.matchAll(/transition:\s*([^;]+);/g),
+      ...globalCss.matchAll(/transition:\s*([^;]+);/g),
+    ]) {
+      expect(transition[1]).not.toMatch(
+        /\b(?:color|background-color|border-color|box-shadow)\b/,
+      );
+    }
+  });
+
+  it("keeps the wordmark target at least 44px and display tracking within the design floor", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const wordmark = css.match(/\.wordmark\s*\{([^}]*)\}/)?.[1];
+    const heading = css.match(/\.heroCopy h1\s*\{([^}]*)\}/)?.[1];
+
+    expect(wordmark).toMatch(/min-height:\s*2\.75rem;/);
+    expect(heading).toMatch(/letter-spacing:\s*-0\.04em;/);
   });
 
   it("keeps a 45dvh cube and compacts the telemetry gap at the 320px breakpoint", () => {

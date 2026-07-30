@@ -1,11 +1,16 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Group } from "three";
 
-import { celebrationSeparationScale } from "@/components/cube/MagicCube";
+import {
+  applyCelebrationSeparation,
+  celebrationSeparationScale,
+} from "@/components/cube/MagicCube";
 import { SuccessMoment } from "@/components/experience/SuccessMoment";
 import { inverseMove } from "@/lib/cube/moves";
 import { generateScramble } from "@/lib/cube/scramble";
+import { createSolvedCube } from "@/lib/cube/state";
 import {
   createInitialGameState,
   gameReducer,
@@ -96,6 +101,23 @@ describe("SuccessMoment", () => {
     expect(celebrationSeparationScale(0.5, false)).toBeCloseTo(1.06);
     expect(celebrationSeparationScale(1, false)).toBeCloseTo(1);
     expect(celebrationSeparationScale(0.5, true)).toBe(1);
+  });
+
+  it("applies celebration separation from canonical positions without frame accumulation", () => {
+    const cubie = createSolvedCube()[0];
+    const pivot = new Group();
+    const pivots = new Map([[cubie.id, pivot]]);
+
+    applyCelebrationSeparation([cubie], pivots, 1.06);
+    const firstFrame = pivot.position.clone();
+    applyCelebrationSeparation([cubie], pivots, 1.06);
+
+    expect(pivot.position.toArray()).toEqual(firstFrame.toArray());
+
+    applyCelebrationSeparation([cubie], pivots, 1);
+    expect(pivot.position.x).toBeCloseTo(firstFrame.x / 1.06);
+    expect(pivot.position.y).toBeCloseTo(firstFrame.y / 1.06);
+    expect(pivot.position.z).toBeCloseTo(firstFrame.z / 1.06);
   });
 });
 

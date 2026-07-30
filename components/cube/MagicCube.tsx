@@ -12,6 +12,7 @@ import type { Group } from "three";
 
 import { Cubie } from "@/components/cube/Cubie";
 import {
+  CUBIE_SPACING,
   createCubeRenderResources,
   disposeCubeRenderResources,
 } from "@/components/cube/cube-materials";
@@ -116,8 +117,13 @@ export function MagicCube({
   }, [ambientTurnEnabled, invalidate]);
 
   useEffect(() => {
+    const restoreCanonicalPositions = () => {
+      applyCelebrationSeparation(cube, pivotRefs.current, 1);
+    };
+
     if (!isCelebrating || reducedMotion || !pageVisible) {
       celebrationStartRef.current = null;
+      restoreCanonicalPositions();
       invalidate();
       return;
     }
@@ -138,9 +144,10 @@ export function MagicCube({
     return () => {
       window.cancelAnimationFrame(frame);
       celebrationStartRef.current = null;
+      restoreCanonicalPositions();
       invalidate();
     };
-  }, [invalidate, isCelebrating, pageVisible, reducedMotion]);
+  }, [cube, invalidate, isCelebrating, pageVisible, reducedMotion]);
 
   useFrame((_, delta) => {
     if (ambientTurnEnabled && rootRef.current) {
@@ -157,9 +164,7 @@ export function MagicCube({
       (performance.now() - celebrationStart) / CELEBRATION_DURATION_MS,
     );
     const separation = celebrationSeparationScale(progress, reducedMotion);
-    for (const pivot of pivotRefs.current.values()) {
-      pivot.position.multiplyScalar(separation);
-    }
+    applyCelebrationSeparation(cube, pivotRefs.current, separation);
   });
 
   const registerPivot = useCallback(
@@ -217,4 +222,24 @@ export function celebrationSeparationScale(
 
   const normalized = Math.min(1, Math.max(0, progress));
   return 1 + Math.sin(normalized * Math.PI) * 0.06;
+}
+
+export function applyCelebrationSeparation(
+  cube: readonly CubieState[],
+  pivots: CubiePivotMap,
+  separation: number,
+): void {
+  for (const cubie of cube) {
+    const pivot = pivots.get(cubie.id);
+    if (!pivot) {
+      continue;
+    }
+
+    pivot.position.set(
+      cubie.position[0] * CUBIE_SPACING * separation,
+      cubie.position[1] * CUBIE_SPACING * separation,
+      cubie.position[2] * CUBIE_SPACING * separation,
+    );
+    pivot.updateMatrix();
+  }
 }

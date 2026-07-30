@@ -10,14 +10,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:performance": "playwright test tests/e2e/performance.spec.ts"
+    "test:e2e": "playwright test tests/e2e/experience.spec.ts tests/e2e/responsive.spec.ts",
+    "test:performance": "playwright test tests/e2e/performance.spec.ts --workers=1"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",
     "@react-three/drei": "10.7.7",
     "@react-three/fiber": "9.6.1",
-    "motion": "12.43.0",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8",

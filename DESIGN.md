@@ -1,9 +1,132 @@
 ---
 name: Cubo Mágico 3D
 description: Un empaque premium convertido en una superficie de juego 3D.
+colors:
+  cobalt-action: "#0f4fd4"
+  cobalt-action-hover: "#083cae"
+  cool-paper: "#f2f5f6"
+  raised-paper: "#fbfcfc"
+  mold-graphite: "#20262a"
+  soft-graphite: "#596269"
+  technical-smoke: "#d5dce0"
+  construction-line: "rgba(32, 38, 42, 0.22)"
+  light-text: "#ffffff"
+  dark-paper: "#1b2125"
+  dark-raised-paper: "#242b30"
+  dark-text: "#f2f5f6"
+  dark-soft-text: "#b8c1c7"
+  dark-smoke: "#3a444a"
+  dark-cobalt: "#6c96f7"
+  dark-fill-light: "#dce6ec"
+  shadow-fallback: "rgba(18, 27, 32, 0.16)"
+  shadow-controls: "rgba(18, 27, 32, 0.18)"
+  shadow-success: "rgba(14, 26, 35, 0.18)"
+  shadow-dialog: "rgba(8, 15, 20, 0.28)"
+  modal-backdrop: "rgba(16, 23, 28, 0.62)"
+typography:
+  display:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(2.35rem, 3.8vw, 4.6rem)"
+    fontWeight: 400
+    lineHeight: 0.91
+    letterSpacing: "-0.04em"
+  body:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "clamp(0.94rem, 1.25vw, 1.1rem)"
+    fontWeight: 400
+    lineHeight: 1.5
+  label:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.71rem"
+    fontWeight: 800
+    lineHeight: 1.2
+    letterSpacing: "0.055em"
+  instrument:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1rem, 1.6vw, 1.55rem)"
+    fontWeight: 400
+    lineHeight: 1
+  fallback-title:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1.1rem, 3vw, 1.45rem)"
+    fontWeight: 400
+  spine:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1.1rem, 2.3vw, 2rem)"
+    fontWeight: 400
+  wordmark:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1rem, 1.5vw, 1.25rem)"
+    fontWeight: 400
+  success-title:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1.7rem, 3vw, 2.5rem)"
+    fontWeight: 400
+  dialog-title:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1.8rem, 5vw, 2.7rem)"
+    fontWeight: 400
+  notebook-display:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(2.25rem, 4.4vw, 3.6rem)"
+    fontWeight: 400
+  mobile-display:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(2.25rem, 11vw, 3.5rem)"
+    fontWeight: 400
+  compact-label:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.65rem"
+    fontWeight: 700
+  caption:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.76rem"
+    fontWeight: 400
+  compact-action:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.78rem"
+    fontWeight: 700
+  mobile-body:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.86rem"
+    fontWeight: 400
+  control:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.9rem"
+    fontWeight: 700
+rounded:
+  square: "0"
+  spine-loop: "2rem"
+  circle: "9999px"
+spacing:
+  compact: "0.5rem"
+  control: "0.75rem"
+  section: "1rem"
+  touch-target: "2.75rem"
+components:
+  button-primary:
+    backgroundColor: "{colors.cobalt-action}"
+    textColor: "{colors.light-text}"
+    rounded: "{rounded.square}"
+    padding: "0.8rem 1.15rem"
+    height: "{spacing.touch-target}"
+  button-secondary:
+    backgroundColor: "transparent"
+    textColor: "{colors.mold-graphite}"
+    rounded: "{rounded.square}"
+    padding: "0.55rem 0.75rem"
+    height: "{spacing.touch-target}"
+  instrumentation-panel:
+    backgroundColor: "{colors.cool-paper}"
+    textColor: "{colors.mold-graphite}"
+    rounded: "{rounded.square}"
+    padding: "0.8rem 0 0 1.25rem"
+  success-panel:
+    backgroundColor: "{colors.raised-paper}"
+    textColor: "{colors.mold-graphite}"
+    rounded: "{rounded.square}"
+    padding: "1.1rem"
 ---
-
-<!-- SEED: established with the user before implementation; re-run $impeccable document once there's code to capture the actual tokens and components. -->
 
 # Design System: Cubo Mágico 3D
 
@@ -11,70 +134,190 @@ description: Un empaque premium convertido en una superficie de juego 3D.
 
 **Creative North Star: "La caja abierta"**
 
-El mundo visual toma la lógica de un empaque premium desplegado y la convierte en una superficie interactiva. La interfaz enmarca el producto sin encerrarlo: el cubo ocupa el espacio con escala física, mientras el contenido comercial aparece como información impresa sobre un embalaje preciso y contemporáneo.
+El mundo visual toma la lógica de un empaque premium desplegado y la convierte
+en una superficie interactiva. La interfaz enmarca el producto sin encerrarlo:
+el cubo ocupa el espacio con escala física, mientras el contenido comercial
+aparece como información impresa sobre un embalaje preciso y contemporáneo.
 
-El sistema combina rigor geométrico, grandes campos de aire y una única acción cromática. El color pertenece ante todo al cubo. La interfaz se mantiene sobria para que cada sticker, giro y cambio de estado sea legible. El movimiento surge de la manipulación directa, no de ornamentación permanente.
+La composición final combina planos de troquel, jerarquía comercial a la
+izquierda y una franja cobalto con instrumentación viva. El color pertenece ante
+todo al cubo; la interfaz se mantiene sobria para que cada sticker, giro y
+cambio de estado sea legible. El movimiento surge de la manipulación directa y
+de datos reales, no de ornamentación desconectada.
 
 **Key Characteristics:**
 
 - Composición asimétrica con un objeto 3D dominante.
 - Superficies frías y limpias, sin nostalgia artesanal.
 - Tipografía grotesca geométrica con jerarquía compacta.
-- Controles táctiles que se sienten físicos y responden desde el contacto.
-- Un solo momento extraordinario: la resolución del cubo.
+- Controles táctiles que se sienten físicos desde el contacto.
+- Telemetría constante pero significativa, conectada al estado real.
+- Un solo momento extraordinario: la resolución legítima del cubo.
 
 ## Colors
 
-La estrategia es monocromática con un único acento cobalto. Los seis colores del cubo son contenido del producto y no se convierten en decoración de interfaz.
+La paleta de interfaz es monocromática con un único acento cobalto. Los seis
+colores del cubo son contenido del producto y nunca se convierten en una paleta
+decorativa.
 
 ### Primary
 
-- **Cobalto de acción:** reservado para foco, estados activos y la acción principal.
+- **Cobalto de acción:** foco, selección, telemetría activa y acciones
+  comerciales principales. Su variante profunda aparece solo en hover de
+  puntero fino.
 
 ### Neutral
 
-- **Papel frío:** campo principal claro, levemente gris y sin matiz crema.
-- **Grafito de molde:** texto y cuerpos estructurales; nunca negro absoluto.
-- **Humo técnico:** superficies secundarias y separaciones tonales.
-- **Blanco de luz:** reflejos controlados y texto sobre fondos oscuros.
+- **Papel frío:** campo principal y continuidad visual con el plano desplegado.
+- **Papel elevado:** respaldo de controles, ayuda, éxito y recuperación.
+- **Grafito de molde:** voz principal y estructura; evita el negro absoluto en
+  contraste normal.
+- **Grafito suave:** instrucciones y estados secundarios.
+- **Humo técnico:** separaciones tonales y progreso inactivo.
+- **Línea de construcción:** bordes y trazos de plano, nunca cajas decorativas
+  redundantes.
 
-**The Product Owns Color Rule.** El color multicolor se concentra en el cubo. La interfaz no replica sus seis caras en botones, fondos o etiquetas.
+El tema oscuro conserva los mismos roles mediante los tokens `dark-*`; no
+invierte el cobalto de las superficies comerciales, pero eleva el cobalto
+informativo para mantener contraste. Los modos de alto contraste usan una
+paleta funcional independiente definida en CSS.
 
-**The One Accent Rule.** El cobalto es el único acento de interfaz en toda la superficie.
+**The Product Owns Color Rule.** El multicolor se concentra en el cubo. La
+interfaz no replica sus seis caras en botones, fondos o etiquetas.
+
+**The One Accent Rule.** El cobalto es el único acento de interfaz.
 
 ## Typography
 
-La tipografía usa una familia sans variable de construcción geométrica, con suficiente calidez para contenido comercial y suficiente precisión para estados del juego. La familia final se resolverá durante la implementación con soporte completo para español y portugués.
+**Display Font:** Archivo Black (con Arial como respaldo)
 
-La jerarquía evita el contraste editorial de serif y sans. Título, cuerpo, controles y estados pertenecen a una sola voz, diferenciados por ancho, peso, tamaño y espaciado.
+**Body Font:** Archivo (con Arial como respaldo)
 
-**The Two-Line Rule.** El título principal ocupa como máximo dos líneas en cualquier ancho.
+**Character:** Ambas familias comparten una construcción industrial y admiten
+español y portugués. Archivo Black aporta presencia de empaque; Archivo mantiene
+claros controles, estados y texto comercial sin sumar una voz editorial ajena.
 
-**The Plain Language Rule.** Las instrucciones usan verbos directos y no dependen de terminología de speedcubing.
+### Hierarchy
+
+- **Display:** título del producto en dos líneas como máximo; se adapta con
+  `clamp` y conserva una interlínea compacta.
+- **Body:** promesa comercial e instrucciones con una anchura de lectura breve.
+- **Label:** rótulos técnicos en mayúsculas, peso alto y espaciado controlado.
+- **Instrument:** números y estados destacados con cifras tabulares.
+- **Responsive variants:** tamaños explícitos para wordmark, fallback, éxito,
+  diálogo, portátil, móvil, captions y controles; no son escalas improvisadas.
+
+**The Two-Line Rule.** El título principal ocupa como máximo dos líneas en
+cualquier ancho.
+
+**The Plain Language Rule.** Las instrucciones usan verbos directos y no
+dependen de terminología de speedcubing.
 
 ## Layout
 
-La composición de escritorio utiliza una cuadrícula asimétrica: información comercial en el tercio izquierdo y escenario 3D expandido hacia el centro y el borde derecho. El cubo puede cruzar divisiones internas del empaque, pero nunca invade el área de lectura ni tapa acciones.
+En escritorio, una espina cobalto antecede una cuadrícula asimétrica:
+información comercial en el tercio izquierdo, escenario 3D expandido en el
+centro y una columna técnica a la derecha. El plano de troquel cruza esas
+divisiones sin competir con la lectura. El muelle de controles ocupa el borde
+inferior de las dos primeras columnas.
 
-En móvil, la estructura se vuelve una sola columna. El encabezado permanece compacto, el cubo ocupa aproximadamente la mitad de la altura dinámica visible y los controles se agrupan bajo la escena. La acción de compra puede fijarse al borde inferior respetando el área segura, siempre que no tape el juego.
+En móvil y tablet compacta (hasta 900 px), la estructura se vuelve una sola
+columna: encabezado,
+promesa, escena, controles, resumen de tres datos y compra compatible con el
+área segura. La telemetría completa queda en un `details` expandible. A 340 px
+o menos se retira únicamente el wordmark redundante; el título principal
+permanece.
 
-El contenido completo cabe en el primer viewport en condiciones normales. La página puede crecer cuando el texto del usuario aumenta, el dispositivo es muy bajo o la ayuda está abierta; nunca se recorta contenido para simular un hero perfecto.
+El contenido esencial cabe en el primer viewport de 1440×900, 390×844 y
+320×700. Puede crecer cuando el usuario abre controles o telemetría, cuando el
+texto aumenta o cuando la ayuda está activa; nunca se recorta para simular un
+hero perfecto.
 
-**The First Viewport Rule.** Producto, promesa, desafío y compra son visibles sin desplazamiento en un portátil estándar y en un teléfono contemporáneo.
+**The First Viewport Rule.** Producto, promesa, desafío y compra aparecen sin
+desplazamiento en un portátil estándar y en un teléfono contemporáneo.
 
 ## Elevation & Depth
 
-La profundidad procede del objeto 3D, de una sombra de contacto estable y de diferencias tonales amplias. Las superficies HTML permanecen mayormente planas. Los botones se separan mediante contraste, borde interior y respuesta al contacto, no mediante sombras flotantes genéricas.
+La profundidad procede del objeto 3D, de su sombra de contacto y de diferencias
+tonales amplias. Las superficies HTML son planas por defecto. Solo los paneles
+que se superponen —controles de capas, ayuda, éxito y recuperación— usan una
+sombra ambiental; los botones se separan mediante color, borde, foco y respuesta
+al contacto.
 
-El cubo utiliza iluminación de estudio suave: luz principal grande, relleno frío y reflejo controlado sobre plástico y stickers satinados. No se usa bloom ni profundidad de campo como requisito.
+### Shadow Vocabulary
 
-**The Grounded Object Rule.** El cubo siempre conserva una referencia de suelo o contacto. Nunca flota dentro de un vacío digital.
+- **Panel flotante:** sombra ambiental amplia para controles que emergen sobre
+  la escena.
+- **Momento resuelto:** sombra ligeramente más firme que sostiene el mensaje de
+  éxito sin transformarlo en un modal dominante.
+- **Ayuda modal:** máxima profundidad HTML del sistema, acompañada de un fondo
+  atenuado.
+
+**The Grounded Object Rule.** El cubo siempre conserva una referencia de suelo
+o contacto; nunca flota dentro de un vacío digital.
+
+**The Flat-By-Default Rule.** Una superficie en reposo no recibe sombra por
+costumbre; la elevación comunica superposición real.
 
 ## Shapes
 
-El lenguaje combina el volumen suavemente biselado del producto con superficies de interfaz precisas. Los controles principales son cápsulas compactas; los controles de icono son círculos equivalentes; los paneles y diálogos usan esquinas moderadas. Esta diferencia es funcional y se mantiene de forma consistente.
+El lenguaje combina el volumen suavemente biselado del producto con superficies
+HTML rectas y precisas. Botones, muelles, telemetría y diálogos conservan
+esquinas cuadradas. Los círculos quedan reservados para indicadores de estado,
+matrices de piezas y el dial de giro.
 
-Los cubitos tienen biseles pequeños y separación real entre piezas. Los stickers son cuadrados redondeados con radios inferiores al cuerpo.
+Los cubitos tienen biseles pequeños y separación real entre piezas. Los
+stickers son cuadrados redondeados con radios inferiores al cuerpo. Los
+objetivos principales mantienen una dimensión mínima de 2.75 rem.
+
+**The Functional Radius Rule.** El radio expresa la geometría de un indicador o
+del producto; no se aplica a cada contenedor.
+
+## Components
+
+### Buttons
+
+- **Primary:** bloque cobalto, texto claro, peso alto, altura táctil mínima y
+  presión visible mediante una escala breve.
+- **Secondary:** superficie transparente, borde de construcción y grafito; en
+  puntero fino el borde y el texto adoptan el cobalto.
+- **Focus:** contorno cobalto de 3 px con separación de 3 px.
+- **Motion:** presión, opacidad y desplazamiento duran 140–220 ms con una salida
+  rápida `cubic-bezier(0.23, 1, 0.32, 1)`; los cambios de pintura son
+  instantáneos y no se usa `transition: all`.
+
+### Navigation
+
+El encabezado combina wordmark, selector ES/PT y compra. En móvil reduce
+espaciado y conserva todos los objetivos táctiles; a 320 px el wordmark se
+oculta para no comprimir idioma y compra.
+
+### Control Dock
+
+Muelle plano con Deshacer, Reiniciar, Ayuda y un desplegable de nueve capas. La
+rejilla flotante usa tres columnas en escritorio y una columna desplazable en
+móvil, con `overscroll-behavior: contain`.
+
+### Live Instrumentation
+
+Muestra una matriz real de 26 piezas, un diagrama de nueve capas, dirección de
+90 grados, contador, último giro, estado y progreso de mezcla. Los números usan
+cifras tabulares. El punto de estado respira, los puntos recorren la matriz y
+las capas reaccionan solo a datos reales; toda actividad se pausa cuando la
+pestaña queda oculta y se reduce a estados estáticos con movimiento reducido.
+
+### Success Moment
+
+Panel de aparición única después de resolver una mezcla válida. Combina un
+barrido de luz de 820 ms —evento raro y extraordinario— con una entrada del
+panel de 260 ms. Puede cerrarse, no bloquea la página y expone la compra
+localizada.
+
+### Help and Fallback
+
+La ayuda es un diálogo semántico con restauración de foco. El fallback de WebGL
+mantiene poster local, texto ES/PT, reintento y compra por WhatsApp; nunca deja
+un canvas vacío como única respuesta.
 
 ## Do's and Don'ts
 
@@ -83,38 +326,17 @@ Los cubitos tienen biseles pequeños y separación real entre piezas. Los sticke
 - **Do** mantener el cubo como el elemento visual más grande.
 - **Do** mostrar feedback desde `pointerdown`.
 - **Do** conservar copy, controles y CTA como HTML semántico fuera del canvas.
-- **Do** adaptar sombras, DPR y postprocesado al dispositivo.
-- **Do** ofrecer equivalentes estáticos y accesibles para movimiento reducido o WebGL ausente.
+- **Do** adaptar DPR, contraste, transparencia y movimiento al dispositivo.
+- **Do** usar la telemetría únicamente para información derivada del cubo real.
+- **Do** conservar equivalentes accesibles cuando el gesto o WebGL no estén
+  disponibles.
 
 ### Don't:
 
 - **Don't** usar gradientes morados, brillos neón o fondos de malla genéricos.
 - **Don't** encerrar el cubo dentro de una tarjeta.
 - **Don't** convertir cada color de sticker en un color de interfaz.
-- **Don't** añadir precio, stock, garantía, reseñas o prestaciones físicas inventadas.
+- **Don't** añadir precio, stock, garantía, reseñas o prestaciones no
+  confirmadas.
 - **Don't** depender de hover, notación experta o texto dentro del canvas.
 - **Don't** usar la marca Rubik ni logotipos de terceros.
-
-## Selected Composition
-
-La composición final combina las opciones A y B del estudio visual, según la elección del usuario. De A conserva el cubo apoyado sobre planos de troquel desplegados, la jerarquía comercial izquierda y la gran escala del producto. De B adopta la franja cobalto, el rigor instrumental y una columna técnica derecha. La columna no publica peso, materiales, magnetismo ni prestaciones no confirmadas: muestra telemetría real del cubo jugable.
-
-La tipografía de implementación será **Archivo Black** para el título de producto y **Archivo** para cuerpo, controles y microcopy. Comparten construcción industrial, admiten español y portugués y permiten distinguir voz de empaque y voz funcional sin introducir una serif editorial genérica.
-
-La dirección surgió del concept seed `fed89b21`, candidato 6: empaque modular de juguete con troquel. Este dato identifica el origen de la forma y no se muestra como contenido de la página.
-
-## Live Instrumentation
-
-La columna técnica funciona como un instrumento conectado al objeto, no como una lista de ventajas comerciales. Muestra:
-
-- Una matriz de 26 puntos; las piezas de la capa activa se encienden.
-- Un diagrama de 9 capas; la capa seleccionada se desplaza o resalta.
-- Un indicador de 90 grados que adopta la dirección del giro.
-- Un contador de movimientos con transición numérica.
-- El último giro con nombre natural localizado.
-- El estado actual: listo, desordenando, en juego o resuelto.
-- El progreso de mezcla sobre 20 movimientos.
-
-La instrumentación conserva actividad visual mínima y significativa. El punto de estado respira cuando está listo, los ticks direccionales avanzan durante un giro y la matriz reacciona solo a las piezas afectadas. Las animaciones se pausan cuando la pestaña queda oculta. Con movimiento reducido, los mismos cambios se expresan mediante estados estáticos de color, texto y contraste.
-
-En móvil, la columna se convierte en una banda horizontal de tres datos prioritarios. El resto queda disponible en un control expandible sin desplazar el cubo fuera del primer viewport.

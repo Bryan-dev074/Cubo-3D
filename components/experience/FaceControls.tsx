@@ -41,6 +41,9 @@ export function FaceControls({
       <button
         type="button"
         className="face-controls__toggle"
+        aria-label={
+          isExpanded ? dictionary.controlsHide : dictionary.controlsShow
+        }
         aria-controls={controlsId}
         aria-expanded={isExpanded}
         onClick={() => setIsExpanded((expanded) => !expanded)}

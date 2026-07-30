@@ -15,7 +15,6 @@ import {
 } from "@react-three/drei";
 import {
   ACESFilmicToneMapping,
-  PCFShadowMap,
   SRGBColorSpace,
 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -41,7 +40,7 @@ export interface CubeSceneProps {
 
 interface SceneBudget {
   readonly dprCap: number;
-  readonly shadowSize: 1024 | 2048;
+  readonly shadowSize: 512 | 1024;
 }
 
 interface ScenePalette {
@@ -128,13 +127,10 @@ export function CubeScene({
           near: 0.1,
           position: VIEW_CONFIG[reviewMode].camera,
         }}
-        shadows="percentage"
         onCreated={({ gl }) => {
           gl.outputColorSpace = SRGBColorSpace;
           gl.toneMapping = ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.08;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = PCFShadowMap;
         }}
       >
         <AdaptiveDpr pixelated={false} />
@@ -224,17 +220,10 @@ function CubeStudio({
       <ambientLight color={palette.ambient} intensity={0.55} />
       <hemisphereLight args={[palette.fill, palette.ground, 1.15]} />
       <directionalLight
-        castShadow
         color="#fff8ed"
         intensity={view.keyIntensity}
         position={view.key}
-        shadow-bias={-0.00035}
-        shadow-mapSize-height={budget.shadowSize}
-        shadow-mapSize-width={budget.shadowSize}
-        shadow-radius={5}
-      >
-        <orthographicCamera attach="shadow-camera" args={[-5, 5, 5, -5, 0.5, 18]} />
-      </directionalLight>
+      />
       <directionalLight color="#cfe0ff" intensity={1.35} position={[-4.5, 3.2, 5.2]} />
       <directionalLight color="#ffffff" intensity={1.6} position={[1.5, 4.8, -6]} />
 
@@ -256,7 +245,7 @@ function CubeStudio({
       <ContactShadows
         color="#1d252b"
         far={4}
-        frames={Infinity}
+        frames={1}
         opacity={0.3}
         position={[0, -1.58, 0]}
         resolution={budget.shadowSize}
@@ -310,8 +299,8 @@ function useSceneBudget(): SceneBudget {
   const readBudget = useCallback(
     (): SceneBudget =>
       window.innerWidth < 720
-        ? { dprCap: 1.75, shadowSize: 1024 }
-        : { dprCap: 2, shadowSize: 2048 },
+        ? { dprCap: 1.5, shadowSize: 512 }
+        : { dprCap: 1.75, shadowSize: 1024 },
     [],
   );
   const [budget, setBudget] = useState<SceneBudget>(() => readBudget());

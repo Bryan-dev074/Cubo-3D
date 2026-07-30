@@ -163,7 +163,7 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
       vi.fn(
         (query) =>
           ({
-            matches: query === "(max-width: 700px)",
+            matches: query === "(max-width: 900px)",
             media: query,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
@@ -210,7 +210,7 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
           ({
             matches:
               query === "(prefers-reduced-motion: reduce)" ||
-              query === "(max-width: 700px)",
+              query === "(max-width: 900px)",
             media: query,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),

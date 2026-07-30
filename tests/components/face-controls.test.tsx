@@ -47,6 +47,22 @@ const MOVE_CASES = [
 afterEach(cleanup);
 
 describe("FaceControls", () => {
+  it("keeps the localized toggle name explicit in collapsed and expanded states", async () => {
+    const user = userEvent.setup();
+    render(<FaceControls dictionary={dictionaries.es} onMove={vi.fn()} />);
+
+    const toggle = screen.getByRole("button", {
+      name: "Mostrar controles por capa",
+    });
+    expect(toggle).toHaveAttribute("aria-label", "Mostrar controles por capa");
+
+    await user.click(toggle);
+
+    expect(
+      screen.getByRole("button", { name: "Ocultar controles por capa" }),
+    ).toHaveAttribute("aria-label", "Ocultar controles por capa");
+  });
+
   it("expands nine Spanish layers with visible natural-language controls in both directions", async () => {
     const user = userEvent.setup();
     render(<FaceControls dictionary={dictionaries.es} onMove={vi.fn()} />);
