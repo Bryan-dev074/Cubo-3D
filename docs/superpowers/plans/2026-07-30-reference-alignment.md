@@ -94,6 +94,7 @@ Expected: PASS with identical canvas buffers.
 - Modify: `components/experience/MagicCubeExperience.tsx`
 - Modify: `components/experience/ExperienceHeader.tsx`
 - Modify: `components/experience/HeroCopy.tsx`
+- Modify: `components/experience/experience.module.css`
 - Modify: `lib/i18n/dictionaries.ts`
 - Modify: `tests/components/experience.test.tsx`
 - Modify: `tests/e2e/responsive.spec.ts`
