@@ -94,19 +94,23 @@ los datos de campo de visitantes reales en Vercel son la fuente de producción.
 
 ## URL pública y metadatos
 
-Definí una URL absoluta real, sin barra final, en:
+En Vercel no hace falta configurar un dominio manualmente. El proyecto usa
+automáticamente `VERCEL_PROJECT_PRODUCTION_URL`, que corresponde al dominio de
+producción asignado por Vercel (`*.vercel.app` cuando no existe un dominio
+personalizado). `VERCEL_URL` queda como respaldo para el despliegue generado.
+
+Si más adelante se conecta un dominio propio, se puede definir opcionalmente
+una URL absoluta, sin barra final, para darle prioridad:
 
 ```text
-NEXT_PUBLIC_SITE_URL=https://tu-dominio-real.com
+NEXT_PUBLIC_SITE_URL=https://tu-dominio.com
 ```
 
-La variable alimenta la URL canónica, Open Graph, `robots.txt` y
-`sitemap.xml`. En desarrollo solo se usa `http://localhost:3000` cuando la
-variable está ausente o vacía. Un valor explícito inválido, un protocolo
-distinto de HTTP(S) o una URL con credenciales falla en cualquier entorno; en
-Vercel también falla si la variable falta o apunta a un origen local/loopback.
-Así se evitan enlaces inventados y la ocultación accidental de credenciales
-dentro del origen.
+La URL resuelta alimenta la URL canónica, Open Graph, `robots.txt` y
+`sitemap.xml`. En desarrollo local se usa `http://localhost:3000` cuando no hay
+una URL configurada. Un valor explícito inválido, un protocolo distinto de
+HTTP(S), una URL con credenciales o un origen local en Vercel detiene la
+compilación para evitar metadatos inseguros.
 
 ## Importación directa en Vercel
 
@@ -114,10 +118,14 @@ dentro del origen.
    Project**.
 2. Importá `Bryan-dev074/Cubo-3D`.
 3. Conservá el preset detectado **Next.js** y el directorio raíz del repositorio.
-4. Agregá `NEXT_PUBLIC_SITE_URL` para Production y Preview con la URL real que
-   corresponda a cada entorno.
-5. Ejecutá **Deploy**. Luego de confirmar el dominio definitivo, actualizá la
-   variable y volvé a desplegar si fuera necesario.
+4. No agregues ninguna variable de URL: el dominio predeterminado de Vercel se
+   detecta automáticamente.
+5. Ejecutá **Deploy**.
+
+Si un proyecto antiguo no expone esas variables automáticas, activá
+**Settings → Environment Variables → Automatically expose System Environment
+Variables** y volvé a desplegar. Esto no requiere comprar ni configurar un
+dominio.
 
 Vercel generará vistas previas para las ramas y producción para la rama
 configurada. Este repositorio queda preparado para esa importación, pero **no se
