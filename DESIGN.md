@@ -4,20 +4,13 @@ description: Un empaque premium convertido en una superficie de juego 3D.
 colors:
   cobalt-action: "#0f4fd4"
   cobalt-action-hover: "#083cae"
-  cool-paper: "#f2f5f6"
-  raised-paper: "#fbfcfc"
+  warm-paper: "#f8f8f7"
+  raised-paper: "#ffffff"
   mold-graphite: "#20262a"
   soft-graphite: "#596269"
   technical-smoke: "#d5dce0"
   construction-line: "rgba(32, 38, 42, 0.22)"
   light-text: "#ffffff"
-  dark-paper: "#1b2125"
-  dark-raised-paper: "#242b30"
-  dark-text: "#f2f5f6"
-  dark-soft-text: "#b8c1c7"
-  dark-smoke: "#3a444a"
-  dark-cobalt: "#6c96f7"
-  dark-fill-light: "#dce6ec"
   shadow-fallback: "rgba(18, 27, 32, 0.16)"
   shadow-controls: "rgba(18, 27, 32, 0.18)"
   shadow-success: "rgba(14, 26, 35, 0.18)"
@@ -26,7 +19,7 @@ colors:
 typography:
   display:
     fontFamily: "Archivo Black, Arial, sans-serif"
-    fontSize: "clamp(2.35rem, 3.8vw, 4.6rem)"
+    fontSize: "clamp(5rem, 6vw, 6rem)"
     fontWeight: 400
     lineHeight: 0.91
     letterSpacing: "-0.04em"
@@ -117,7 +110,7 @@ components:
     padding: "0.55rem 0.75rem"
     height: "{spacing.touch-target}"
   instrumentation-panel:
-    backgroundColor: "{colors.cool-paper}"
+    backgroundColor: "{colors.warm-paper}"
     textColor: "{colors.mold-graphite}"
     rounded: "{rounded.square}"
     padding: "0.8rem 0 0 1.25rem"
@@ -148,7 +141,7 @@ de datos reales, no de ornamentación desconectada.
 **Key Characteristics:**
 
 - Composición asimétrica con un objeto 3D dominante.
-- Superficies frías y limpias, sin nostalgia artesanal.
+- Superficie blanca cálida y limpia, sin nostalgia artesanal.
 - Tipografía grotesca geométrica con jerarquía compacta.
 - Controles táctiles que se sienten físicos desde el contacto.
 - Telemetría constante pero significativa, conectada al estado real.
@@ -168,7 +161,7 @@ decorativa.
 
 ### Neutral
 
-- **Papel frío:** campo principal y continuidad visual con el plano desplegado.
+- **Papel cálido:** campo principal y continuidad visual con el plano desplegado.
 - **Papel elevado:** respaldo de controles, ayuda, éxito y recuperación.
 - **Grafito de molde:** voz principal y estructura; evita el negro absoluto en
   contraste normal.
@@ -177,10 +170,11 @@ decorativa.
 - **Línea de construcción:** bordes y trazos de plano, nunca cajas decorativas
   redundantes.
 
-El tema oscuro conserva los mismos roles mediante los tokens `dark-*`; no
-invierte el cobalto de las superficies comerciales, pero eleva el cobalto
-informativo para mantener contraste. Los modos de alto contraste usan una
-paleta funcional independiente definida en CSS.
+La superficie comercial es deliberadamente clara. No cambia de paleta según
+la preferencia oscura del sistema: la referencia de producto, la iluminación
+3D y el póster de carga permanecen dentro del mismo mundo blanco y cobalto.
+Los modos de alto contraste usan una paleta funcional independiente definida
+en CSS.
 
 **The Product Owns Color Rule.** El multicolor se concentra en el cubo. La
 interfaz no replica sus seis caras en botones, fondos o etiquetas.
@@ -222,11 +216,10 @@ divisiones sin competir con la lectura. El muelle de controles ocupa el borde
 inferior de las dos primeras columnas.
 
 En móvil y tablet compacta (hasta 900 px), la estructura se vuelve una sola
-columna: encabezado,
-promesa, escena, controles, resumen de tres datos y compra compatible con el
-área segura. La telemetría completa queda en un `details` expandible. A 340 px
-o menos se retira únicamente el wordmark redundante; el título principal
-permanece.
+columna: encabezado, promesa, escena, controles, resumen de tres datos y compra
+compatible con el área segura. La telemetría completa queda en un `details`
+expandible. El wordmark `CUBO 3D`, idioma y compra permanecen visibles incluso
+a 320 px.
 
 El contenido esencial cabe en el primer viewport de 1440×900, 390×844 y
 320×700. Puede crecer cuando el usuario abre controles o telemetría, cuando el
@@ -289,22 +282,26 @@ del producto; no se aplica a cada contenedor.
 ### Navigation
 
 El encabezado combina wordmark, selector ES/PT y compra. En móvil reduce
-espaciado y conserva todos los objetivos táctiles; a 320 px el wordmark se
-oculta para no comprimir idioma y compra.
+espaciado y conserva los tres elementos y todos los objetivos táctiles,
+incluido el viewport de 320 px.
 
 ### Control Dock
 
-Muelle plano con Deshacer, Reiniciar, Ayuda y un desplegable de nueve capas. La
-rejilla flotante usa tres columnas en escritorio y una columna desplazable en
-móvil, con `overscroll-behavior: contain`.
+Muelle plano con tres acciones primarias: Desordenar, Reiniciar y Ayuda.
+Deshacer y los giros por capa viven en una utilidad contextual que aparece por
+hover, foco o puntero táctil/coarse. La rejilla flotante usa tres columnas en
+escritorio y una columna desplazable en móvil, con
+`overscroll-behavior: contain`.
 
 ### Live Instrumentation
 
-Muestra una matriz real de 26 piezas, un diagrama de nueve capas, dirección de
-90 grados, contador, último giro, estado y progreso de mezcla. Los números usan
-cifras tabulares. El punto de estado respira, los puntos recorren la matriz y
-las capas reaccionan solo a datos reales; toda actividad se pausa cuando la
-pestaña queda oculta y se reduce a estados estáticos con movimiento reducido.
+Muestra una matriz real de 26 piezas, un diagrama isométrico de nueve capas,
+dirección de 90 grados, contador, último giro, estado y progreso de mezcla. Los
+números usan cifras tabulares. Un solo pseudo-elemento recorre la matriz de
+forma tenue; las capas y el dial reaccionan a datos reales y el contador se
+actualiza sin movimiento para respetar acciones iniciadas por teclado. Toda
+actividad se pausa al interactuar, cuando la pestaña queda oculta y con
+movimiento reducido.
 
 ### Success Moment
 

@@ -36,6 +36,18 @@ describe("production rendering contracts", () => {
     expect(sceneSource).toContain("autoRotate={false}");
   });
 
+  it("keeps the loading poster on the same warm-white product surface", () => {
+    const globalStyles = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    );
+
+    expect(globalStyles).toMatch(
+      /\.cube-poster\s*\{[\s\S]*?background:\s*#f8f8f7;/,
+    );
+    expect(globalStyles).not.toContain("#e8edef");
+  });
+
   it("updates the high-frequency move count without entry motion", () => {
     const telemetrySource = readFileSync(
       resolve(process.cwd(), "components/experience/LiveTelemetry.tsx"),
