@@ -18,7 +18,7 @@ test.use({
 });
 
 test.describe("idle WebGL rendering", () => {
-  test.use({ reducedMotion: "no-preference" });
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
   test("keeps WebGL rendering idle after a real background orbit", async ({ page }) => {
     await forceNormalMotionPreference(page);
@@ -63,7 +63,7 @@ test("renders the semantic product shell and complete metadata", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(
     page.getByText(
-      "Desordenalo, resolvelo y descubrí por qué este clásico se siente mejor en tus manos.",
+      "Un clásico reinventado en 3D. Girá, desafiá tu mente y volvé a ordenar los colores.",
     ),
   ).toBeVisible();
   await expect(
@@ -92,7 +92,11 @@ test("renders the semantic product shell and complete metadata", async ({
     "content",
     "summary_large_image",
   );
-  await expect(page.locator('meta[name="theme-color"]')).toHaveCount(2);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    "content",
+    "#f8f8f7",
+  );
   await expect(page.locator('link[rel="icon"]')).toHaveCount(1);
 
   const [robots, sitemap, openGraph] = await Promise.all([
@@ -132,7 +136,7 @@ test("preserves the exact cube state across ES/PT and supports keyboard turns", 
   await expect(page.locator("html")).toHaveAttribute("lang", "pt");
   await expect(
     page.getByText(
-      "Embaralhe, resolva e descubra por que este clássico fica ainda melhor nas suas mãos.",
+      "Um clássico reinventado em 3D. Gire, desafie sua mente e volte a ordenar as cores.",
     ),
   ).toBeVisible();
   await expect(

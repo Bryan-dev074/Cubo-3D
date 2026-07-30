@@ -3,7 +3,7 @@
   --font-display: var(--font-archivo-black), Arial, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 * {
@@ -14,14 +14,14 @@ html {
   min-width: 20rem;
   min-height: 100%;
   overflow-x: hidden;
-  background: #f2f5f6;
+  background: #f8f8f7;
 }
 
 body {
   min-width: 20rem;
   min-height: 100dvh;
   margin: 0;
-  background: #f2f5f6;
+  background: #f8f8f7;
   font-family: var(--font-body);
   text-rendering: optimizeLegibility;
 }
@@ -155,13 +155,6 @@ a {
   .scene-fallback__actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  html,
-  body {
-    background: #1b2125;
   }
 }
 

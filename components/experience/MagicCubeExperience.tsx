@@ -180,8 +180,36 @@ export function MagicCubeExperience() {
       className={styles.experience}
       id="cubo"
     >
-      <aside aria-hidden="true" className={styles.cobaltSpine}>
-        <span>CUBO 3D</span>
+      <aside
+        aria-label={dictionary.spineLabel}
+        className={styles.cobaltSpine}
+      >
+        <div className={styles.spineIntro}>
+          <strong>{dictionary.spineTitle}</strong>
+          <span>{dictionary.spineTagline}</span>
+        </div>
+
+        <strong aria-hidden="true" className={styles.spineWordmark}>
+          CUBO 3D
+        </strong>
+
+        <div className={styles.spineFooter}>
+          <strong>{dictionary.spineProduct}</strong>
+          <span>{dictionary.spinePlay}</span>
+          <span>{dictionary.spineEngineering}</span>
+          <span>{dictionary.spinePrecision}</span>
+          <svg
+            aria-hidden="true"
+            className={styles.spineDiagram}
+            data-testid="spine-diagram"
+            viewBox="0 0 64 64"
+          >
+            <path d="M32 4 57 18 32 32 7 18 32 4Z" />
+            <path d="M7 18v28l25 14 25-14V18M32 32v28" />
+            <path d="m19.5 11 25 14v28M44.5 11l-25 14v28" />
+            <path d="M7 32 32 46 57 32" />
+          </svg>
+        </div>
       </aside>
 
       <div
@@ -228,7 +256,6 @@ export function MagicCubeExperience() {
                 queue={state.queue}
               />
             </div>
-            <p className={styles.firstUseHint}>{dictionary.help}</p>
             <SuccessMoment
               dictionary={dictionary}
               isOpen={successOpen}

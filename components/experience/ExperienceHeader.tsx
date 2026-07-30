@@ -20,7 +20,7 @@ export function ExperienceHeader({
   return (
     <header className={styles.header}>
       <a className={styles.wordmark} href="#cubo">
-        {dictionary.title}
+        CUBO 3D
       </a>
       <div className={styles.headerActions}>
         <LanguageSwitch

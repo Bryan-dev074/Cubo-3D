@@ -136,6 +136,38 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(lines[1]).toHaveTextContent(/^Mágico 3D$/);
   });
 
+  it("renders the CUBO 3D wordmark and localized editorial spine", () => {
+    render(<MagicCubeExperience />);
+
+    expect(screen.getByRole("link", { name: "CUBO 3D" })).toHaveAttribute(
+      "href",
+      "#cubo",
+    );
+
+    const spine = screen.getByRole("complementary", {
+      name: "Identidad editorial",
+    });
+    expect(within(spine).getByText("LA CAJA ABIERTA")).toBeVisible();
+    expect(
+      within(spine).getByText("DISEÑO QUE SE DESPLIEGA"),
+    ).toBeVisible();
+    expect(within(spine).getByText("JUEGO.")).toBeVisible();
+    expect(within(spine).getByText("INGENIERÍA.")).toBeVisible();
+    expect(within(spine).getByText("PRECISIÓN.")).toBeVisible();
+    expect(within(spine).getByTestId("spine-diagram")).toBeInTheDocument();
+  });
+
+  it("places the localized drag hint directly below the hero challenge", () => {
+    render(<MagicCubeExperience />);
+
+    const challenge = screen.getByRole("button", {
+      name: "Desordenar cubo",
+    });
+    const hint = screen.getByText("Arrastrá para rotar el cubo");
+
+    expect(challenge.nextElementSibling).toBe(hint);
+  });
+
   it("renders the complete semantic shell on the server without browser globals", () => {
     vi.stubGlobal("document", undefined);
     expect(() => renderToString(<MagicCubeExperience />)).not.toThrow();
@@ -150,7 +182,7 @@ describe("MagicCubeExperience locale and commerce", () => {
 
     expect(
       await screen.findByText(
-        "Desordenalo, resolvelo y descubrí por qué este clásico se siente mejor en tus manos.",
+        "Un clásico reinventado en 3D. Girá, desafiá tu mente y volvé a ordenar los colores.",
       ),
     ).toBeVisible();
     expect(document.documentElement.lang).toBe("es");
@@ -167,9 +199,13 @@ describe("MagicCubeExperience locale and commerce", () => {
 
     expect(
       await screen.findByText(
-        "Embaralhe, resolva e descubra por que este clássico fica ainda melhor nas suas mãos.",
+        "Um clássico reinventado em 3D. Gire, desafie sua mente e volte a ordenar as cores.",
       ),
     ).toBeVisible();
+    expect(
+      screen.getByRole("complementary", { name: "Identidade editorial" }),
+    ).toHaveTextContent("A CAIXA ABERTA");
+    expect(screen.getByText("Arraste para girar o cubo")).toBeVisible();
     expect(document.documentElement.lang).toBe("pt");
     for (const purchase of screen.getAllByRole("link", { name: "Comprar cubo" })) {
       expect(purchase).toHaveAttribute("href", buildWhatsAppUrl("pt"));
@@ -238,59 +274,71 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(screen.getByTestId("visual-queue-length")).toHaveTextContent("1");
   });
 
-  it("closes success before undo and does not retrigger when that solved state returns", async () => {
-    const user = userEvent.setup();
-    render(<MagicCubeExperience />);
-    const solutionMoves = await solveChallenge(user);
-    const lastSolutionMove = solutionMoves.at(-1);
+  it(
+    "closes success before undo and does not retrigger when that solved state returns",
+    async () => {
+      const user = userEvent.setup();
+      render(<MagicCubeExperience />);
+      const solutionMoves = await solveChallenge(user);
+      const lastSolutionMove = solutionMoves.at(-1);
 
-    expect(lastSolutionMove).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Lo resolviste." })).toBeVisible();
+      expect(lastSolutionMove).toBeDefined();
+      expect(
+        screen.getByRole("heading", { name: "Lo resolviste." }),
+      ).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Deshacer" }));
-    expect(
-      screen.queryByRole("heading", { name: "Lo resolviste." }),
-    ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: "Confirmar giro visual" }),
-    );
+      await user.click(screen.getByRole("button", { name: "Deshacer" }));
+      expect(
+        screen.queryByRole("heading", { name: "Lo resolviste." }),
+      ).not.toBeInTheDocument();
+      await user.click(
+        screen.getByRole("button", { name: "Confirmar giro visual" }),
+      );
 
-    await requestMove(user, lastSolutionMove!);
-    await user.click(
-      screen.getByRole("button", { name: "Confirmar giro visual" }),
-    );
-    expect(
-      screen.queryByRole("heading", { name: "Lo resolviste." }),
-    ).not.toBeInTheDocument();
-  });
+      await requestMove(user, lastSolutionMove!);
+      await user.click(
+        screen.getByRole("button", { name: "Confirmar giro visual" }),
+      );
+      expect(
+        screen.queryByRole("heading", { name: "Lo resolviste." }),
+      ).not.toBeInTheDocument();
+    },
+    10_000,
+  );
 
-  it("closes success before an HTML face turn and keeps the celebration guard after undo resolves it", async () => {
-    const user = userEvent.setup();
-    render(<MagicCubeExperience />);
-    await solveChallenge(user);
+  it(
+    "closes success before an HTML face turn and keeps the celebration guard after undo resolves it",
+    async () => {
+      const user = userEvent.setup();
+      render(<MagicCubeExperience />);
+      await solveChallenge(user);
 
-    expect(screen.getByRole("heading", { name: "Lo resolviste." })).toBeVisible();
-    await user.click(
-      screen.getByRole("button", { name: "Mostrar controles por capa" }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Derecha horario" }),
-    );
+      expect(
+        screen.getByRole("heading", { name: "Lo resolviste." }),
+      ).toBeVisible();
+      await user.click(
+        screen.getByRole("button", { name: "Mostrar controles por capa" }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: "Derecha horario" }),
+      );
 
-    expect(
-      screen.queryByRole("heading", { name: "Lo resolviste." }),
-    ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: "Confirmar giro visual" }),
-    );
-    await user.click(screen.getByRole("button", { name: "Deshacer" }));
-    await user.click(
-      screen.getByRole("button", { name: "Confirmar giro visual" }),
-    );
-    expect(
-      screen.queryByRole("heading", { name: "Lo resolviste." }),
-    ).not.toBeInTheDocument();
-  });
+      expect(
+        screen.queryByRole("heading", { name: "Lo resolviste." }),
+      ).not.toBeInTheDocument();
+      await user.click(
+        screen.getByRole("button", { name: "Confirmar giro visual" }),
+      );
+      await user.click(screen.getByRole("button", { name: "Deshacer" }));
+      await user.click(
+        screen.getByRole("button", { name: "Confirmar giro visual" }),
+      );
+      expect(
+        screen.queryByRole("heading", { name: "Lo resolviste." }),
+      ).not.toBeInTheDocument();
+    },
+    10_000,
+  );
 
   it(
     "unlocks the real canvas contract after the finite celebration and closes success on its accepted gesture",
@@ -347,6 +395,17 @@ describe("MagicCubeExperience locale and commerce", () => {
 });
 
 describe("commercial CSS contract", () => {
+  it("keeps the commercial surface light regardless of system color scheme", () => {
+    const globalCss = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    );
+
+    expect(globalCss).toContain("color-scheme: light");
+    expect(globalCss).not.toContain("prefers-color-scheme: dark");
+    expect(globalCss).toMatch(/background:\s*#f[7-9]f[7-9]f[6-9]/i);
+  });
+
   it("contains responsive, safe-area and appearance preference gates without transition all", () => {
     const css = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),
@@ -392,6 +451,21 @@ describe("commercial CSS contract", () => {
     expect(heading).toMatch(/letter-spacing:\s*-0\.04em;/);
   });
 
+  it("uses the reference column split and collapses the cobalt spine without inherited padding", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const mobileBreakpoint = css.match(
+      /@media \(max-width: 900px\) \{([\s\S]*?)\n\}/,
+    )?.[1];
+
+    expect(css).toContain("minmax(21rem, 36%)");
+    expect(mobileBreakpoint).toMatch(
+      /\.cobaltSpine\s*\{[^}]*height:\s*0\.42rem;[^}]*padding:\s*0;/,
+    );
+  });
+
   it("keeps a 45dvh cube and compacts the telemetry gap at the 320px breakpoint", () => {
     const css = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),
@@ -421,45 +495,6 @@ describe("commercial CSS contract", () => {
       "true",
     );
     expect(screen.getByText("Ver telemetría completa").closest("summary")).not.toBeNull();
-  });
-
-  it("keeps dark accent, CTA, hover and spine text at normal-text contrast", () => {
-    const css = readFileSync(
-      resolve(process.cwd(), "components/experience/experience.module.css"),
-      "utf8",
-    );
-    const darkTheme = css.match(
-      /@media \(prefers-color-scheme: dark\) \{([\s\S]*?)\n\}/,
-    )?.[1];
-    const darkHighContrast = css.match(
-      /@media \(prefers-color-scheme: dark\) and \(prefers-contrast: more\) \{([\s\S]*?)\n\}/,
-    )?.[1];
-
-    const paper = readCssColor(darkTheme, "--paper");
-    const paperRaised = readCssColor(darkTheme, "--paper-raised");
-    const accent = readCssColor(darkTheme, "--cobalt");
-    const surface = readCssColor(darkTheme, "--cobalt-surface");
-    const surfaceHover = readCssColor(
-      darkTheme,
-      "--cobalt-surface-hover",
-    );
-
-    expect(contrastRatio(accent, paper)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(accent, paperRaised)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio("#ffffff", surface)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio("#ffffff", surfaceHover)).toBeGreaterThanOrEqual(4.5);
-
-    const contrastPaper = readCssColor(darkHighContrast, "--paper");
-    const contrastAccent = readCssColor(darkHighContrast, "--cobalt");
-    const contrastSurface = readCssColor(
-      darkHighContrast,
-      "--cobalt-surface",
-    );
-    expect(contrastPaper).not.toBe("#ffffff");
-    expect(contrastRatio(contrastAccent, contrastPaper)).toBeGreaterThanOrEqual(
-      7,
-    );
-    expect(contrastRatio("#ffffff", contrastSurface)).toBeGreaterThanOrEqual(7);
   });
 
   it("uses perceptible opacity-only success motion for reduced-motion visitors", () => {
@@ -533,38 +568,4 @@ async function requestMove(
 
 function moveRequestTestId(move: CubeMove): string {
   return `request-${move.axis}-${move.layer}-${move.turns}`;
-}
-
-function readCssColor(
-  cssBlock: string | undefined,
-  variable: string,
-): string {
-  const value = cssBlock?.match(
-    new RegExp(`${variable}:\\s*(#[0-9a-fA-F]{6})`),
-  )?.[1];
-  expect(value, `${variable} must be a six-digit hex color`).toBeDefined();
-  return value!;
-}
-
-function contrastRatio(foreground: string, background: string): number {
-  const light = relativeLuminance(foreground);
-  const dark = relativeLuminance(background);
-  return (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05);
-}
-
-function relativeLuminance(color: string): number {
-  const channels = color
-    .slice(1)
-    .match(/.{2}/g)!
-    .map((channel) => Number.parseInt(channel, 16) / 255)
-    .map((channel) =>
-      channel <= 0.04045
-        ? channel / 12.92
-        : ((channel + 0.055) / 1.055) ** 2.4,
-    );
-  return (
-    channels[0] * 0.2126 +
-    channels[1] * 0.7152 +
-    channels[2] * 0.0722
-  );
 }

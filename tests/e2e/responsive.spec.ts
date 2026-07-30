@@ -25,6 +25,45 @@ const VISUAL_ARTIFACT_DIRECTORY = resolve(
   "sdd",
 );
 
+test("desktop preserves the approved editorial shell proportions in dark system mode", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    colorScheme: "dark",
+    reducedMotion: "reduce",
+    viewport: { width: 1600, height: 1000 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await openExperience(page);
+  await waitForWebGLScene(page);
+
+  const spineBox = await page.locator("main > aside").first().boundingBox();
+  const headerBox = await page.locator("main header").boundingBox();
+  const heading = page.getByRole("heading", { level: 1 });
+  const headingFontSize = await heading.evaluate((element) =>
+    Number.parseFloat(window.getComputedStyle(element).fontSize),
+  );
+  const surfaceColor = await page.locator("main").evaluate(
+    (element) => window.getComputedStyle(element).backgroundColor,
+  );
+
+  expect(spineBox).not.toBeNull();
+  expect(spineBox!.width).toBeGreaterThanOrEqual(150);
+  expect(spineBox!.width).toBeLessThanOrEqual(155);
+  expect(headerBox).not.toBeNull();
+  expect(headerBox!.height).toBeGreaterThanOrEqual(94);
+  expect(headerBox!.height).toBeLessThanOrEqual(98);
+  expect(headingFontSize).toBeGreaterThanOrEqual(80);
+  expect(headingFontSize).toBeLessThanOrEqual(96);
+  expect(surfaceColor).toBe("rgb(248, 248, 247)");
+  await expect(page.getByRole("link", { name: "CUBO 3D" })).toBeVisible();
+  await diagnostics.assertClean();
+  await context.close();
+});
+
 test("tablet keeps the technical column inside the viewport", async ({
   browser,
 }) => {
@@ -53,7 +92,7 @@ test("tablet keeps the technical column inside the viewport", async ({
 });
 
 for (const viewport of MOBILE_VIEWPORTS) {
-  test(`${viewport.name} keeps the first viewport, touch targets and safe areas intact`, async ({
+  test(`${viewport.name} keeps the hero, cube entry, touch targets and safe areas intact`, async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -75,18 +114,15 @@ for (const viewport of MOBILE_VIEWPORTS) {
     ).toBe(0);
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
 
-    const firstViewportElements = [
+    const heroElements = [
       page.getByRole("heading", { level: 1 }),
       page.getByText(
-        "Desordenalo, resolvelo y descubrí por qué este clásico se siente mejor en tus manos.",
+        "Un clásico reinventado en 3D. Girá, desafiá tu mente y volvé a ordenar los colores.",
       ),
       page.getByRole("button", { name: "Desordenar cubo" }),
-      page.locator("#cube-stage"),
-      page.getByRole("region", { name: "Controles del cubo" }),
-      page.getByRole("group", { name: "Resumen de telemetría" }),
-      page.getByRole("link", { name: "Comprar cubo" }).first(),
+      page.getByText("Arrastrá para rotar el cubo"),
     ];
-    for (const element of firstViewportElements) {
+    for (const element of heroElements) {
       const box = await element.boundingBox();
       expect(
         box,
@@ -95,6 +131,11 @@ for (const viewport of MOBILE_VIEWPORTS) {
       expect(box!.y).toBeGreaterThanOrEqual(0);
       expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1);
     }
+
+    const stageBox = await page.locator("#cube-stage").boundingBox();
+    expect(stageBox).not.toBeNull();
+    expect(stageBox!.y).toBeLessThan(viewport.height);
+    expect(stageBox!.height).toBeGreaterThanOrEqual(viewport.height * 0.42);
 
     await expectVisibleTargetsAtLeast44(page);
     await expectSafePurchaseClear(page);
@@ -190,7 +231,7 @@ for (const colorScheme of ["light", "dark"] as const) {
         animations: "disabled",
         path: resolve(
           VISUAL_ARTIFACT_DIRECTORY,
-          `task-6-${viewport.name}-${colorScheme}.png`,
+          `task-2-${viewport.name}-${colorScheme}.png`,
         ),
       });
 
