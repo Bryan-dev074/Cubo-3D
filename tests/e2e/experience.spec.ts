@@ -1,4 +1,4 @@
-import { expect, test, type CDPSession } from "@playwright/test";
+import { expect, test, type CDPSession, type Page } from "@playwright/test";
 
 import {
   monitorBrowser,
@@ -17,17 +17,38 @@ test.use({
   viewport: { width: 1440, height: 900 },
 });
 
-test("the cube canvas is pixel-stable while idle", async ({ page }) => {
-  await page.goto("/");
-  const canvas = page.locator("canvas");
-  await expect(canvas).toBeVisible();
-  await page.waitForTimeout(350);
+test.describe("idle WebGL rendering", () => {
+  test.use({ reducedMotion: "no-preference" });
 
-  const before = await canvas.screenshot();
-  await page.waitForTimeout(700);
-  const after = await canvas.screenshot();
+  test("keeps WebGL rendering idle after a real background orbit", async ({ page }) => {
+    await forceNormalMotionPreference(page);
+    await installWebGLDrawCallCounter(page);
+    await page.goto("/");
+    const canvas = page.locator(".cube-scene canvas");
+    await expect(canvas).toBeVisible();
+    await page.waitForTimeout(350);
 
-  expect(after.equals(before)).toBe(true);
+    await resetWebGLDrawCalls(page);
+    await page.waitForTimeout(700);
+    expect(await readWebGLDrawCalls(page)).toBe(0);
+
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+
+    await resetWebGLDrawCalls(page);
+    const backgroundX = box!.x + 18;
+    const backgroundY = box!.y + box!.height * 0.5;
+    await page.mouse.move(backgroundX, backgroundY);
+    await page.mouse.down();
+    await page.mouse.move(backgroundX + 96, backgroundY - 22, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(() => readWebGLDrawCalls(page)).toBeGreaterThan(0);
+
+    await page.waitForTimeout(2_000);
+    await resetWebGLDrawCalls(page);
+    await page.waitForTimeout(700);
+    expect(await readWebGLDrawCalls(page)).toBe(0);
+  });
 });
 
 test("renders the semantic product shell and complete metadata", async ({
@@ -323,6 +344,99 @@ test("keeps the localized purchase and retry route when WebGL is unavailable", a
   await waitForWebGLScene(page);
   await diagnostics.assertClean();
 });
+
+async function installWebGLDrawCallCounter(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    type DrawCallCounter = {
+      drawArrays: number;
+      drawElements: number;
+    };
+    type TestWindow = typeof window & {
+      __cubo3dDrawCallCounter?: DrawCallCounter;
+    };
+
+    const testWindow = window as TestWindow;
+    const counter: DrawCallCounter = { drawArrays: 0, drawElements: 0 };
+    const patchedPrototypes = new WeakSet<object>();
+    testWindow.__cubo3dDrawCallCounter = counter;
+
+    const patchPrototype = (prototype: object) => {
+      if (patchedPrototypes.has(prototype)) {
+        return;
+      }
+      patchedPrototypes.add(prototype);
+      for (const method of ["drawArrays", "drawElements"] as const) {
+        const descriptor = Object.getOwnPropertyDescriptor(prototype, method);
+        if (!descriptor || typeof descriptor.value !== "function") {
+          continue;
+        }
+        const original = descriptor.value;
+        Object.defineProperty(prototype, method, {
+          ...descriptor,
+          value: function trackedDrawCall(
+          this: unknown,
+          ...args: unknown[]
+          ) {
+            counter[method] += 1;
+            return Reflect.apply(original, this, args);
+          },
+        });
+      }
+    };
+
+    patchPrototype(WebGLRenderingContext.prototype);
+    patchPrototype(WebGL2RenderingContext.prototype);
+  });
+}
+
+async function forceNormalMotionPreference(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = (query: string) => {
+      const media = originalMatchMedia(query);
+      if (query !== "(prefers-reduced-motion: reduce)") {
+        return media;
+      }
+      return {
+        addEventListener: media.addEventListener.bind(media),
+        dispatchEvent: media.dispatchEvent.bind(media),
+        matches: false,
+        media: media.media,
+        onchange: null,
+        removeEventListener: media.removeEventListener.bind(media),
+      } as MediaQueryList;
+    };
+  });
+}
+
+async function resetWebGLDrawCalls(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const counter = (
+      window as typeof window & {
+        __cubo3dDrawCallCounter?: { drawArrays: number; drawElements: number };
+      }
+    ).__cubo3dDrawCallCounter;
+    if (!counter) {
+      throw new Error("WebGL draw-call counter was not installed");
+    }
+    counter.drawArrays = 0;
+    counter.drawElements = 0;
+  });
+}
+
+async function readWebGLDrawCalls(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const counter = (
+      window as typeof window & {
+        __cubo3dDrawCallCounter?: { drawArrays: number; drawElements: number };
+      }
+    ).__cubo3dDrawCallCounter;
+    if (!counter) {
+      throw new Error("WebGL draw-call counter was not installed");
+    }
+    return counter.drawArrays + counter.drawElements;
+  });
+}
 
 async function dispatchTouchDrag(
   session: CDPSession,
