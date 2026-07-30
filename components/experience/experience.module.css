@@ -249,6 +249,8 @@
 }
 
 .workspace {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns:
     minmax(21rem, 36%)
@@ -272,7 +274,7 @@
   align-self: start;
   min-width: 0;
   padding:
-    clamp(5.7rem, 12vh, 7.7rem)
+    clamp(3.85rem, 8.8vh, 5.8rem)
     clamp(1.25rem, 2.3vw, 2.5rem)
     2rem
     0;
@@ -294,8 +296,8 @@
 }
 
 .promise {
-  max-width: 30rem;
-  margin: clamp(1.2rem, 2.1vw, 1.8rem) 0 0;
+  max-width: 18.5rem;
+  margin: clamp(2.7rem, 4.2vw, 3.65rem) 0 0;
   color: var(--graphite-soft);
   font-size: clamp(1rem, 1.18vw, 1.13rem);
   line-height: 1.48;
@@ -304,7 +306,7 @@
 .scrambleButton {
   min-width: 13.75rem;
   min-height: 3.65rem;
-  margin-top: clamp(1.45rem, 2.6vw, 2.1rem);
+  margin-top: clamp(2.25rem, 3.2vw, 3rem);
   padding: 0.9rem 1.4rem;
   color: #fff;
   background: var(--cobalt-surface);
@@ -380,26 +382,72 @@
 
 .planDrawing {
   position: absolute;
-  z-index: 1;
-  inset: 4% -8% -7% -11%;
-  width: 119%;
-  height: 105%;
+  z-index: 0;
+  top: 33.6%;
+  left: 0.5%;
+  width: 83.5%;
+  height: 57.5%;
   overflow: visible;
-  fill: none;
-  stroke: var(--line);
-  stroke-dasharray: 8 8;
-  stroke-width: 1.2;
+  transform: scaleX(1.1);
+  transform-origin: center;
   pointer-events: none;
 }
 
-.planDrawing circle,
-.planDrawing path:nth-last-child(-n + 3) {
-  stroke-dasharray: none;
+.planPanels rect {
+  fill: rgba(255, 255, 255, 0.18);
+  stroke: none;
+}
+
+.planCutLines,
+.planFoldLines,
+.planCubeMark,
+.planRegistration {
+  fill: none;
+  stroke: rgba(32, 38, 42, 0.25);
+  stroke-linecap: square;
+  stroke-linejoin: round;
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.planCutLines {
+  stroke: rgba(32, 38, 42, 0.34);
+}
+
+.planFoldLines {
+  stroke-dasharray: 7 7;
+}
+
+.planProductMark {
+  fill: rgba(32, 38, 42, 0.76);
+  font-family: var(--font-display);
+  font-size: 25px;
+  letter-spacing: -0.03em;
+}
+
+.planProductMark .planCopy {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.planCubeMark {
+  stroke-width: 1;
+}
+
+.planDotMatrix {
+  fill: var(--cobalt);
+  opacity: 0.9;
+}
+
+.planRegistration {
+  opacity: 0.62;
 }
 
 .firstUseHint {
   max-width: 27rem;
-  margin: 1.45rem 0 0;
+  margin: 2.5rem 0 0;
   padding: 0 0 0 1.65rem;
   color: var(--graphite-soft);
   font-size: 0.82rem;
@@ -440,27 +488,31 @@
 
 .fullInstrument {
   display: grid;
-  align-content: center;
-  height: 100%;
+  grid-template-rows: 1.35fr 1.35fr 1.35fr 1.12fr 0.85fr 0.85fr 0.95fr;
+  align-content: stretch;
+  height: calc(100dvh - 13.25rem);
 }
 
 .telemetryField {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 3.7rem;
-  padding: 0.55rem 0.15rem;
+  align-content: center;
+  min-height: clamp(4.2rem, 7.2vh, 5.5rem);
+  padding: clamp(0.65rem, 1.2vh, 0.95rem) 0.15rem;
   border-bottom: 1px solid var(--line);
 }
 
 .telemetryField:first-child {
-  min-height: 6rem;
+  min-height: clamp(6.7rem, 11.5vh, 8rem);
+}
+
+.telemetryField:nth-child(2),
+.telemetryField:nth-child(3) {
+  min-height: clamp(7.2rem, 12.2vh, 8.6rem);
 }
 
 .telemetryField h2,
 .instrumentLabel {
-  margin: 0;
+  margin: 0 0 0.7rem;
   font-size: 0.71rem;
   font-weight: 800;
   letter-spacing: 0.055em;
@@ -469,7 +521,11 @@
 }
 
 .telemetryFieldBody {
-  display: contents;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
 }
 
 .instrumentValue {
@@ -505,27 +561,43 @@
   border: 1px solid currentColor;
   border-radius: 50%;
   background: var(--cobalt);
-  animation: telemetry-breathe 2.6s var(--ease-in-out) infinite;
 }
 
 .pieceMatrix {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: repeat(6, 0.42rem);
-  gap: 0.25rem;
+  grid-template-columns: repeat(6, 0.48rem);
+  gap: 0.29rem;
   margin: 0;
   padding: 0;
+  overflow: hidden;
   list-style: none;
+}
+
+.pieceMatrix::after {
+  position: absolute;
+  z-index: 2;
+  top: -1.2rem;
+  left: -10%;
+  width: 120%;
+  height: 1rem;
+  background: rgba(15, 79, 212, 0.16);
+  opacity: 0;
+  transform: translateY(0);
+  animation: telemetry-group-sweep 4.8s linear infinite;
+  pointer-events: none;
+  content: "";
 }
 
 .pieceCell {
   position: relative;
-  width: 0.42rem;
-  height: 0.42rem;
+  z-index: 1;
+  width: 0.48rem;
+  height: 0.48rem;
   border-radius: 50%;
   background: var(--graphite-soft);
   opacity: 0.38;
-  animation: telemetry-scan 3.2s var(--ease-in-out) infinite;
-  animation-delay: calc(var(--scan-index) * 55ms);
 }
 
 .pieceCell[data-piece-active="true"] {
@@ -543,52 +615,72 @@
 }
 
 .layerDiagram {
-  display: grid;
-  grid-template-columns: repeat(3, 0.82rem);
-  gap: 0.18rem 0.28rem;
+  width: 5.9rem;
+  height: 4.65rem;
+  overflow: visible;
 }
 
-.layerCell {
-  width: 0.82rem;
-  height: 0.28rem;
-  border: 1px solid var(--graphite-soft);
-  background: transparent;
-  opacity: 0.45;
-  transform: translateX(0);
-  transition:
-    opacity 180ms var(--ease-out),
-    transform 180ms var(--ease-out);
+.layerPlanes path {
+  fill: var(--cobalt);
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out);
 }
 
-.layerCell[data-layer-active="true"] {
-  border-width: 2px;
-  border-color: var(--cobalt);
-  background: var(--cobalt);
-  opacity: 1;
-  transform: translateX(0.22rem);
+.layerPlanes path[data-layer-active="true"] {
+  opacity: 0.34;
+}
+
+.layerWireframe {
+  fill: none;
+  stroke: var(--graphite-soft);
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
 }
 
 .turnDial {
   position: relative;
-  width: 2.45rem;
-  height: 2.45rem;
+  width: 5rem;
+  height: 5rem;
   border: 1px solid var(--line);
   border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--paper) 0 61%, transparent 62%),
+    repeating-conic-gradient(
+      from -1deg,
+      rgba(32, 38, 42, 0.48) 0deg 1deg,
+      transparent 1deg 10deg
+    );
 }
 
-.turnDial span {
+.turnDial::after {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0.95rem;
-  height: 2px;
-  background: var(--cobalt);
-  transform: translate(-0.1rem, -50%) rotate(0deg);
-  transform-origin: 0.1rem 50%;
+  inset: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  content: "";
+}
+
+.turnDialArrow {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  transform: rotate(0deg);
   transition: transform 220ms var(--ease-out);
 }
 
-.turnDial span::after {
+.turnDialArrow i {
+  position: absolute;
+  top: calc(50% - 1px);
+  left: 50%;
+  width: 1.55rem;
+  height: 2px;
+  background: var(--cobalt);
+  transform: translateX(-0.15rem);
+}
+
+.turnDialArrow i::after {
   position: absolute;
   top: -0.22rem;
   right: -0.05rem;
@@ -600,20 +692,21 @@
   content: "";
 }
 
-.turnDial[data-direction="positive"] span {
-  transform: translate(-0.1rem, -50%) rotate(90deg);
+.turnDialArrow[data-direction="positive"] {
+  transform: rotate(90deg);
 }
 
-.turnDial[data-direction="negative"] span {
-  transform: translate(-0.1rem, -50%) rotate(-90deg);
+.turnDialArrow[data-direction="negative"] {
+  transform: rotate(-90deg);
 }
 
 .moveNumber {
+  font-size: clamp(2.6rem, 3.4vw, 3.35rem);
   animation: number-enter 180ms var(--ease-out) both;
 }
 
 .telemetry progress {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
   width: 100%;
   height: 0.25rem;
   overflow: hidden;
@@ -632,37 +725,98 @@
 .controlDock {
   position: relative;
   z-index: 11;
-  display: flex;
   grid-column: 1 / 3;
   grid-row: 2;
-  align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
   justify-self: center;
-  min-width: 0;
-  min-height: 4rem;
-  padding: 0.45rem 0.7rem;
+  width: 16.6rem;
+  min-width: 16.6rem;
+  min-height: 4.875rem;
+  padding: 0;
   border: 1px solid var(--line);
   background: var(--paper-raised);
 }
 
 .dockActions {
-  gap: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  min-height: 4.875rem;
+  gap: 0;
 }
 
-.dockActions button,
+.dockActions button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.55rem 0.3rem;
+  border: 0;
+  border-right: 1px solid var(--line);
+  color: var(--graphite);
+  background: transparent;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.dockActions button:last-child {
+  border-right: 0;
+}
+
+.dockUtilities {
+  position: absolute;
+  top: 50%;
+  right: -3.25rem;
+  opacity: 0;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: opacity 140ms var(--ease-out);
+}
+
+.controlDock:focus-within .dockUtilities,
+.controlDock[data-utilities-open="true"] .dockUtilities {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dockUtilitiesToggle {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  padding: 0;
+  border-color: var(--line) !important;
+  color: var(--graphite);
+  background: var(--paper-raised);
+}
+
+.dockUtilitiesPanel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.55rem);
+  display: grid;
+  gap: 0.4rem;
+  width: 15rem;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  box-shadow: 0 1.1rem 3rem rgba(18, 27, 32, 0.18);
+}
+
+.dockUtilitiesPanel > button,
 .controlDock :global(.face-controls__toggle) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  width: 100%;
   padding: 0.55rem 0.75rem;
   border-color: var(--line);
   color: var(--graphite);
   background: transparent;
 }
 
-.controlDock :global(.face-controls) {
+.dockUtilitiesPanel :global(.face-controls) {
   position: relative;
 }
 
@@ -685,7 +839,7 @@
 .controlDock :global(.face-controls__grid) {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 0.55rem);
+  bottom: calc(100% + 3.65rem);
   display: grid;
   grid-template-columns: repeat(3, minmax(12rem, 1fr));
   gap: 0.35rem;
@@ -698,6 +852,10 @@
   background: var(--paper-raised);
   box-shadow: 0 1.1rem 3rem rgba(18, 27, 32, 0.18);
   overscroll-behavior: contain;
+}
+
+.workspace:has(.controlDock:focus-within) .pieceMatrix::after {
+  animation-play-state: paused;
 }
 
 .controlDock :global(.face-controls__move) {
@@ -848,30 +1006,21 @@
   transform: scale(0.97);
 }
 
-@keyframes telemetry-scan {
+@keyframes telemetry-group-sweep {
   0%,
-  65%,
+  72%,
   100% {
-    opacity: 0.3;
-    transform: scale(0.78);
+    opacity: 0;
+    transform: translateY(0);
   }
 
-  14% {
-    opacity: 0.62;
-    transform: scale(1);
-  }
-}
-
-@keyframes telemetry-breathe {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(0.82);
+  78% {
+    opacity: 0.72;
   }
 
-  50% {
-    opacity: 1;
-    transform: scale(1);
+  92% {
+    opacity: 0.12;
+    transform: translateY(4.55rem);
   }
 }
 
@@ -950,6 +1099,15 @@
   .successActions > button:hover {
     color: var(--cobalt);
     border-color: var(--cobalt);
+  }
+
+  .workspace:has(.controlDock:hover) .pieceMatrix::after {
+    animation-play-state: paused;
+  }
+
+  .controlDock:hover .dockUtilities {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
@@ -1056,8 +1214,11 @@
   }
 
   .planDrawing {
-    inset: 0 -18% -7%;
-    width: 132%;
+    top: 14rem;
+    left: -12%;
+    width: 124%;
+    height: 34rem;
+    opacity: 0.18;
   }
 
   .firstUseHint {
@@ -1068,19 +1229,16 @@
 
   .controlDock {
     order: 3;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
     width: calc(100% - 1.5rem);
-    min-height: 0;
+    min-width: 0;
+    min-height: 4.875rem;
     margin: 0 0.75rem;
-    padding: 0.55rem;
+    padding: 0;
     border: 1px solid var(--line);
   }
 
   .dockActions {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-height: 4.875rem;
   }
 
   .dockActions button {
@@ -1089,32 +1247,47 @@
   }
 
   .dockActions button span {
-    display: none;
+    display: inline;
   }
 
-  .controlDock :global(.face-controls) {
-    display: contents;
+  .dockUtilities {
+    top: -3.2rem;
+    right: 0;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .dockUtilitiesPanel {
+    right: 0;
+    bottom: calc(100% + 0.45rem);
+    width: min(18rem, calc(100vw - 1.5rem));
+    max-height: 62dvh;
+    overflow: auto;
+  }
+
+  .dockUtilitiesPanel :global(.face-controls) {
+    display: block;
   }
 
   .controlDock :global(.face-controls__toggle) {
-    min-width: 4.7rem;
+    min-width: 100%;
     padding-inline: 0.45rem;
   }
 
   .controlDock :global(.face-controls__label-full) {
-    display: none;
+    display: inline;
   }
 
   .controlDock :global(.face-controls__label-compact) {
-    display: inline;
+    display: none;
   }
 
   .controlDock :global(.face-controls__grid) {
     position: static;
-    grid-column: 1 / -1;
     grid-template-columns: 1fr;
     width: 100%;
-    max-height: 48dvh;
+    max-height: 42dvh;
     margin-top: 0.45rem;
     box-shadow: none;
   }
@@ -1301,9 +1474,9 @@
     animation-duration: 180ms !important;
   }
 
-  .layerCell[data-layer-active="true"],
-  .turnDial[data-direction] span {
-    transform: none;
+  .layerPlanes path,
+  .turnDialArrow {
+    transition-duration: 1ms !important;
   }
 }
 

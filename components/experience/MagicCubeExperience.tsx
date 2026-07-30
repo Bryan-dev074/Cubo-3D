@@ -229,7 +229,9 @@ export function MagicCubeExperience() {
           purchaseHref={purchaseHref}
         />
 
-        <div className={styles.workspace}>
+        <div className={styles.workspace} data-testid="workspace">
+          <PlanDrawing dictionary={dictionary} />
+
           <HeroCopy
             dictionary={dictionary}
             disabled={controlsLocked}
@@ -243,7 +245,6 @@ export function MagicCubeExperience() {
             id="cube-stage"
             tabIndex={-1}
           >
-            <PlanDrawing />
             <div className={styles.cubeFrame}>
               <CubeCanvas
                 cube={state.cube}
@@ -282,6 +283,7 @@ export function MagicCubeExperience() {
             onHelp={() => setHelpOpen(true)}
             onMove={queueMove}
             onReset={reset}
+            onScramble={startScramble}
             onUndo={undo}
             undoAvailable={state.userHistory.length > 0}
           />
@@ -354,21 +356,75 @@ function announcementText(
   return dictionary.success;
 }
 
-function PlanDrawing() {
+function PlanDrawing({
+  dictionary,
+}: {
+  readonly dictionary: (typeof dictionaries)[keyof typeof dictionaries];
+}) {
   return (
     <svg
       aria-hidden="true"
       className={styles.planDrawing}
-      viewBox="0 0 900 620"
+      data-testid="packaging-plan"
+      viewBox="100 40 900 480"
     >
-      <path d="M78 402 221 318 342 351 462 240 684 258 817 369 736 528 512 497 408 582 253 516 117 548Z" />
-      <path d="M221 318 253 516M342 351 408 582M462 240 512 497M684 258 736 528" />
-      <path d="M117 548 78 402 29 432 47 521Z" />
-      <path d="M736 528 817 369 873 410 829 510Z" />
-      <circle cx="54" cy="62" r="9" />
-      <path d="M54 36v52M28 62h52" />
-      <circle cx="844" cy="74" r="9" />
-      <path d="M844 48v52M818 74h52" />
+      <g transform="rotate(-5 550 270)">
+        <g className={styles.planPanels}>
+          <rect x="190" y="190" width="180" height="180" />
+          <rect x="370" y="190" width="180" height="180" />
+          <rect x="550" y="190" width="180" height="180" />
+          <rect x="730" y="190" width="180" height="180" />
+        </g>
+
+        <g className={styles.planCutLines}>
+          <path d="M370 190 382 58Q384 42 400 40H520Q536 42 538 58L550 190" />
+          <path d="M550 190 562 95Q564 78 581 76H700Q717 78 719 95L730 190" />
+          <path d="M730 190 744 129Q747 114 762 112H894Q908 115 910 130L910 190" />
+          <path d="M190 370 177 432Q174 447 190 452L351 452Q367 449 370 433L370 370" />
+          <path d="M370 370 386 488Q389 504 405 506H519Q535 504 538 488L550 370" />
+          <path d="M550 370 563 461Q566 477 582 479H698Q715 477 718 461L730 370" />
+          <path d="M730 370 744 432Q747 447 763 451L893 451Q908 447 910 432L910 370" />
+          <path d="M190 370 128 378Q111 380 108 397V438Q111 454 128 456L190 452" />
+          <path d="M910 190 970 205Q984 209 986 225V336Q983 351 968 356L910 370" />
+        </g>
+
+        <g className={styles.planFoldLines}>
+          <path d="M370 190H910M190 370H910" />
+          <path d="M370 190V370M550 190V370M730 190V370M910 190V370" />
+        </g>
+
+        <g className={styles.planProductMark}>
+          <text x="430" y="270">CUBO 3D</text>
+          <text className={styles.planCopy} x="432" y="292">
+            {dictionary.planTagline}
+          </text>
+        </g>
+
+        <g className={styles.planCubeMark} transform="translate(500 315)">
+          <path d="M28 0 54 15 28 30 2 15 28 0Z" />
+          <path d="M2 15v30l26 15 26-15V15M28 30v30" />
+          <path d="M15 7.5 41 22.5v30M41 7.5 15 22.5v30" />
+          <path d="M2 30 28 45 54 30" />
+        </g>
+
+        <g className={styles.planDotMatrix}>
+          {Array.from({ length: 42 }, (_, index) => (
+            <circle
+              key={index}
+              cx={218 + (index % 7) * 15}
+              cy={385 + Math.floor(index / 7) * 15}
+              r="4.2"
+            />
+          ))}
+        </g>
+
+        <g className={styles.planRegistration}>
+          <path d="M110 82h36M128 64v36" />
+          <circle cx="128" cy="82" r="8" />
+          <path d="M954 414h36M972 396v36" />
+          <circle cx="972" cy="414" r="8" />
+        </g>
+      </g>
     </svg>
   );
 }

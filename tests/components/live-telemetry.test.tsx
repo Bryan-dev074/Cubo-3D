@@ -29,6 +29,31 @@ afterEach(() => {
 });
 
 describe("LiveTelemetry localization and truthfulness", () => {
+  it("exposes the layer diagram, turn dial and truthful mix meter", () => {
+    const state = confirmAll(
+      gameReducer(createInitialGameState(), {
+        type: "start-scramble",
+        moves: generateScramble({ length: 18, seed: 5201 }),
+      }),
+      3,
+    );
+    const telemetry = createTelemetrySnapshot(state, state.queue[0]?.move);
+
+    render(
+      <LiveTelemetry
+        dictionary={dictionaries.es}
+        snapshot={telemetry}
+      />,
+    );
+
+    expect(screen.getByTestId("layer-diagram")).toBeInTheDocument();
+    expect(screen.getByTestId("turn-dial")).toBeInTheDocument();
+    expect(screen.getByTestId("mix-meter")).toHaveAttribute(
+      "aria-valuenow",
+      String(telemetry.scrambleProgress.confirmed),
+    );
+  });
+
   it("shows every reviewed Spanish label and the ready state from the real snapshot", () => {
     renderTelemetry(createInitialGameState(), "es");
 

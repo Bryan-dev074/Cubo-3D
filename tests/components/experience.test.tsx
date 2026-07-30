@@ -157,6 +157,45 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(within(spine).getByTestId("spine-diagram")).toBeInTheDocument();
   });
 
+  it("renders the localized packaging plan as a workspace backdrop", () => {
+    render(<MagicCubeExperience />);
+
+    const plan = screen.getByTestId("packaging-plan");
+    const stage = screen.getByRole("region", {
+      name: "Cubo Mágico 3D interactivo",
+    });
+
+    expect(plan.tagName).toBe("svg");
+    expect(plan).toHaveAttribute("aria-hidden", "true");
+    expect(plan).toHaveTextContent("CUBO 3D");
+    expect(stage).not.toContainElement(plan);
+    expect(plan.parentElement).toHaveAttribute("data-testid", "workspace");
+  });
+
+  it("keeps three primary dock actions visible and relegates undo and layers to an accessible overlay", async () => {
+    const user = userEvent.setup();
+    render(<MagicCubeExperience />);
+
+    const primaryActions = screen.getByTestId("primary-dock-actions");
+    expect(within(primaryActions).getByRole("button", { name: "Desordenar" })).toBeVisible();
+    expect(within(primaryActions).getByRole("button", { name: "Reiniciar" })).toBeVisible();
+    expect(within(primaryActions).getByRole("button", { name: "Ayuda" })).toBeVisible();
+
+    const utilities = screen.getByRole("button", {
+      name: "Más controles",
+    });
+    expect(utilities).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Deshacer" })).not.toBeInTheDocument();
+
+    await user.click(utilities);
+
+    expect(utilities).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Mostrar controles por capa" }),
+    ).toBeVisible();
+  });
+
   it("places the localized drag hint directly below the hero challenge", () => {
     render(<MagicCubeExperience />);
 
@@ -237,6 +276,7 @@ describe("MagicCubeExperience locale and commerce", () => {
     render(<MagicCubeExperience />);
 
     await user.click(screen.getByRole("button", { name: "Iniciar gesto" }));
+    await openDockUtilities(user);
 
     expect(screen.getByRole("button", { name: "Desordenar cubo" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Deshacer" })).toBeDisabled();
@@ -288,6 +328,7 @@ describe("MagicCubeExperience locale and commerce", () => {
         screen.getByRole("heading", { name: "Lo resolviste." }),
       ).toBeVisible();
 
+      await openDockUtilities(user);
       await user.click(screen.getByRole("button", { name: "Deshacer" }));
       expect(
         screen.queryByRole("heading", { name: "Lo resolviste." }),
@@ -317,6 +358,7 @@ describe("MagicCubeExperience locale and commerce", () => {
       expect(
         screen.getByRole("heading", { name: "Lo resolviste." }),
       ).toBeVisible();
+      await openDockUtilities(user);
       await user.click(
         screen.getByRole("button", { name: "Mostrar controles por capa" }),
       );
@@ -330,6 +372,7 @@ describe("MagicCubeExperience locale and commerce", () => {
       await user.click(
         screen.getByRole("button", { name: "Confirmar giro visual" }),
       );
+      await openDockUtilities(user);
       await user.click(screen.getByRole("button", { name: "Deshacer" }));
       await user.click(
         screen.getByRole("button", { name: "Confirmar giro visual" }),
@@ -565,6 +608,15 @@ async function requestMove(
   move: CubeMove,
 ) {
   await user.click(screen.getByTestId(moveRequestTestId(move)));
+}
+
+async function openDockUtilities(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  const toggle = screen.getByRole("button", { name: "Más controles" });
+  if (toggle.getAttribute("aria-expanded") !== "true") {
+    await user.click(toggle);
+  }
 }
 
 function moveRequestTestId(move: CubeMove): string {

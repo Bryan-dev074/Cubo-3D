@@ -10,6 +10,7 @@ import { resolve } from "node:path";
 
 import {
   boxesOverlap,
+  ensureFaceControlsOpen,
   monitorBrowser,
   openExperience,
   setDeterministicBrowserState,
@@ -214,12 +215,7 @@ for (const viewport of MOBILE_VIEWPORTS) {
 
     const details = page.locator('details[data-mobile-expandable="true"]');
     await expect(details).not.toHaveAttribute("open", "");
-    await page
-      .getByRole("button", { name: "Mostrar controles por capa" })
-      .click();
-    await expect(
-      page.getByRole("group", { name: "Giros por capa" }),
-    ).toBeVisible();
+    await ensureFaceControlsOpen(page);
     await page.getByText("Ver telemetría completa").click();
     await expect(details).toHaveAttribute("open", "");
     await expectVisibleTargetsAtLeast44(page);

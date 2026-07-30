@@ -1,6 +1,7 @@
 import { expect, test, type CDPSession, type Page } from "@playwright/test";
 
 import {
+  ensureFaceControlsOpen,
   monitorBrowser,
   openExperience,
   requestHtmlMove,
@@ -151,6 +152,7 @@ test("preserves the exact cube state across ES/PT and supports keyboard turns", 
   const keyboardMove = page.getByRole("button", {
     name: "Direita anti-horário",
   });
+  await ensureFaceControlsOpen(page, "pt");
   await keyboardMove.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("2");
@@ -176,8 +178,17 @@ test("scrambles, confirms a move, undoes it and resets the real cube", async ({
 
   const front = LAYER_NOTATION.find((layer) => layer.id === "front")!;
   await requestHtmlMove(page, createLayerMove(front, "clockwise"), 1);
+
+  const openUtilitiesToggle = page.getByRole("button", {
+    name: "Cerrar controles adicionales",
+  });
+  await expect(openUtilitiesToggle).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("button", { name: "Deshacer" }).click();
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("0");
+  await page.keyboard.press("Escape");
+  const utilitiesToggle = page.getByRole("button", { name: "Más controles" });
+  await expect(utilitiesToggle).toBeFocused();
+  await expect(utilitiesToggle).toHaveAttribute("aria-expanded", "false");
 
   await page.getByRole("button", { name: "Reiniciar" }).click();
   await expect(page.getByTestId("telemetry-scramble-progress")).toHaveText(
@@ -241,6 +252,18 @@ test("supports a real touch layer drag and separate orbit on mobile", async ({
   await setDeterministicBrowserState(page);
   await openExperience(page);
   const canvas = await waitForWebGLScene(page);
+
+  await page.getByRole("button", { name: "Más controles" }).tap();
+  await expect(
+    page.getByRole("button", { name: "Cerrar controles adicionales" }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await page
+    .getByRole("button", { name: "Cerrar controles adicionales" })
+    .tap();
+  await expect(
+    page.getByRole("button", { name: "Más controles" }),
+  ).toHaveAttribute("aria-expanded", "false");
+
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   expect(await page.evaluate(() => navigator.maxTouchPoints)).toBeGreaterThan(0);

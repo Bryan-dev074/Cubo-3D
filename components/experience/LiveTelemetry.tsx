@@ -4,7 +4,6 @@ import {
   useEffect,
   useRef,
   useSyncExternalStore,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 
@@ -99,7 +98,7 @@ export function LiveTelemetry({
               className={styles.pieceMatrix}
               data-active-count={snapshot.activePieceIds.length}
             >
-              {snapshot.pieceIds.map((pieceId, index) => {
+              {snapshot.pieceIds.map((pieceId) => {
                 const active = snapshot.activePieceIds.includes(pieceId);
                 return (
                   <li
@@ -107,7 +106,6 @@ export function LiveTelemetry({
                     className={styles.pieceCell}
                     data-piece-active={String(active)}
                     data-piece-cue={active ? "ring" : "none"}
-                    style={{ "--scan-index": index } as CSSProperties}
                   />
                 );
               })}
@@ -118,24 +116,7 @@ export function LiveTelemetry({
           </TelemetryField>
 
           <TelemetryField label={dictionary.telemetryLayers}>
-            <div aria-hidden="true" className={styles.layerDiagram}>
-              {AXES.flatMap((axis) =>
-                LAYERS.map((layer) => {
-                  const active =
-                    snapshot.activeLayer?.axis === axis &&
-                    snapshot.activeLayer.layer === layer;
-                  return (
-                    <span
-                      key={`${axis}-${layer}`}
-                      className={styles.layerCell}
-                      data-layer-active={String(active)}
-                      data-layer-axis={axis}
-                      data-layer-value={layer}
-                    />
-                  );
-                }),
-              )}
-            </div>
+            <LayerDiagram snapshot={snapshot} />
             <span className={styles.instrumentValue}>
               {snapshot.activeLayer
                 ? `${snapshot.activeLayer.axis.toUpperCase()} ${signedLayer(
@@ -149,10 +130,15 @@ export function LiveTelemetry({
             <div
               aria-hidden="true"
               className={styles.turnDial}
-              data-direction={snapshot.activeTurn?.direction ?? "idle"}
-              data-testid="telemetry-turn-direction"
+              data-testid="turn-dial"
             >
-              <span />
+              <span
+                className={styles.turnDialArrow}
+                data-direction={snapshot.activeTurn?.direction ?? "idle"}
+                data-testid="telemetry-turn-direction"
+              >
+                <i />
+              </span>
             </div>
             <span
               className={styles.instrumentValue}
@@ -199,6 +185,10 @@ export function LiveTelemetry({
             </span>
             <progress
               aria-label={`${dictionary.telemetryScramble}: ${scrambleValue}`}
+              aria-valuemax={scrambleTotal}
+              aria-valuemin={0}
+              aria-valuenow={snapshot.scrambleProgress.confirmed}
+              data-testid="mix-meter"
               max={scrambleTotal}
               value={snapshot.scrambleProgress.confirmed}
             />
@@ -213,6 +203,69 @@ export function LiveTelemetry({
       </p>
     </aside>
   );
+}
+
+function LayerDiagram({
+  snapshot,
+}: {
+  readonly snapshot: CubeTelemetry;
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={styles.layerDiagram}
+      data-testid="layer-diagram"
+      viewBox="0 0 112 88"
+    >
+      <g className={styles.layerPlanes}>
+        {AXES.flatMap((axis) =>
+          LAYERS.map((layer, index) => {
+            const active =
+              snapshot.activeLayer?.axis === axis &&
+              snapshot.activeLayer.layer === layer;
+            return (
+              <path
+                key={`${axis}-${layer}`}
+                d={layerPlanePath(axis, index)}
+                data-layer-active={String(active)}
+                data-layer-axis={axis}
+                data-layer-value={layer}
+              />
+            );
+          }),
+        )}
+      </g>
+      <g className={styles.layerWireframe}>
+        <path d="M20 20 42 8H92L70 20Z" />
+        <path d="M70 20 92 8V58L70 70Z" />
+        <rect x="20" y="20" width="50" height="50" />
+        <path d="M36.67 20V70M53.33 20V70M20 36.67H70M20 53.33H70" />
+        <path d="M27.33 16H77.33M34.67 12H84.67M77.33 16V66M84.67 12V62" />
+      </g>
+    </svg>
+  );
+}
+
+function layerPlanePath(axis: Axis, index: number): string {
+  const third = 50 / 3;
+
+  if (axis === "x") {
+    const x = 20 + index * third;
+    return `M${x} 20H${x + third}V70H${x}Z`;
+  }
+
+  if (axis === "y") {
+    const y = 20 + index * third;
+    return `M20 ${y}H70V${y + third}H20Z`;
+  }
+
+  const frontLeft = 20 + index * (22 / 3);
+  const frontRight = 70 + index * (22 / 3);
+  const backLeft = frontLeft + 22 / 3;
+  const backRight = frontRight + 22 / 3;
+  return `M${frontLeft} ${20 - index * 4}H${frontRight}L${backRight} ${
+    16 - index * 4
+  }H${backLeft}Z`;
 }
 
 export function formatMoveName(

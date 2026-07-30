@@ -151,13 +151,24 @@ export async function ensureFaceControlsOpen(
   locale: Locale = "es",
 ): Promise<void> {
   const dictionary = dictionaries[locale];
+  const controls = page.getByRole("group", { name: dictionary.controlsGroup });
+  if (await controls.isVisible().catch(() => false)) {
+    return;
+  }
+
+  const utilities = page.getByRole("button", {
+    name: dictionary.controlUtilities,
+  });
+  if (await utilities.count()) {
+    await utilities.focus();
+    await page.keyboard.press("Enter");
+  }
+
   const show = page.getByRole("button", { name: dictionary.controlsShow });
   if (await show.isVisible().catch(() => false)) {
     await show.click();
   }
-  await expect(
-    page.getByRole("group", { name: dictionary.controlsGroup }),
-  ).toBeVisible();
+  await expect(controls).toBeVisible();
 }
 
 export async function requestHtmlMove(
