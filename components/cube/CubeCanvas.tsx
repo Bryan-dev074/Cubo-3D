@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import { CubeLoadingPoster } from "@/components/cube/CubeLoadingPoster";
-import type { CubeReviewMode } from "@/components/cube/CubeScene";
+import type { CubeReviewMode } from "@/components/cube/cube-presentation";
 import { SceneErrorBoundary } from "@/components/cube/SceneErrorBoundary";
 import { SceneFallback } from "@/components/cube/SceneFallback";
 import type { CubieState, CubeMove } from "@/lib/cube/types";

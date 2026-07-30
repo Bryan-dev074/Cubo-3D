@@ -15,17 +15,28 @@ import {
 } from "@react-three/drei";
 import {
   ACESFilmicToneMapping,
+  type RectAreaLight,
   SRGBColorSpace,
 } from "three";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 import { MagicCube } from "@/components/cube/MagicCube";
+import {
+  resolveCubePresentation,
+  type CubePresentation,
+  type CubeReviewMode,
+} from "@/components/cube/cube-presentation";
 import type { CubeMove, CubieState } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/types";
 
-export type CubeReviewMode = "grazing" | "neutral" | "opposite";
+export {
+  resolveCubePresentation,
+  type CubePresentation,
+  type CubeReviewMode,
+} from "@/components/cube/cube-presentation";
 
 export interface CubeSceneProps {
   readonly cube: readonly CubieState[];
@@ -40,8 +51,8 @@ export interface CubeSceneProps {
 
 interface SceneBudget {
   readonly dprCap: number;
-  readonly isMobile: boolean;
   readonly shadowSize: 512 | 1024;
+  readonly viewportWidth: number;
 }
 
 interface ScenePalette {
@@ -55,42 +66,26 @@ const VIEW_CONFIG: Readonly<
   Record<
     CubeReviewMode,
     {
-      readonly camera: readonly [number, number, number];
       readonly key: readonly [number, number, number];
       readonly keyIntensity: number;
     }
   >
 > = Object.freeze({
   neutral: {
-    camera: [6.45, 5.15, 6.85],
     key: [4.8, 7.2, 4.5],
-    keyIntensity: 145,
+    keyIntensity: 5.6,
   },
   grazing: {
-    camera: [7.5, 2.05, 7.7],
     key: [5.8, 2.1, 1.6],
-    keyIntensity: 165,
+    keyIntensity: 6.4,
   },
   opposite: {
-    camera: [-6.7, 4.55, -7],
     key: [-4.5, 6.4, -3.8],
-    keyIntensity: 150,
+    keyIntensity: 5.8,
   },
 });
 
-const MOBILE_CAMERA_POSITIONS: Readonly<
-  Record<CubeReviewMode, readonly [number, number, number]>
-> = Object.freeze({
-  neutral: [5.7, 4.55, 6.05],
-  grazing: [6.85, 1.88, 7],
-  opposite: [-6.15, 4.2, -6.4],
-});
-const DESKTOP_CUBE_POSITION = [0.36, 0.45, 0] as const;
-const DESKTOP_CAMERA_TARGET = [0.08, -0.04, 0] as const;
-const MOBILE_CUBE_POSITION = [0, -0.04, 0] as const;
-const MOBILE_CAMERA_TARGET = [0, -0.04, 0] as const;
-const DESKTOP_CUBE_SCALE = 0.94;
-const MOBILE_CUBE_SCALE = 0.99;
+RectAreaLightUniformsLib.init();
 
 export function CubeScene({
   cube,
@@ -103,10 +98,10 @@ export function CubeScene({
   reviewMode = "neutral",
 }: CubeSceneProps) {
   const budget = useSceneBudget();
-  const mobileCameraPosition = MOBILE_CAMERA_POSITIONS[reviewMode];
-  const cameraPosition = budget.isMobile
-    ? mobileCameraPosition
-    : VIEW_CONFIG[reviewMode].camera;
+  const presentation = resolveCubePresentation(
+    budget.viewportWidth,
+    reviewMode,
+  );
   const pageVisible = usePageVisibility();
   const reducedMotion = useReducedMotionPreference();
   const [isGestureActive, setGestureActive] = useState(false);
@@ -139,7 +134,7 @@ export function CubeScene({
           far: 40,
           fov: 34,
           near: 0.1,
-          position: cameraPosition,
+          position: presentation.cameraPosition,
         }}
         onCreated={({ gl }) => {
           gl.outputColorSpace = SRGBColorSpace;
@@ -150,7 +145,6 @@ export function CubeScene({
         <AdaptiveDpr pixelated={false} />
         <CubeStudio
           budget={budget}
-          cameraPosition={cameraPosition}
           cube={cube}
           isCelebrating={isCelebrating}
           isGestureActive={isGestureActive}
@@ -159,6 +153,7 @@ export function CubeScene({
           onMoveRequest={onMoveRequest}
           pageVisible={pageVisible}
           palette={LIGHT_PALETTE}
+          presentation={presentation}
           queue={queue}
           reducedMotion={reducedMotion}
           reviewMode={reviewMode}
@@ -172,7 +167,6 @@ interface CubeStudioProps extends Required<
   Pick<CubeSceneProps, "isCelebrating" | "reviewMode">
 > {
   readonly budget: SceneBudget;
-  readonly cameraPosition: readonly [number, number, number];
   readonly cube: readonly CubieState[];
   readonly isGestureActive: boolean;
   readonly onGestureActiveChange: (active: boolean) => void;
@@ -180,13 +174,13 @@ interface CubeStudioProps extends Required<
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly pageVisible: boolean;
   readonly palette: ScenePalette;
+  readonly presentation: CubePresentation;
   readonly queue: readonly QueuedMove[];
   readonly reducedMotion: boolean;
 }
 
 function CubeStudio({
   budget,
-  cameraPosition,
   cube,
   isCelebrating,
   isGestureActive,
@@ -195,21 +189,13 @@ function CubeStudio({
   onMoveRequest,
   pageVisible,
   palette,
+  presentation,
   queue,
   reducedMotion,
   reviewMode,
 }: CubeStudioProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const view = VIEW_CONFIG[reviewMode];
-  const cubePosition = budget.isMobile
-    ? MOBILE_CUBE_POSITION
-    : DESKTOP_CUBE_POSITION;
-  const cameraTarget = budget.isMobile
-    ? MOBILE_CAMERA_TARGET
-    : DESKTOP_CAMERA_TARGET;
-  const cubeScale = budget.isMobile
-    ? MOBILE_CUBE_SCALE
-    : DESKTOP_CUBE_SCALE;
   const handleOrbitLockChange = useCallback(
     (locked: boolean) => {
       if (controlsRef.current) {
@@ -222,36 +208,36 @@ function CubeStudio({
   return (
     <>
       <fog attach="fog" args={[palette.fog, 14, 26]} />
-      <ambientLight color={palette.ambient} intensity={0.42} />
-      <hemisphereLight args={[palette.fill, palette.ground, 0.82]} />
-      <spotLight
-        angle={0.78}
+      <ambientLight color={palette.ambient} intensity={0.32} />
+      <hemisphereLight args={[palette.fill, palette.ground, 0.68]} />
+      <StudioAreaLight
         color="#fff8ed"
-        decay={2}
+        height={4.8}
         intensity={view.keyIntensity}
-        penumbra={0.92}
         position={view.key}
+        target={presentation.cubePosition}
+        width={5.6}
       />
-      <spotLight
-        angle={0.92}
+      <StudioAreaLight
         color="#dce9ff"
-        decay={2}
-        intensity={76}
-        penumbra={1}
+        height={4.2}
+        intensity={2.8}
         position={[-4.8, 3.8, 5.4]}
+        target={presentation.cubePosition}
+        width={4.8}
       />
-      <spotLight
-        angle={0.82}
+      <StudioAreaLight
         color="#ffffff"
-        decay={2}
-        intensity={88}
-        penumbra={0.96}
+        height={4.8}
+        intensity={3.4}
         position={[2.2, 5.4, -6.2]}
+        target={presentation.cubePosition}
+        width={3.6}
       />
 
       <CameraRig
-        cameraPosition={cameraPosition}
-        cameraTarget={cameraTarget}
+        cameraPosition={presentation.cameraPosition}
+        cameraTarget={presentation.cameraTarget}
         controlsRef={controlsRef}
       />
       <MagicCube
@@ -262,8 +248,8 @@ function CubeStudio({
         onMoveRequest={onMoveRequest}
         onOrbitLockChange={handleOrbitLockChange}
         pageVisible={pageVisible}
-        presentationPosition={cubePosition}
-        presentationScale={cubeScale}
+        presentationPosition={presentation.cubePosition}
+        presentationScale={presentation.cubeScale}
         queue={queue}
         reducedMotion={reducedMotion}
       />
@@ -272,15 +258,16 @@ function CubeStudio({
         color="#1d252b"
         far={4}
         frames={1}
-        opacity={0.25}
+        opacity={0.36}
         position={[
-          cubePosition[0],
-          cubePosition[1] - cubeScale * 1.49,
+          presentation.cubePosition[0],
+          presentation.cubePosition[1] -
+            presentation.cubeScale * 1.49,
           0,
         ]}
         resolution={budget.shadowSize}
-        scale={7.2}
-        blur={2.8}
+        scale={4.8}
+        blur={1.9}
       />
 
       <OrbitControls
@@ -295,9 +282,45 @@ function CubeStudio({
         maxPolarAngle={Math.PI * 0.69}
         minPolarAngle={Math.PI * 0.2}
         rotateSpeed={0.62}
-        target={cameraTarget}
+        target={presentation.cameraTarget}
       />
     </>
+  );
+}
+
+function StudioAreaLight({
+  color,
+  height,
+  intensity,
+  position,
+  target,
+  width,
+}: {
+  readonly color: string;
+  readonly height: number;
+  readonly intensity: number;
+  readonly position: readonly [number, number, number];
+  readonly target: readonly [number, number, number];
+  readonly width: number;
+}) {
+  const lightRef = useRef<RectAreaLight>(null);
+  const invalidate = useThree((state) => state.invalidate);
+
+  useEffect(() => {
+    lightRef.current?.lookAt(...target);
+    lightRef.current?.updateMatrixWorld();
+    invalidate();
+  }, [invalidate, target]);
+
+  return (
+    <rectAreaLight
+      ref={lightRef}
+      color={color}
+      height={height}
+      intensity={intensity}
+      position={position}
+      width={width}
+    />
   );
 }
 
@@ -327,10 +350,11 @@ function CameraRig({
 
 function useSceneBudget(): SceneBudget {
   const readBudget = useCallback(
-    (): SceneBudget =>
-      window.innerWidth < 720
-        ? { dprCap: 1.5, isMobile: true, shadowSize: 512 }
-        : { dprCap: 1.75, isMobile: false, shadowSize: 1024 },
+    (): SceneBudget => ({
+      dprCap: window.innerWidth < 720 ? 1.5 : 1.75,
+      shadowSize: window.innerWidth < 720 ? 512 : 1024,
+      viewportWidth: window.innerWidth,
+    }),
     [],
   );
   const [budget, setBudget] = useState<SceneBudget>(() => readBudget());

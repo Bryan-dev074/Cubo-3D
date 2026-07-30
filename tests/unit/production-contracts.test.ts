@@ -50,27 +50,30 @@ describe("production rendering contracts", () => {
     expect(source).not.toContain("dprCap: 2");
   });
 
-  it("selects a dedicated mobile camera so the complete cube stays in frame", () => {
+  it("uses broad studio emitters and a concentrated one-frame contact shadow", () => {
     const sceneSource = readFileSync(
       resolve(process.cwd(), "components/cube/CubeScene.tsx"),
       "utf8",
     );
-
-    expect(sceneSource).toContain("mobileCameraPosition");
-  });
-
-  it("uses satin graphite and sticker materials instead of glossy plastic", () => {
-    const materialSource = readFileSync(
-      resolve(process.cwd(), "components/cube/cube-materials.ts"),
-      "utf8",
+    const contactShadow = sceneSource.match(
+      /<ContactShadows[\s\S]*?\/>/,
+    )?.[0];
+    const opacity = Number(
+      contactShadow?.match(/opacity=\{([\d.]+)\}/)?.[1],
     );
+    const scale = Number(contactShadow?.match(/scale=\{([\d.]+)\}/)?.[1]);
+    const blur = Number(contactShadow?.match(/blur=\{([\d.]+)\}/)?.[1]);
 
-    expect(materialSource).toMatch(
-      /bodyMaterial[\s\S]*?roughness:\s*0\.[4-6]\d*[,\s][\s\S]*?clearcoat:\s*0\.0\d[,\s]/,
-    );
-    expect(materialSource).toMatch(
-      /stickerMaterials[\s\S]*?roughness:\s*0\.[4-6]\d*[,\s][\s\S]*?clearcoat:\s*0\.[01]\d*[,\s]/,
-    );
+    expect(sceneSource).toContain("<rectAreaLight");
+    expect(sceneSource).not.toContain("<spotLight");
+    expect(contactShadow).toBeDefined();
+    expect(contactShadow).toContain("frames={1}");
+    expect(opacity).toBeGreaterThanOrEqual(0.3);
+    expect(opacity).toBeLessThanOrEqual(0.5);
+    expect(scale).toBeGreaterThanOrEqual(4);
+    expect(scale).toBeLessThanOrEqual(5);
+    expect(blur).toBeGreaterThanOrEqual(1);
+    expect(blur).toBeLessThan(2);
   });
 
   it("runs the performance lab with the normal motion preference", () => {
