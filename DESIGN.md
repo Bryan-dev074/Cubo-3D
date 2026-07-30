@@ -83,12 +83,38 @@ typography:
     fontFamily: "Archivo, Arial, sans-serif"
     fontSize: "0.86rem"
     fontWeight: 400
+  loading-body:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "0.82rem"
+    fontWeight: 400
+  editorial-spine:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(2.45rem, 4vw, 4rem)"
+    fontWeight: 400
+  editorial-footer:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "clamp(0.6rem, 0.65vw, 0.68rem)"
+    fontWeight: 700
+  purchase-display:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(1.35rem, 1.8vw, 1.85rem)"
+    fontWeight: 400
+  packaging-copy:
+    fontFamily: "Archivo, Arial, sans-serif"
+    fontSize: "13px"
+    fontWeight: 600
+  move-display:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(2.6rem, 3.4vw, 3.35rem)"
+    fontWeight: 400
   control:
     fontFamily: "Archivo, Arial, sans-serif"
     fontSize: "0.9rem"
     fontWeight: 700
 rounded:
   square: "0"
+  indicator-lower: "0.35rem"
+  indicator-upper: "0.5rem"
   spine-loop: "2rem"
   circle: "9999px"
 spacing:
