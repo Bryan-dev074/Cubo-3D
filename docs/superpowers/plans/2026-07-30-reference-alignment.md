@@ -54,7 +54,7 @@ it("keeps the cube static when the user is idle", () => {
 
 - [ ] **Step 2: Run the contract and confirm RED**
 
-Run: `npm test -- tests/unit/production-contracts.test.ts`  
+Run: `npm test -- tests/unit/production-contracts.test.ts`
 Expected: FAIL because `MagicCube.tsx` still contains `setInterval` and `ambientTurnEnabled`.
 
 - [ ] **Step 3: Add the browser-level stability assertion**
@@ -80,10 +80,10 @@ Delete the timer, `ambientTurnEnabled`, idle `useFrame` rotation, orbit/keyboard
 
 - [ ] **Step 5: Run the focused tests and confirm GREEN**
 
-Run: `npm test -- tests/unit/production-contracts.test.ts`  
+Run: `npm test -- tests/unit/production-contracts.test.ts`
 Expected: PASS.
 
-Run: `npm run test:e2e -- tests/e2e/experience.spec.ts --grep "pixel-stable"`  
+Run: `npm run test:e2e -- tests/e2e/experience.spec.ts --grep "pixel-stable"`
 Expected: PASS with identical canvas buffers.
 
 ### Task 2: Establish the white editorial shell
@@ -115,7 +115,7 @@ it("keeps the commercial surface light regardless of system color scheme", () =>
 
 - [ ] **Step 2: Run the component test and confirm RED**
 
-Run: `npm test -- tests/components/experience.test.tsx`  
+Run: `npm test -- tests/components/experience.test.tsx`
 Expected: FAIL because the current CSS still declares dark mode and a blue-gray page background.
 
 - [ ] **Step 3: Implement the shell and localized copy**
@@ -128,10 +128,10 @@ Use a ~9.6vw desktop spine capped near 154px, a ~96px header, a three-column wor
 
 - [ ] **Step 5: Run component and responsive tests**
 
-Run: `npm test -- tests/components/experience.test.tsx tests/unit/i18n.test.ts`  
+Run: `npm test -- tests/components/experience.test.tsx tests/unit/i18n.test.ts`
 Expected: PASS.
 
-Run: `npm run test:e2e -- tests/e2e/responsive.spec.ts`  
+Run: `npm run test:e2e -- tests/e2e/responsive.spec.ts`
 Expected: PASS at desktop and mobile viewports with no horizontal overflow.
 
 ### Task 3: Reframe and refine the physical cube
@@ -157,7 +157,7 @@ expect(materialSource).toMatch(/clearcoat:\s*0\.[01]/);
 
 - [ ] **Step 2: Run the focused contract and confirm RED**
 
-Run: `npm test -- tests/unit/production-contracts.test.ts`  
+Run: `npm test -- tests/unit/production-contracts.test.ts`
 Expected: FAIL because the scene has one shared camera and the stickers are too glossy.
 
 - [ ] **Step 3: Implement framing, materials and light**
@@ -170,7 +170,7 @@ Change the poster background to the same warm white and soften the poster’s pl
 
 - [ ] **Step 5: Run the contract**
 
-Run: `npm test -- tests/unit/production-contracts.test.ts tests/components/cube-canvas.test.tsx`  
+Run: `npm test -- tests/unit/production-contracts.test.ts tests/components/cube-canvas.test.tsx`
 Expected: PASS.
 
 ### Task 4: Build the packaging-plan composition and diagrammatic telemetry
@@ -199,7 +199,7 @@ expect(screen.getByTestId("mix-meter")).toHaveAttribute(
 
 - [ ] **Step 2: Run the telemetry test and confirm RED**
 
-Run: `npm test -- tests/components/live-telemetry.test.tsx`  
+Run: `npm test -- tests/components/live-telemetry.test.tsx`
 Expected: FAIL because the diagram and dial hooks do not exist.
 
 - [ ] **Step 3: Implement the visual instruments**
@@ -212,7 +212,7 @@ Render the decorative plan behind the hero and stage, including cut lines, folds
 
 - [ ] **Step 5: Run focused tests**
 
-Run: `npm test -- tests/components/live-telemetry.test.tsx tests/components/experience.test.tsx`  
+Run: `npm test -- tests/components/live-telemetry.test.tsx tests/components/experience.test.tsx`
 Expected: PASS.
 
 ### Task 5: Verify the whole experience and publish
@@ -226,23 +226,23 @@ Expected: PASS.
 
 - [ ] **Step 1: Run static and unit gates**
 
-Run: `npm run lint`  
+Run: `npm run lint`
 Expected: exit code 0.
 
-Run: `npm run typecheck`  
+Run: `npm run typecheck`
 Expected: exit code 0.
 
-Run: `npm test -- --run`  
+Run: `npm test -- --run`
 Expected: all tests pass.
 
 - [ ] **Step 2: Run the production build**
 
-Run: `$env:VERCEL='1'; $env:VERCEL_URL='cubo-3-d.vercel.app'; npm run build`  
+Run: `$env:VERCEL='1'; $env:VERCEL_URL='cubo-3-d.vercel.app'; npm run build`
 Expected: exit code 0 without requiring `NEXT_PUBLIC_SITE_URL`.
 
 - [ ] **Step 3: Run browser verification**
 
-Run: `npm run test:e2e -- tests/e2e/experience.spec.ts tests/e2e/responsive.spec.ts tests/e2e/performance.spec.ts`  
+Run: `npm run test:e2e -- tests/e2e/experience.spec.ts tests/e2e/responsive.spec.ts tests/e2e/performance.spec.ts`
 Expected: all tests pass, including idle pixel stability.
 
 - [ ] **Step 4: Capture and inspect final viewports**

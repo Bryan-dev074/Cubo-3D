@@ -1,7 +1,7 @@
 # Alineación visual y rendimiento con la referencia aprobada
 
-**Fecha:** 2026-07-30  
-**Estado:** Aprobado por el usuario mediante la imagen de referencia  
+**Fecha:** 2026-07-30
+**Estado:** Aprobado por el usuario mediante la imagen de referencia
 **Referencia visual:** `codex-clipboard-96db7636-16bc-4249-bc76-a92616bd021a.png`
 
 ## Objetivo
