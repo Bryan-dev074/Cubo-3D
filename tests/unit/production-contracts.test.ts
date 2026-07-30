@@ -39,6 +39,16 @@ describe("production rendering contracts", () => {
     expect(source).toContain("recursive: true");
   });
 
+  it("keeps generated worktrees and local evidence outside the lint surface", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "eslint.config.mjs"),
+      "utf8",
+    );
+
+    expect(source).toContain('".worktrees/**"');
+    expect(source).toContain('".superpowers/**"');
+  });
+
   it("scopes deterministic randomness to the scramble click instead of the page lifetime", () => {
     const source = readFileSync(
       resolve(process.cwd(), "tests/e2e/helpers.ts"),
