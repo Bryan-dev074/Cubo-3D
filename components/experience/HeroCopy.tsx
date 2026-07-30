@@ -16,7 +16,7 @@ export function HeroCopy({
   const [titleLead, ...titleRest] = dictionary.title.split(" ");
 
   return (
-    <section className={styles.heroCopy}>
+    <section className={styles.heroCopy} data-region="hero-copy">
       <div className={styles.registrationMark} aria-hidden="true" />
       <h1 aria-label={dictionary.title} id="experience-title">
         <span aria-hidden="true" data-testid="title-line">
@@ -35,7 +35,9 @@ export function HeroCopy({
       >
         {dictionary.scramble}
       </button>
-      <p className={styles.firstUseHint}>{dictionary.dragHint}</p>
+      <p className={styles.firstUseHint} id="cube-drag-hint">
+        {dictionary.dragHint}
+      </p>
     </section>
   );
 }

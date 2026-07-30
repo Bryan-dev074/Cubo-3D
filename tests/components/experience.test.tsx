@@ -144,9 +144,9 @@ describe("MagicCubeExperience locale and commerce", () => {
       "#cubo",
     );
 
-    const spine = screen.getByRole("complementary", {
-      name: "Identidad editorial",
-    });
+    const spine = screen.getByTestId("editorial-spine");
+    expect(spine).toHaveAttribute("aria-hidden", "true");
+    expect(spine).not.toHaveAttribute("aria-label");
     expect(within(spine).getByText("LA CAJA ABIERTA")).toBeVisible();
     expect(
       within(spine).getByText("DISEÑO QUE SE DESPLIEGA"),
@@ -165,6 +165,7 @@ describe("MagicCubeExperience locale and commerce", () => {
     });
     const hint = screen.getByText("Arrastrá para rotar el cubo");
 
+    expect(hint).toHaveAttribute("id", "cube-drag-hint");
     expect(challenge.nextElementSibling).toBe(hint);
   });
 
@@ -202,9 +203,9 @@ describe("MagicCubeExperience locale and commerce", () => {
         "Um clássico reinventado em 3D. Gire, desafie sua mente e volte a ordenar as cores.",
       ),
     ).toBeVisible();
-    expect(
-      screen.getByRole("complementary", { name: "Identidade editorial" }),
-    ).toHaveTextContent("A CAIXA ABERTA");
+    expect(screen.getByTestId("editorial-spine")).toHaveTextContent(
+      "A CAIXA ABERTA",
+    );
     expect(screen.getByText("Arraste para girar o cubo")).toBeVisible();
     expect(document.documentElement.lang).toBe("pt");
     for (const purchase of screen.getAllByRole("link", { name: "Comprar cubo" })) {

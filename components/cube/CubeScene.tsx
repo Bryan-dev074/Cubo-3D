@@ -90,7 +90,6 @@ export function CubeScene({
   const budget = useSceneBudget();
   const pageVisible = usePageVisibility();
   const reducedMotion = useReducedMotionPreference();
-  const darkMode = useDarkModePreference();
   const [isGestureActive, setGestureActive] = useState(false);
   const handleGestureActiveChange = useCallback(
     (active: boolean) => {
@@ -106,6 +105,7 @@ export function CubeScene({
       data-review-mode={reviewMode}
       role="img"
       aria-label={dictionaries[locale].stageLabel}
+      aria-describedby="cube-drag-hint"
       tabIndex={0}
     >
       <Canvas
@@ -138,7 +138,7 @@ export function CubeScene({
           onMoveComplete={onMoveComplete}
           onMoveRequest={onMoveRequest}
           pageVisible={pageVisible}
-          palette={darkMode ? DARK_PALETTE : LIGHT_PALETTE}
+          palette={LIGHT_PALETTE}
           queue={queue}
           reducedMotion={reducedMotion}
           reviewMode={reviewMode}
@@ -317,25 +317,3 @@ const LIGHT_PALETTE: ScenePalette = Object.freeze({
   fog: "#edf1f3",
   ground: "#aab3b9",
 });
-
-const DARK_PALETTE: ScenePalette = Object.freeze({
-  ambient: "#8a99a3",
-  fill: "#dce6ec",
-  fog: "#1b2125",
-  ground: "#39434a",
-});
-
-function useDarkModePreference(): boolean {
-  const [dark, setDark] = useState(
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
-  );
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => setDark(media.matches);
-    media.addEventListener("change", handleChange);
-    return () => media.removeEventListener("change", handleChange);
-  }, []);
-
-  return dark;
-}

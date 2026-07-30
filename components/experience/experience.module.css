@@ -1210,7 +1210,10 @@
 
 @media (max-width: 340px) {
   .wordmark {
-    display: none;
+    flex: 0 0 auto;
+    max-width: none;
+    font-size: 0.72rem;
+    white-space: nowrap;
   }
 
   .headerActions {
@@ -1224,8 +1227,8 @@
   }
 
   .header .purchaseButton {
-    padding-inline: 0.55rem;
-    font-size: 0.72rem;
+    padding-inline: 0.45rem;
+    font-size: 0.7rem;
   }
 
   .stage {

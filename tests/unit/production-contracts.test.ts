@@ -3,6 +3,23 @@ import path, { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("production rendering contracts", () => {
+  it("keeps the WebGL studio light-only and associates its drag instructions", () => {
+    const sceneSource = readFileSync(
+      resolve(process.cwd(), "components/cube/CubeScene.tsx"),
+      "utf8",
+    );
+    const heroSource = readFileSync(
+      resolve(process.cwd(), "components/experience/HeroCopy.tsx"),
+      "utf8",
+    );
+
+    expect(sceneSource).toContain("palette={LIGHT_PALETTE}");
+    expect(sceneSource).not.toContain("DARK_PALETTE");
+    expect(sceneSource).not.toContain("prefers-color-scheme: dark");
+    expect(sceneSource).toContain('aria-describedby="cube-drag-hint"');
+    expect(heroSource).toContain('id="cube-drag-hint"');
+  });
+
   it("keeps the cube static when the user is idle", () => {
     const magicCubeSource = readFileSync(
       path.join(process.cwd(), "components/cube/MagicCube.tsx"),

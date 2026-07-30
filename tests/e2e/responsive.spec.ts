@@ -2,6 +2,7 @@ import {
   expect,
   test,
   type Browser,
+  type Locator,
   type Page,
 } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
@@ -24,6 +25,61 @@ const VISUAL_ARTIFACT_DIRECTORY = resolve(
   ".superpowers",
   "sdd",
 );
+const DESKTOP_COLLISION_VIEWPORTS = [
+  { name: "desktop-1600", width: 1600, height: 1000 },
+  { name: "desktop-1440", width: 1440, height: 900 },
+] as const;
+
+for (const viewport of DESKTOP_COLLISION_VIEWPORTS) {
+  test(`${viewport.name} keeps all editorial regions collision-free`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      baseURL: "http://127.0.0.1:4173",
+      colorScheme: "dark",
+      reducedMotion: "reduce",
+      viewport,
+    });
+    const page = await context.newPage();
+    const diagnostics = monitorBrowser(page);
+    await setDeterministicBrowserState(page);
+    await openExperience(page);
+    await waitForWebGLScene(page);
+
+    const regions = {
+      heading: page.getByRole("heading", { level: 1 }),
+      hero: page.locator('[data-region="hero-copy"]'),
+      stage: page.locator("#cube-stage"),
+      canvas: page.locator(".cube-scene"),
+      telemetry: page.getByTestId("live-telemetry"),
+      dock: page.getByRole("region", { name: "Controles del cubo" }),
+    } as const;
+    const boxes = {
+      heading: await requiredBox(regions.heading, "heading"),
+      hero: await requiredBox(regions.hero, "hero"),
+      stage: await requiredBox(regions.stage, "stage"),
+      canvas: await requiredBox(regions.canvas, "canvas"),
+      telemetry: await requiredBox(regions.telemetry, "telemetry"),
+      dock: await requiredBox(regions.dock, "dock"),
+    } as const;
+
+    expect(boxesOverlap(boxes.heading, boxes.stage)).toBe(false);
+    expect(boxesOverlap(boxes.hero, boxes.stage)).toBe(false);
+    expect(boxesOverlap(boxes.heading, boxes.canvas)).toBe(false);
+    expect(boxesOverlap(boxes.stage, boxes.telemetry)).toBe(false);
+    expect(boxesOverlap(boxes.canvas, boxes.telemetry)).toBe(false);
+    expect(boxesOverlap(boxes.dock, boxes.hero)).toBe(false);
+    expect(boxesOverlap(boxes.dock, boxes.stage)).toBe(false);
+    expect(boxesOverlap(boxes.dock, boxes.telemetry)).toBe(false);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBe(0);
+    await diagnostics.assertClean();
+    await context.close();
+  });
+}
 
 test("desktop preserves the approved editorial shell proportions in dark system mode", async ({
   browser,
@@ -137,6 +193,22 @@ for (const viewport of MOBILE_VIEWPORTS) {
     expect(stageBox!.y).toBeLessThan(viewport.height);
     expect(stageBox!.height).toBeGreaterThanOrEqual(viewport.height * 0.42);
 
+    if (viewport.width === 320) {
+      const wordmark = page.getByRole("link", { name: "CUBO 3D" });
+      const language = page.getByRole("group", { name: "Idioma" });
+      const purchase = page
+        .getByRole("link", { name: "Comprar cubo" })
+        .first();
+      const wordmarkBox = await requiredBox(wordmark, "mobile wordmark");
+      const languageBox = await requiredBox(language, "mobile language switch");
+      const purchaseBox = await requiredBox(purchase, "mobile purchase");
+
+      await expect(wordmark).toBeVisible();
+      expect(boxesOverlap(wordmarkBox, languageBox)).toBe(false);
+      expect(boxesOverlap(wordmarkBox, purchaseBox)).toBe(false);
+      expect(boxesOverlap(languageBox, purchaseBox)).toBe(false);
+    }
+
     await expectVisibleTargetsAtLeast44(page);
     await expectSafePurchaseClear(page);
 
@@ -163,6 +235,15 @@ for (const viewport of MOBILE_VIEWPORTS) {
     await diagnostics.assertClean();
     await context.close();
   });
+}
+
+async function requiredBox(
+  locator: Locator,
+  label: string,
+) {
+  const box = await locator.boundingBox();
+  expect(box, `${label} must have a rendered box`).not.toBeNull();
+  return box!;
 }
 
 async function expectVisibleTargetsAtLeast44(page: Page): Promise<void> {

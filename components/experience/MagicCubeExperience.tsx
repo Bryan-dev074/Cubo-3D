@@ -181,8 +181,9 @@ export function MagicCubeExperience() {
       id="cubo"
     >
       <aside
-        aria-label={dictionary.spineLabel}
+        aria-hidden="true"
         className={styles.cobaltSpine}
+        data-testid="editorial-spine"
       >
         <div className={styles.spineIntro}>
           <strong>{dictionary.spineTitle}</strong>
