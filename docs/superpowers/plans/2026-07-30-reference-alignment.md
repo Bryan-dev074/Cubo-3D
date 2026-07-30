@@ -177,6 +177,7 @@ Expected: PASS.
 
 **Files:**
 - Modify: `components/experience/MagicCubeExperience.tsx`
+- Modify: `components/experience/ControlDock.tsx`
 - Modify: `components/experience/LiveTelemetry.tsx`
 - Modify: `components/experience/experience.module.css`
 - Modify: `tests/components/live-telemetry.test.tsx`
