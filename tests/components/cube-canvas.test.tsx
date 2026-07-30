@@ -1,14 +1,24 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CubeCanvas, detectWebGL } from "@/components/cube/CubeCanvas";
 import { createSolvedCube } from "@/lib/cube/state";
 
+const dynamicMockState = vi.hoisted(() => ({ loaded: true }));
+
 vi.mock("next/dynamic", () => ({
-  default: () =>
+  default: (
+    _loader: unknown,
+    options: { readonly loading?: () => ReactNode },
+  ) =>
     function TestDynamicScene() {
+      if (!dynamicMockState.loaded) {
+        const Loading = options.loading;
+        return Loading ? <Loading /> : null;
+      }
       return <div data-testid="dynamic-cube-scene">Escena WebGL</div>;
     },
 }));
@@ -17,6 +27,7 @@ const PURCHASE_HREF = "https://wa.me/595982064334?text=Comprar";
 
 afterEach(() => {
   cleanup();
+  dynamicMockState.loaded = true;
   vi.restoreAllMocks();
 });
 
@@ -118,6 +129,31 @@ describe("CubeCanvas", () => {
     expect(screen.getByTestId("dynamic-cube-scene")).toBeVisible();
     expect(
       screen.queryByRole("heading", { name: "Tu navegador no puede mostrar el cubo 3D" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the delayed dynamic loading poster localized in Portuguese", () => {
+    dynamicMockState.loaded = false;
+
+    render(
+      <CubeCanvas
+        cube={createSolvedCube()}
+        locale="pt"
+        onMoveComplete={vi.fn()}
+        onMoveRequest={vi.fn()}
+        purchaseHref={PURCHASE_HREF}
+        queue={[]}
+        webGLDetector={() => true}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "Prévia do Cubo Mágico 3D" }),
+    ).toHaveAttribute("src", "/cube-poster.svg");
+    expect(
+      screen.queryByRole("img", {
+        name: "Vista previa del Cubo Mágico 3D",
+      }),
     ).not.toBeInTheDocument();
   });
 });

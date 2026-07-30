@@ -134,6 +134,28 @@ describe("LiveTelemetry localization and truthfulness", () => {
 });
 
 describe("LiveTelemetry motion and mobile disclosure", () => {
+  it("opens the full instrument after hydration on desktop", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(
+        (query) =>
+          ({
+            matches: query === "(prefers-reduced-motion: reduce)",
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+          }) as unknown as MediaQueryList,
+      ),
+    );
+
+    renderTelemetry(createInitialGameState(), "es");
+    const disclosure = screen.getByRole("group", {
+      name: "Telemetría completa",
+    }) as HTMLDetailsElement;
+
+    await waitFor(() => expect(disclosure.open).toBe(true));
+  });
+
   it("keeps a user-opened mobile instrument open across telemetry updates", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
@@ -173,12 +195,13 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
     expect(disclosure.open).toBe(true);
   });
 
-  it("hydrates media preferences without changing the server snapshot", async () => {
+  it("renders a closed viewport-independent disclosure and hydrates at 320px without a layout-state mismatch", async () => {
     const snapshot = createTelemetrySnapshot(createInitialGameState());
     vi.stubGlobal("document", undefined);
     const html = renderToString(
       <LiveTelemetry dictionary={dictionaries.es} snapshot={snapshot} />,
     );
+    expect(html).not.toMatch(/<details[^>]*\sopen(?:=|>)/);
     vi.unstubAllGlobals();
     vi.stubGlobal(
       "matchMedia",
@@ -214,6 +237,7 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
         String(message).includes("hydrated"),
       ),
     ).toBe(false);
+    expect(container.querySelector("details")).not.toHaveAttribute("open");
     await act(async () => root?.unmount());
     container.remove();
   });

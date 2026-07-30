@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -6,10 +12,14 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MagicCubeExperience } from "@/components/experience/MagicCubeExperience";
+import { inverseMove } from "@/lib/cube/moves";
+import type { CubeMove } from "@/lib/cube/types";
+import type { QueuedMove } from "@/lib/game/reducer";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 vi.mock("@/components/cube/CubeCanvas", () => ({
   CubeCanvas: ({
+    isCelebrating = false,
     locale,
     onInteractionLockChange,
     onMoveComplete,
@@ -17,25 +27,53 @@ vi.mock("@/components/cube/CubeCanvas", () => ({
     onSceneError,
     queue,
   }: {
+    readonly isCelebrating?: boolean;
     readonly locale: "es" | "pt";
     readonly onInteractionLockChange?: (locked: boolean) => void;
     readonly onMoveComplete: () => void;
-    readonly onMoveRequest: (move: {
-      readonly axis: "x";
-      readonly layer: 1;
-      readonly turns: 1;
-    }) => void;
+    readonly onMoveRequest: (move: CubeMove) => void;
     readonly onSceneError?: (reason: "error" | "webgl") => void;
-    readonly queue: readonly unknown[];
+    readonly queue: readonly QueuedMove[];
   }) => (
     <div data-locale={locale} data-testid="cube-canvas-probe">
       <span data-testid="visual-queue-length">{queue.length}</span>
+      <span data-testid="visual-queue-json">{JSON.stringify(queue)}</span>
       <button
         type="button"
         onClick={() => onMoveRequest({ axis: "x", layer: 1, turns: 1 })}
       >
         Simular giro
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          onMoveRequest({ axis: "x", layer: 1, turns: 1 });
+          onMoveRequest({ axis: "y", layer: 1, turns: 1 });
+        }}
+      >
+        Simular doble giro
+      </button>
+      <button
+        disabled={isCelebrating}
+        type="button"
+        onClick={() => onMoveRequest({ axis: "z", layer: 1, turns: -1 })}
+      >
+        Simular gesto canvas real
+      </button>
+      {(["x", "y", "z"] as const).flatMap((axis) =>
+        ([-1, 0, 1] as const).flatMap((layer) =>
+          ([-1, 1] as const).map((turns) => (
+            <button
+              key={`${axis}-${layer}-${turns}`}
+              data-testid={`request-${axis}-${layer}-${turns}`}
+              type="button"
+              onClick={() => onMoveRequest({ axis, layer, turns })}
+            >
+              Solicitar {axis} {layer} {turns}
+            </button>
+          )),
+        ),
+      )}
       <button type="button" onClick={onMoveComplete}>
         Confirmar giro visual
       </button>
@@ -174,6 +212,97 @@ describe("MagicCubeExperience locale and commerce", () => {
     );
   });
 
+  it("accepts only one move when two scene requests arrive in the same event", async () => {
+    const user = userEvent.setup();
+    render(<MagicCubeExperience />);
+
+    await user.click(screen.getByRole("button", { name: "Simular doble giro" }));
+
+    expect(screen.getByTestId("visual-queue-length")).toHaveTextContent("1");
+  });
+
+  it("closes success before undo and does not retrigger when that solved state returns", async () => {
+    const user = userEvent.setup();
+    render(<MagicCubeExperience />);
+    const solutionMoves = await solveChallenge(user);
+    const lastSolutionMove = solutionMoves.at(-1);
+
+    expect(lastSolutionMove).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Lo resolviste." })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Deshacer" }));
+    expect(
+      screen.queryByRole("heading", { name: "Lo resolviste." }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar giro visual" }),
+    );
+
+    await requestMove(user, lastSolutionMove!);
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar giro visual" }),
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Lo resolviste." }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("closes success before an HTML face turn and keeps the celebration guard after undo resolves it", async () => {
+    const user = userEvent.setup();
+    render(<MagicCubeExperience />);
+    await solveChallenge(user);
+
+    expect(screen.getByRole("heading", { name: "Lo resolviste." })).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "Mostrar controles por capa" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Derecha horario" }),
+    );
+
+    expect(
+      screen.queryByRole("heading", { name: "Lo resolviste." }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar giro visual" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Deshacer" }));
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar giro visual" }),
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Lo resolviste." }),
+    ).not.toBeInTheDocument();
+  });
+
+  it(
+    "unlocks the real canvas contract after the finite celebration and closes success on its accepted gesture",
+    async () => {
+      const user = userEvent.setup();
+      render(<MagicCubeExperience />);
+      await solveChallenge(user);
+      const canvasGesture = screen.getByRole("button", {
+        name: "Simular gesto canvas real",
+      });
+
+      expect(
+        screen.getByRole("heading", { name: "Lo resolviste." }),
+      ).toBeVisible();
+      expect(canvasGesture).toBeDisabled();
+      await waitFor(
+        () => expect(canvasGesture).toBeEnabled(),
+        { timeout: 1_200 },
+      );
+      await user.click(canvasGesture);
+
+      expect(
+        screen.queryByRole("heading", { name: "Lo resolviste." }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("visual-queue-length")).toHaveTextContent("1");
+    },
+    8_000,
+  );
+
   it("uses one polite announcer for confirmed moves, scramble completion, reset and scene errors", async () => {
     const user = userEvent.setup();
     render(<MagicCubeExperience />);
@@ -247,6 +376,73 @@ describe("commercial CSS contract", () => {
     );
     expect(screen.getByText("Ver telemetría completa").closest("summary")).not.toBeNull();
   });
+
+  it("keeps dark accent, CTA, hover and spine text at normal-text contrast", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const darkTheme = css.match(
+      /@media \(prefers-color-scheme: dark\) \{([\s\S]*?)\n\}/,
+    )?.[1];
+    const darkHighContrast = css.match(
+      /@media \(prefers-color-scheme: dark\) and \(prefers-contrast: more\) \{([\s\S]*?)\n\}/,
+    )?.[1];
+
+    const paper = readCssColor(darkTheme, "--paper");
+    const paperRaised = readCssColor(darkTheme, "--paper-raised");
+    const accent = readCssColor(darkTheme, "--cobalt");
+    const surface = readCssColor(darkTheme, "--cobalt-surface");
+    const surfaceHover = readCssColor(
+      darkTheme,
+      "--cobalt-surface-hover",
+    );
+
+    expect(contrastRatio(accent, paper)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(accent, paperRaised)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#ffffff", surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#ffffff", surfaceHover)).toBeGreaterThanOrEqual(4.5);
+
+    const contrastPaper = readCssColor(darkHighContrast, "--paper");
+    const contrastAccent = readCssColor(darkHighContrast, "--cobalt");
+    const contrastSurface = readCssColor(
+      darkHighContrast,
+      "--cobalt-surface",
+    );
+    expect(contrastPaper).not.toBe("#ffffff");
+    expect(contrastRatio(contrastAccent, contrastPaper)).toBeGreaterThanOrEqual(
+      7,
+    );
+    expect(contrastRatio("#ffffff", contrastSurface)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("uses perceptible opacity-only success motion for reduced-motion visitors", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const reducedMotion = css.match(
+      /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/,
+    )?.[1];
+    const reducedSuccess = css.match(
+      /@keyframes reduced-success-enter \{([\s\S]*?)\n\}/,
+    )?.[1];
+    const reducedLight = css.match(
+      /@keyframes reduced-success-light \{([\s\S]*?)\n\}/,
+    )?.[1];
+
+    expect(reducedMotion).toMatch(
+      /\.successMoment\s*\{[^}]*animation-name:\s*reduced-success-enter;[^}]*animation-duration:\s*180ms\s*!important;/,
+    );
+    expect(reducedMotion).toMatch(
+      /\.stage\[data-celebrating="true"\] \.cubeFrame::after\s*\{[^}]*animation-name:\s*reduced-success-light;[^}]*animation-duration:\s*480ms\s*!important;[^}]*inset:\s*7%;[^}]*transform:\s*none;/,
+    );
+    expect(reducedSuccess).toContain("opacity:");
+    expect(reducedSuccess).not.toContain("transform:");
+    expect(reducedLight).toMatch(/0%,\s*100%\s*\{[^}]*opacity:\s*0;/);
+    expect(reducedLight).toMatch(/40%\s*\{[^}]*opacity:\s*0\.18;/);
+    expect(reducedLight).not.toContain("transform:");
+  });
 });
 
 function setBrowserLanguages(languages: readonly string[]) {
@@ -254,4 +450,75 @@ function setBrowserLanguages(languages: readonly string[]) {
     configurable: true,
     value: languages,
   });
+}
+
+async function solveChallenge(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<readonly CubeMove[]> {
+  await user.click(screen.getByRole("button", { name: "Desordenar cubo" }));
+  const queued = JSON.parse(
+    screen.getByTestId("visual-queue-json").textContent ?? "[]",
+  ) as readonly QueuedMove[];
+  const scrambleMoves = queued.map((entry) => entry.move);
+
+  for (let index = 0; index < scrambleMoves.length; index += 1) {
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar giro visual" }),
+    );
+  }
+
+  const solutionMoves = [...scrambleMoves].reverse().map(inverseMove);
+  for (const move of solutionMoves) {
+    await requestMove(user, move);
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar giro visual" }),
+    );
+  }
+
+  return solutionMoves;
+}
+
+async function requestMove(
+  user: ReturnType<typeof userEvent.setup>,
+  move: CubeMove,
+) {
+  await user.click(screen.getByTestId(moveRequestTestId(move)));
+}
+
+function moveRequestTestId(move: CubeMove): string {
+  return `request-${move.axis}-${move.layer}-${move.turns}`;
+}
+
+function readCssColor(
+  cssBlock: string | undefined,
+  variable: string,
+): string {
+  const value = cssBlock?.match(
+    new RegExp(`${variable}:\\s*(#[0-9a-fA-F]{6})`),
+  )?.[1];
+  expect(value, `${variable} must be a six-digit hex color`).toBeDefined();
+  return value!;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const light = relativeLuminance(foreground);
+  const dark = relativeLuminance(background);
+  return (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05);
+}
+
+function relativeLuminance(color: string): number {
+  const channels = color
+    .slice(1)
+    .match(/.{2}/g)!
+    .map((channel) => Number.parseInt(channel, 16) / 255)
+    .map((channel) =>
+      channel <= 0.04045
+        ? channel / 12.92
+        : ((channel + 0.055) / 1.055) ** 2.4,
+    );
+  return (
+    channels[0] * 0.2126 +
+    channels[1] * 0.7152 +
+    channels[2] * 0.0722
+  );
 }

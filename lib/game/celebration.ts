@@ -1,0 +1,1 @@
+export const CELEBRATION_DURATION_MS = 820;

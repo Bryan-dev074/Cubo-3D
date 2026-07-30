@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -22,6 +23,7 @@ import { SuccessMoment } from "@/components/experience/SuccessMoment";
 import { useLocale } from "@/components/experience/useLocale";
 import { generateScramble } from "@/lib/cube/scramble";
 import type { CubeMove } from "@/lib/cube/types";
+import { CELEBRATION_DURATION_MS } from "@/lib/game/celebration";
 import {
   createInitialGameState,
   gameReducer,
@@ -53,9 +55,11 @@ export function MagicCubeExperience() {
   const [isSceneInteracting, setSceneInteracting] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [celebrationActive, setCelebrationActive] = useState(false);
   const [announcement, setAnnouncement] = useState<Announcement>(null);
   const backgroundRef = useRef<HTMLDivElement>(null);
   const helpTriggerRef = useRef<HTMLButtonElement>(null);
+  const moveRequestClaimedRef = useRef(false);
   const purchaseHref = useMemo(() => buildWhatsAppUrl(locale), [locale]);
   const activeMove = selectActiveMove(state);
   const telemetry = useMemo(
@@ -69,10 +73,30 @@ export function MagicCubeExperience() {
     [],
   );
 
+  useEffect(() => {
+    if (!celebrationActive) {
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setCelebrationActive(false),
+      CELEBRATION_DURATION_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [celebrationActive]);
+
   const queueMove = (move: CubeMove) => {
     // A gesture owns its release while onInteractionLockChange is true. Queue
-    // length, rather than the parent interaction lock, is the concurrency gate.
-    if (state.queue.length === 0) {
+    // length plus the synchronous claim prevent two requests in one event from
+    // entering before React publishes the queued state.
+    if (
+      state.queue.length === 0 &&
+      !moveRequestClaimedRef.current
+    ) {
+      moveRequestClaimedRef.current = true;
+      setCelebrationActive(false);
+      setSuccessOpen(false);
+      setAnnouncement(null);
       dispatch({ type: "queue-move", move });
     }
   };
@@ -85,8 +109,12 @@ export function MagicCubeExperience() {
 
     const confirmedState = gameReducer(state, { type: "confirm-move" });
     const willCelebrate = shouldCelebrate(confirmedState);
+    if (state.queue.length === 1) {
+      moveRequestClaimedRef.current = false;
+    }
     dispatch({ type: "confirm-move" });
     if (willCelebrate) {
+      setCelebrationActive(true);
       setSuccessOpen(true);
       setAnnouncement({ kind: "success" });
       dispatch({ type: "mark-celebrated" });
@@ -101,7 +129,9 @@ export function MagicCubeExperience() {
     }
 
     setSuccessOpen(false);
+    setCelebrationActive(false);
     setAnnouncement(null);
+    moveRequestClaimedRef.current = true;
     dispatch({
       type: "start-scramble",
       moves: generateScramble({ length: 20 }),
@@ -114,14 +144,34 @@ export function MagicCubeExperience() {
     }
 
     dispatch({ type: "reset" });
+    moveRequestClaimedRef.current = false;
+    setCelebrationActive(false);
     setSuccessOpen(false);
     setAnnouncement({ kind: "reset" });
   };
 
   const resetFromSuccess = () => {
     dispatch({ type: "reset" });
+    moveRequestClaimedRef.current = false;
+    setCelebrationActive(false);
     setSuccessOpen(false);
     setAnnouncement({ kind: "reset" });
+  };
+
+  const undo = () => {
+    if (
+      controlsLocked ||
+      state.userHistory.length === 0 ||
+      moveRequestClaimedRef.current
+    ) {
+      return;
+    }
+
+    moveRequestClaimedRef.current = true;
+    setCelebrationActive(false);
+    setSuccessOpen(false);
+    setAnnouncement(null);
+    dispatch({ type: "undo" });
   };
 
   return (
@@ -152,13 +202,13 @@ export function MagicCubeExperience() {
           <section
             aria-label={dictionary.stageLabel}
             className={styles.stage}
-            data-celebrating={String(successOpen)}
+            data-celebrating={String(celebrationActive)}
           >
             <PlanDrawing />
             <div className={styles.cubeFrame}>
               <CubeCanvas
                 cube={state.cube}
-                isCelebrating={successOpen}
+                isCelebrating={celebrationActive}
                 locale={locale}
                 onInteractionLockChange={setSceneInteracting}
                 onMoveComplete={confirmMove}
@@ -172,7 +222,10 @@ export function MagicCubeExperience() {
             <SuccessMoment
               dictionary={dictionary}
               isOpen={successOpen}
-              onDismiss={() => setSuccessOpen(false)}
+              onDismiss={() => {
+                setCelebrationActive(false);
+                setSuccessOpen(false);
+              }}
               onReset={resetFromSuccess}
               purchaseHref={purchaseHref}
             />
@@ -191,7 +244,7 @@ export function MagicCubeExperience() {
             onHelp={() => setHelpOpen(true)}
             onMove={queueMove}
             onReset={reset}
-            onUndo={() => dispatch({ type: "undo" })}
+            onUndo={undo}
             undoAvailable={state.userHistory.length > 0}
           />
         </div>

@@ -3,7 +3,9 @@
 import dynamic from "next/dynamic";
 import {
   useCallback,
+  createContext,
   useEffect,
+  useContext,
   useReducer,
   useRef,
   useSyncExternalStore,
@@ -37,9 +39,16 @@ const DynamicCubeScene = dynamic(
   () => import("@/components/cube/CubeScene").then(({ CubeScene }) => CubeScene),
   {
     ssr: false,
-    loading: () => <CubeLoadingPoster eager />,
+    loading: DynamicCubeLoadingPoster,
   },
 );
+
+const CubeLoadingLocaleContext = createContext<Locale>("es");
+
+function DynamicCubeLoadingPoster() {
+  const locale = useContext(CubeLoadingLocaleContext);
+  return <CubeLoadingPoster eager locale={locale} />;
+}
 
 const subscribeToStaticEnvironment = () => () => undefined;
 const readServerWebGL = () => null;
@@ -134,7 +143,9 @@ export function CubeCanvas({
         onSceneError={onSceneError}
         purchaseHref={purchaseHref}
       >
-        <DynamicCubeScene {...sceneProps} locale={locale} />
+        <CubeLoadingLocaleContext.Provider value={locale}>
+          <DynamicCubeScene {...sceneProps} locale={locale} />
+        </CubeLoadingLocaleContext.Provider>
       </SceneErrorBoundary>
     </div>
   );

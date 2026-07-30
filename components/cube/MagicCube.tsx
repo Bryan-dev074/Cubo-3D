@@ -22,6 +22,7 @@ import {
   type LayerVisualPreview,
 } from "@/components/cube/useMoveQueue";
 import type { CubeMove, CubieState } from "@/lib/cube/types";
+import { CELEBRATION_DURATION_MS } from "@/lib/game/celebration";
 import type { QueuedMove } from "@/lib/game/reducer";
 
 interface MagicCubeProps {
@@ -39,8 +40,6 @@ interface MagicCubeProps {
 }
 
 const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
-const CELEBRATION_DURATION_MS = 820;
-
 export function MagicCube({
   cube,
   isCelebrating,

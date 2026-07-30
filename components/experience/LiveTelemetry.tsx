@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useRef,
   useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
@@ -29,11 +31,31 @@ export function LiveTelemetry({
 }: LiveTelemetryProps) {
   const pageVisible = usePageVisibility();
   const reducedMotion = useReducedMotion();
-  const mobileLayout = useMobileLayout();
+  const disclosureRef = useRef<HTMLDetailsElement>(null);
   const motionPaused = pauseMotion || !pageVisible || reducedMotion;
   const status = statusLabel(snapshot.statusKey, dictionary);
   const scrambleTotal = snapshot.scrambleProgress.total || 20;
   const scrambleValue = `${snapshot.scrambleProgress.confirmed} / ${scrambleTotal}`;
+
+  useEffect(() => {
+    const disclosure = disclosureRef.current;
+    if (!disclosure) {
+      return;
+    }
+    if (typeof window.matchMedia !== "function") {
+      disclosure.open = true;
+      return;
+    }
+
+    const mobile = window.matchMedia("(max-width: 700px)");
+    const syncViewportSemantics = () => {
+      disclosure.open = !mobile.matches;
+    };
+    syncViewportSemantics();
+    mobile.addEventListener("change", syncViewportSemantics);
+    return () =>
+      mobile.removeEventListener("change", syncViewportSemantics);
+  }, []);
 
   return (
     <aside
@@ -63,10 +85,10 @@ export function LiveTelemetry({
       </div>
 
       <details
+        ref={disclosureRef}
         aria-label={dictionary.telemetryFull}
         className={styles.telemetryDisclosure}
         data-mobile-expandable="true"
-        open={!mobileLayout}
         role="group"
       >
         <summary>{dictionary.telemetryExpand}</summary>
@@ -318,23 +340,11 @@ function useReducedMotion(): boolean {
   );
 }
 
-function useMobileLayout(): boolean {
-  return useSyncExternalStore(
-    subscribeToMobileLayout,
-    readMobileLayout,
-    readServerMediaPreference,
-  );
-}
-
 function subscribeToReducedMotion(onStoreChange: () => void): () => void {
   return subscribeToMediaQuery(
     "(prefers-reduced-motion: reduce)",
     onStoreChange,
   );
-}
-
-function subscribeToMobileLayout(onStoreChange: () => void): () => void {
-  return subscribeToMediaQuery("(max-width: 700px)", onStoreChange);
 }
 
 function subscribeToMediaQuery(
@@ -351,10 +361,6 @@ function subscribeToMediaQuery(
 
 function readReducedMotion(): boolean {
   return readMediaQuery("(prefers-reduced-motion: reduce)");
-}
-
-function readMobileLayout(): boolean {
-  return readMediaQuery("(max-width: 700px)");
 }
 
 function readMediaQuery(query: string): boolean {

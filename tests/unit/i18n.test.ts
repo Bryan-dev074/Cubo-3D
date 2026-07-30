@@ -22,6 +22,14 @@ describe("detectLocale", () => {
     expect(detectLocale(null, ["en-US", "pt-BR"])).toBe("pt");
   });
 
+  it("uses the first supported browser language when Spanish precedes Portuguese", () => {
+    expect(detectLocale(null, ["es-PY", "pt-BR"])).toBe("es");
+  });
+
+  it("uses the first supported browser language when Portuguese precedes Spanish", () => {
+    expect(detectLocale(null, ["pt-BR", "es-PY"])).toBe("pt");
+  });
+
   it("falls back to Spanish for unknown stored values and non-Portuguese browsers", () => {
     expect(detectLocale("fr", ["en-US", "es-PY"])).toBe("es");
   });

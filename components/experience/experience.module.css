@@ -6,7 +6,8 @@
   --smoke: #d5dce0;
   --line: rgba(32, 38, 42, 0.22);
   --cobalt: #0f4fd4;
-  --cobalt-deep: #083cae;
+  --cobalt-surface: #0f4fd4;
+  --cobalt-surface-hover: #083cae;
   position: relative;
   display: grid;
   grid-template-columns: clamp(4rem, 5.5vw, 5.5rem) minmax(0, 1fr);
@@ -33,7 +34,7 @@
   min-height: 100%;
   overflow: hidden;
   color: #fff;
-  background: var(--cobalt);
+  background: var(--cobalt-surface);
 }
 
 .cobaltSpine::before,
@@ -142,7 +143,7 @@
   justify-content: center;
   padding: 0.7rem 1.05rem;
   color: #fff;
-  background: var(--cobalt);
+  background: var(--cobalt-surface);
   text-decoration: none;
 }
 
@@ -195,7 +196,7 @@
   margin-top: clamp(1.1rem, 2.4vw, 1.8rem);
   padding: 0.8rem 1.15rem;
   color: #fff;
-  background: var(--cobalt);
+  background: var(--cobalt-surface);
 }
 
 .registrationMark {
@@ -696,7 +697,7 @@
 
 .sceneFallbackPurchase {
   color: #fff;
-  background: var(--cobalt);
+  background: var(--cobalt-surface);
 }
 
 .srOnly {
@@ -818,7 +819,7 @@
   .mobilePurchase:hover,
   .successPurchase:hover,
   .scrambleButton:hover:not(:disabled) {
-    background: var(--cobalt-deep);
+    background: var(--cobalt-surface-hover);
   }
 
   .languageButton:hover,
@@ -1122,8 +1123,9 @@
     --graphite-soft: #b8c1c7;
     --smoke: #3a444a;
     --line: rgba(231, 238, 242, 0.24);
-    --cobalt: #4d7ff2;
-    --cobalt-deep: #6c96f7;
+    --cobalt: #6c96f7;
+    --cobalt-surface: #0f4fd4;
+    --cobalt-surface-hover: #083cae;
   }
 
   .firstUseHint {
@@ -1143,7 +1145,8 @@
     --graphite-soft: #161616;
     --line: #000;
     --cobalt: #003ebd;
-    --cobalt-deep: #002f91;
+    --cobalt-surface: #003ebd;
+    --cobalt-surface-hover: #002f91;
   }
 
   .experience button,
@@ -1153,6 +1156,19 @@
   .helpDialog,
   .successMoment {
     border-width: 2px;
+  }
+}
+
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  .experience {
+    --paper: #0d1114;
+    --paper-raised: #151b1f;
+    --graphite: #ffffff;
+    --graphite-soft: #edf1f3;
+    --line: #ffffff;
+    --cobalt: #a8c0ff;
+    --cobalt-surface: #0b3ea7;
+    --cobalt-surface-hover: #062b78;
   }
 }
 
@@ -1180,6 +1196,14 @@
 
   .stage[data-celebrating="true"] .cubeFrame::after {
     animation-name: reduced-success-light;
+    animation-duration: 480ms !important;
+    inset: 7%;
+    transform: none;
+  }
+
+  .successMoment {
+    animation-name: reduced-success-enter;
+    animation-duration: 180ms !important;
   }
 
   .layerCell[data-layer-active="true"],
@@ -1189,11 +1213,22 @@
 }
 
 @keyframes reduced-success-light {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  40% {
+    opacity: 0.18;
+  }
+}
+
+@keyframes reduced-success-enter {
   from {
     opacity: 0;
   }
 
   to {
-    opacity: 0.22;
+    opacity: 1;
   }
 }

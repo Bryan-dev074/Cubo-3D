@@ -10,7 +10,16 @@ export function detectLocale(
     return stored as Locale;
   }
 
-  return browserLanguages.some((language) => language.toLowerCase().startsWith("pt"))
-    ? "pt"
-    : "es";
+  for (const language of browserLanguages) {
+    const normalized = language.toLowerCase();
+    const supported = supportedLocales.find(
+      (locale) =>
+        normalized === locale || normalized.startsWith(`${locale}-`),
+    );
+    if (supported) {
+      return supported;
+    }
+  }
+
+  return "es";
 }
