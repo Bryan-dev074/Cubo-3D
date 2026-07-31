@@ -181,3 +181,72 @@ The complete E2E run retains the real idle WebGL draw-call proof, director
 pause/resume, gesture stories, truthful telemetry/state coverage, fixed-shadow
 orbit checks, reduced motion, and responsive layouts. The review fixes add no
 React ambient state, timer, rAF loop, Three.js invalidation or dependency.
+
+## Re-review round 2 addendum (2026-07-31)
+
+Fix commit: `456e8f0173ebade2298f1a61f3a2e6b00c31c19c`
+
+### Findings closed
+
+1. The mobile cadence browser probe now includes the maximum computed opacity
+   of every plotter glyph and both plotter registration marks. It explicitly
+   samples `46.53s`, four genuinely different later phases, and a representative
+   `540ms` sweep from `0` through `172.26s` (325 unique samples total).
+2. The plotter remains unchanged and alive. The dock rail now uses
+   `--ambient-dock-peak-opacity`: desktop stays at `0.72`, while mobile is
+   capped at `0.12`, matching the existing low-contrast secondary ceiling.
+3. New WebGL-producing stories call one nested cleanup helper. It attempts
+   `WEBGL_lose_context` and always executes `context.close()` from an inner
+   `finally`, even when page evaluation fails. A real browser failure-path
+   story closes the page first, verifies the release error is propagated, and
+   verifies the browser context still closes.
+4. The stress order remains four ambient viewport stories, cadence, reduced
+   motion, cleanup failure, then the real mobile orbit/shadow story. No timeout
+   or behavioral assertion was increased, removed or relaxed.
+
+### TDD evidence
+
+- Cadence RED:
+  `npx playwright test tests/e2e/responsive.spec.ts --grep "mobile sustains at most one high contrast ambient pulse"`
+  failed at exactly `46,530ms`, measuring dock `0.500625` and plotter
+  `0.783777` above the `0.2` high-contrast threshold.
+- Teardown RED:
+  `npm test -- tests/unit/production-contracts.test.ts` failed 1/21 because the
+  nested release-and-close helper and failure-path story did not exist.
+- CSS contract RED:
+  `npm test -- tests/components/experience.test.tsx` failed 1/49 because the
+  mobile dock peak variable did not exist.
+- Focal GREEN:
+  `npm test -- tests/components/experience.test.tsx tests/unit/production-contracts.test.ts`
+  passed 70/70.
+- Cadence GREEN: the browser sweep passed 1/1; the known collision retains one
+  live high-contrast plotter cue, the dock remains alive below `0.12`, and all
+  325 samples contain at most one high-contrast cue.
+- Cleanup failure path GREEN: passed 1/1 with the release error propagated and
+  the browser context close event observed.
+- Ordered stress GREEN: passed 8/8 in 1.0 minute, with orbit/shadow last.
+
+### Full gate stabilization and final verification
+
+- The complete gate exposed two pre-existing test races rather than production
+  regressions. Mechanical checkpoint screenshots let the real `1350ms`
+  watchdog advance by wall clock; the test now uses the existing visibility
+  director to keep phase `opening` through checkpoints `160–1100`, then restores
+  visibility after checkpoint `1350` and verifies the original `drop/ready`
+  contract. The unchanged checkpoint assertions passed 3/3 consecutively.
+- Mobile landscape used Playwright `scrollIntoViewIfNeeded()` on the purposely
+  microfloating cube scene. Its subpixel rect never met Playwright's stability
+  precondition. The geometry-only check now invokes native
+  `scrollIntoView({ block: "nearest", inline: "nearest" })` and retains every
+  bounding-box assertion; the focal story passed in `18.4s` instead of waiting
+  up to the `120s` test limit.
+- `npm run test:e2e`: PASS, 51/51 in 2.8 minutes.
+- `npm test`: PASS, 36 files and 333/333 tests.
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `git diff --check`: PASS.
+
+The final run preserves the single director, finite intro behavior, zero idle
+WebGL draws, truthful telemetry, fixed shadow, gestures, responsive layouts and
+reduced-motion behavior. No timeout was raised and no production dependency,
+React ambient state, timer, rAF loop or Three.js invalidation was added.
