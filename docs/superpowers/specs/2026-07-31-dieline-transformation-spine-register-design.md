@@ -1,7 +1,7 @@
 # Troquel transformable y lomo de registro
 
 **Fecha:** 2026-07-31
-**Estado:** dirección visual aprobada por el usuario; especificación pendiente de revisión final
+**Estado:** aprobada por el usuario
 **Superficie:** landing interactiva `Cubo Mágico 3D`
 **Duración de intro:** `2000 ms` exactos en movimiento normal
 
