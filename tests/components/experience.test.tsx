@@ -500,13 +500,13 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(titleSource).toContain('const lines = [first, rest.join(" ")];');
     expect(titleSource).toContain("<h1");
     expect(titleSource).not.toMatch(/setTimeout|requestAnimationFrame/);
-    expect(css).toContain("--plotter-cycle: 10.8s");
+    expect(css).toContain("--plotter-cycle: var(--ambient-plotter)");
     expect(css).toContain("--plotter-first-cycle: 6.4s");
     expect(css).toMatch(
       /\.experience\[data-motion-paused="true"\] \.plotterGlyph,[\s\S]*?\.experience\[data-motion-paused="true"\] \.plotterRegister/,
     );
     expect(css).toMatch(
-      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.plotterGlyph,[\s\S]*?\.plotterRegister\s*\{[\s\S]*?animation-name:\s*none\s*!important;/,
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.plotterGlyph,[\s\S]*?\.plotterRegister,[\s\S]*?\.cubeFrame\s*\{[\s\S]*?animation-name:\s*none\s*!important;/,
     );
   });
 
@@ -985,17 +985,71 @@ describe("commercial CSS contract", () => {
       /@keyframes plan-registration-drift[\s\S]*?translate\(3px, -3px\) rotate\(3deg\)/,
     );
     expect(css).toMatch(
-      /\.pieceMatrix::after\s*\{[^}]*animation:\s*telemetry-group-sweep var\(--motion-ambient-short\)/,
+      /\.pieceMatrix::after\s*\{[^}]*animation:\s*telemetry-group-sweep var\(--ambient-matrix\)/,
     );
     expect(css).toMatch(
       /@keyframes status-breathe[\s\S]*?opacity:\s*0\.82;[\s\S]*?opacity:\s*1;[\s\S]*?scale\(1\.16\)/,
     );
     expect(css).toMatch(
-      /@keyframes purchase-sheen[\s\S]*?76%[\s\S]*?94%/,
+      /@keyframes purchase-sheen[\s\S]*?78%[\s\S]*?86\.6%/,
     );
     expect(css).toMatch(
       /\.dockUtilitiesPanel\s*\{[^}]*animation:\s*dock-utilities-enter 220ms var\(--ease-out\) both;/,
     );
+  });
+
+  it("coordinates every approved ambient region from one staggered director", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const heroSource = readFileSync(
+      resolve(process.cwd(), "components/experience/HeroCopy.tsx"),
+      "utf8",
+    );
+    const experienceRule = css.match(/\.experience\s*\{([^}]*)\}/)?.[1];
+
+    expect(experienceRule).toBeDefined();
+    for (const timing of [
+      "--ambient-plotter: 10.8s",
+      "--ambient-plan: 8.4s",
+      "--ambient-registration: 6.4s",
+      "--ambient-spine: 7.2s",
+      "--ambient-matrix: 4.8s",
+      "--ambient-status: 3.2s",
+      "--ambient-dock: 6.4s",
+      "--ambient-purchase: 7.2s",
+      "--ambient-hero: 5.4s",
+      "--ambient-cube: 6.4s",
+    ]) {
+      expect(experienceRule).toContain(timing);
+    }
+
+    expect(heroSource).toContain("styles.heroRule");
+    expect(css).toMatch(
+      /\.controlDock::before\s*\{[^}]*animation:\s*dock-print-rail var\(--ambient-dock\)/,
+    );
+    expect(css).toMatch(
+      /\.heroRule::after\s*\{[^}]*animation:\s*hero-mark-expansion var\(--ambient-hero\)/,
+    );
+    expect(css).toMatch(
+      /\.experience\[data-intro-phase="ready"\] \.cubeFrame\s*\{[^}]*animation:\s*cube-microfloat var\(--ambient-cube\)/,
+    );
+    expect(css).toMatch(
+      /@keyframes cube-microfloat[\s\S]*?translateY\(-2px\)/,
+    );
+    expect(css).toMatch(
+      /@keyframes cube-microfloat-mobile[\s\S]*?translateY\(-1px\)/,
+    );
+
+    const shadowRule = css.match(/\.groundShadow\s*\{([^}]*)\}/)?.[1];
+    const shadowKeyframes = css.match(
+      /@keyframes cube-shadow-drop\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    expect(shadowRule).toBeDefined();
+    expect(shadowRule).not.toContain("cube-microfloat");
+    expect(shadowKeyframes).toBeDefined();
+    expect(shadowKeyframes).not.toContain("translateY(");
   });
 
   it("uses the reference column split and collapses the cobalt spine without inherited padding", () => {

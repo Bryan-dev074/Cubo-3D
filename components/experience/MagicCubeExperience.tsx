@@ -387,7 +387,7 @@ export function MagicCubeExperience() {
               className={styles.groundShadow}
               data-testid="cube-ground-shadow"
             />
-            <div className={styles.cubeFrame}>
+            <div className={styles.cubeFrame} data-testid="cube-frame">
               <CubeCanvas
                 cube={state.cube}
                 introPhase={introPhase}

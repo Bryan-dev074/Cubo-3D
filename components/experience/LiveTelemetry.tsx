@@ -59,6 +59,11 @@ export function LiveTelemetry({
         className={styles.mobileTelemetrySummary}
         role="group"
       >
+        <span
+          aria-hidden="true"
+          className={styles.telemetrySummaryRail}
+          data-testid="telemetry-summary-rail"
+        />
         <TelemetrySummaryValue
           label={dictionary.telemetryMoves}
           testId="telemetry-move-count"

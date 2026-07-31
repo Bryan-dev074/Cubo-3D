@@ -437,26 +437,55 @@ describe("production rendering contracts", () => {
     expect(telemetrySource).not.toContain('"visibilitychange"');
 
     for (const loop of [
+      ".plotterGlyph",
+      ".plotterRegister",
+      ".planDrawing",
       ".pieceMatrix::after",
       ".statusDot",
       ".planRegistrationMotion",
       ".cobaltSpine::before",
       ".cobaltSpine::after",
+      ".telemetrySummaryRail",
+      ".controlDock::before",
       ".purchaseButton::after",
+      ".heroRule::after",
+      ".cubeFrame",
     ]) {
       expect(styles).toContain(
         `.experience[data-motion-paused="true"] ${loop}`,
       );
     }
     expect(styles).toMatch(
-      /\.experience\[data-motion-paused="true"\]:not\(\[data-intro-phase="opening"\]\)\s+\.planDrawing/,
+      /\.experience\[data-motion-paused="true"\] \.planDrawing/,
     );
     expect(styles).not.toMatch(
-      /\.experience\[data-motion-paused="true"\] \.(?:packageIntro|packageFlap|groundShadow|cubeFrame)/,
+      /\.experience\[data-motion-paused="true"\] \.(?:packageIntro|packageFlap|groundShadow)/,
+    );
+    expect(styles).toMatch(
+      /\.experience\[data-motion-paused="true"\]\[data-intro-phase="opening"\]\[data-page-visible="true"\]\s+\.planDrawing\s*\{[^}]*animation-play-state:\s*running\s*!important;/,
     );
     expect(styles).toMatch(
       /\.experience\[data-page-visible="false"\] \.groundShadow/,
     );
+  });
+
+  it("keeps the ambient director CSS-only and detached from WebGL rendering", () => {
+    const taskSources = [
+      "components/experience/MagicCubeExperience.tsx",
+      "components/experience/ControlDock.tsx",
+      "components/experience/LiveTelemetry.tsx",
+    ].map((file) => readFileSync(resolve(process.cwd(), file), "utf8"));
+    const sceneSource = readFileSync(
+      resolve(process.cwd(), "components/cube/CubeScene.tsx"),
+      "utf8",
+    );
+
+    for (const source of taskSources) {
+      expect(source).not.toContain("setInterval");
+      expect(source).not.toContain("requestAnimationFrame");
+      expect(source).not.toContain("useFrame");
+    }
+    expect(sceneSource).not.toContain("autoRotate={true}");
   });
 
   it("turns off only ambient animation names for reduced motion", () => {
@@ -468,10 +497,13 @@ describe("production rendering contracts", () => {
       styles.indexOf("@media (prefers-reduced-motion: reduce)"),
     );
     const reducedAmbientRule = reducedMotionStyles.match(
-      /\.pieceMatrix::after,[\s\S]*?\.plotterRegister\s*\{([^}]*)\}/,
+      /\.pieceMatrix::after,[\s\S]*?\.cubeFrame\s*\{([^}]*)\}/,
     )?.[1];
 
     expect(reducedAmbientRule).toMatch(/animation-name:\s*none\s*!important;/);
+    expect(reducedMotionStyles).toMatch(
+      /\.plotterBase\s*\{[^}]*opacity:\s*0;/,
+    );
     expect(styles).not.toMatch(/\.planDrawing\s*\{[^}]*will-change:/);
     expect(styles).not.toMatch(
       /\.planRegistrationMotion\s*\{[^}]*will-change:/,

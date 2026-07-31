@@ -39,8 +39,18 @@ test.describe("idle WebGL rendering", () => {
     const canvas = await waitForWebGLScene(page);
     await page.waitForTimeout(350);
 
+    const cubeFrame = page.getByTestId("cube-frame");
+    await expect(cubeFrame).toHaveCSS(
+      "animation-name",
+      /cube-microfloat$/,
+    );
+    await cubeFrame.evaluate((element) => {
+      const frame = element as HTMLElement;
+      frame.style.animationDelay = "-2.7s";
+      frame.style.animationPlayState = "running";
+    });
     await resetWebGLDrawCalls(page);
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(950);
     expect(await readWebGLDrawCalls(page)).toBe(0);
 
     const box = await canvas.boundingBox();
@@ -77,6 +87,40 @@ test.describe("idle WebGL rendering", () => {
     await page.waitForTimeout(700);
     expect(await readWebGLDrawCalls(page)).toBe(0);
   });
+});
+
+test("pauses and resumes the CSS ambient director for help and orbit interaction", async ({
+  page,
+}) => {
+  await forceNormalMotionPreference(page);
+  await setDeterministicBrowserState(page);
+  await openExperience(page);
+  await waitForIntroReady(page);
+  const canvas = await waitForWebGLScene(page);
+  const root = page.locator("#cubo");
+  const plotterGlyph = page.getByTestId("plotter-glyph").first();
+
+  await expect(root).toHaveAttribute("data-motion-paused", "false");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "running");
+
+  await page.getByRole("button", { name: "Ayuda" }).click();
+  await expect(root).toHaveAttribute("data-motion-paused", "true");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "paused");
+  await page.getByRole("button", { name: "Cerrar ayuda" }).click();
+  await expect(root).toHaveAttribute("data-motion-paused", "false");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "running");
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const backgroundX = box!.x + 18;
+  const backgroundY = box!.y + box!.height * 0.5;
+  await page.mouse.move(backgroundX, backgroundY);
+  await page.mouse.down({ button: "right" });
+  await expect(root).toHaveAttribute("data-motion-paused", "true");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "paused");
+  await page.mouse.up({ button: "right" });
+  await expect(root).toHaveAttribute("data-motion-paused", "false");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "running");
 });
 
 test("renders the semantic product shell and complete metadata", async ({

@@ -17,6 +17,16 @@
   --cobalt: #0f4fd4;
   --cobalt-surface: #0f4fd4;
   --cobalt-surface-hover: #083cae;
+  --ambient-plotter: 10.8s;
+  --ambient-plan: 8.4s;
+  --ambient-registration: 6.4s;
+  --ambient-spine: 7.2s;
+  --ambient-matrix: 4.8s;
+  --ambient-status: 3.2s;
+  --ambient-dock: 6.4s;
+  --ambient-purchase: 7.2s;
+  --ambient-hero: 5.4s;
+  --ambient-cube: 6.4s;
   position: relative;
   display: grid;
   grid-template-columns: clamp(7rem, 9.6vw, 9.625rem) minmax(0, 1fr);
@@ -875,8 +885,9 @@
   border-left: 0;
   border-radius: 0 2rem 2rem 0;
   opacity: 0.48;
-  animation: spine-technical-breathe var(--motion-ambient-long)
-    var(--ease-in-out) infinite;
+  transform: translateY(0);
+  animation: spine-technical-breathe var(--ambient-spine) var(--ease-in-out)
+    -0.6s infinite;
   content: "";
 }
 
@@ -1067,7 +1078,7 @@
   );
   opacity: 0;
   transform: translateX(-180%) skewX(-18deg);
-  animation: purchase-sheen var(--motion-ambient-long) var(--ease-in-out)
+  animation: purchase-sheen var(--ambient-purchase) var(--ease-in-out) -1.7s
     infinite;
   pointer-events: none;
   content: "";
@@ -1121,7 +1132,7 @@
 }
 
 .plotterTitle {
-  --plotter-cycle: 10.8s;
+  --plotter-cycle: var(--ambient-plotter);
   --plotter-first-cycle: 6.4s;
 
   isolation: isolate;
@@ -1227,10 +1238,24 @@
 }
 
 .registrationMark {
+  position: relative;
   width: 4.8rem;
   height: 0.25rem;
   margin-bottom: clamp(1.2rem, 2.2vw, 1.8rem);
   background: var(--cobalt);
+}
+
+.heroRule::after {
+  position: absolute;
+  inset: 0;
+  background: var(--cobalt);
+  opacity: 0;
+  transform: scaleX(1);
+  transform-origin: left center;
+  animation: hero-mark-expansion var(--ambient-hero) var(--ease-in-out) -0.9s
+    infinite;
+  content: "";
+  pointer-events: none;
 }
 
 .stage {
@@ -1309,6 +1334,11 @@
   inset: 0;
 }
 
+.experience[data-intro-phase="ready"] .cubeFrame {
+  animation: cube-microfloat var(--ambient-cube) var(--ease-in-out) -3.2s
+    infinite;
+}
+
 .cubeFrame::after {
   position: absolute;
   inset: 7% -28% 7% 102%;
@@ -1364,10 +1394,10 @@
   height: 57.5%;
   overflow: visible;
   opacity: var(--plan-opacity-low);
-  transform: scaleX(1.1);
+  transform: translateY(0) scaleX(1.1);
   transform-origin: center;
-  animation: plan-drawing-breathe var(--motion-ambient-long)
-    var(--ease-in-out) infinite;
+  animation: plan-drawing-breathe var(--ambient-plan) var(--ease-in-out) -2.1s
+    infinite;
   pointer-events: none;
 }
 
@@ -1391,7 +1421,7 @@
 .planRegistrationMotion {
   transform-box: fill-box;
   transform-origin: center;
-  animation: plan-registration-drift var(--motion-ambient-long)
+  animation: plan-registration-drift var(--ambient-registration)
     var(--ease-in-out) -1.8s infinite;
 }
 
@@ -1464,6 +1494,10 @@
 }
 
 .mobileTelemetrySummary {
+  display: none;
+}
+
+.telemetrySummaryRail {
   display: none;
 }
 
@@ -1553,7 +1587,8 @@
   opacity: 0.82;
   transform: scale(1);
   transform-origin: center;
-  animation: status-breathe 6.4s var(--ease-in-out) -0.8s infinite;
+  animation: status-breathe var(--ambient-status) var(--ease-in-out) -0.8s
+    infinite;
 }
 
 .pieceMatrix {
@@ -1578,7 +1613,7 @@
   background: rgba(15, 79, 212, 0.16);
   opacity: 0;
   transform: translateY(0);
-  animation: telemetry-group-sweep var(--motion-ambient-short) linear infinite;
+  animation: telemetry-group-sweep var(--ambient-matrix) linear -0.35s infinite;
   pointer-events: none;
   content: "";
 }
@@ -1708,17 +1743,25 @@
   background: var(--smoke);
 }
 
-.experience[data-motion-paused="true"] .pieceMatrix::after,
-.experience[data-motion-paused="true"] .statusDot,
-.experience[data-motion-paused="true"]:not([data-intro-phase="opening"])
-  .planDrawing,
+.experience[data-motion-paused="true"] .plotterGlyph,
+.experience[data-motion-paused="true"] .plotterRegister,
+.experience[data-motion-paused="true"] .planDrawing,
 .experience[data-motion-paused="true"] .planRegistrationMotion,
 .experience[data-motion-paused="true"] .cobaltSpine::before,
 .experience[data-motion-paused="true"] .cobaltSpine::after,
+.experience[data-motion-paused="true"] .pieceMatrix::after,
+.experience[data-motion-paused="true"] .statusDot,
+.experience[data-motion-paused="true"] .telemetrySummaryRail,
+.experience[data-motion-paused="true"] .controlDock::before,
 .experience[data-motion-paused="true"] .purchaseButton::after,
-.experience[data-motion-paused="true"] .plotterGlyph,
-.experience[data-motion-paused="true"] .plotterRegister {
+.experience[data-motion-paused="true"] .heroRule::after,
+.experience[data-motion-paused="true"] .cubeFrame {
   animation-play-state: paused !important;
+}
+
+.experience[data-motion-paused="true"][data-intro-phase="opening"][data-page-visible="true"]
+  .planDrawing {
+  animation-play-state: running !important;
 }
 
 .controlDock {
@@ -1733,6 +1776,22 @@
   padding: 0;
   border: 1px solid var(--line);
   background: var(--paper-raised);
+}
+
+.controlDock::before {
+  position: absolute;
+  z-index: 2;
+  top: -1px;
+  left: 0;
+  width: 28%;
+  height: 2px;
+  background: var(--cobalt);
+  opacity: 0;
+  transform: translateX(0) scaleX(0.35);
+  transform-origin: left center;
+  animation: dock-print-rail var(--ambient-dock) linear -2.8s infinite;
+  content: "";
+  pointer-events: none;
 }
 
 .dockActions {
@@ -2213,15 +2272,17 @@
 
 @keyframes spine-technical-breathe {
   0%,
-  28%,
-  72%,
+  34%,
+  64%,
   100% {
     opacity: 0.48;
+    transform: translateY(0);
   }
 
-  42%,
-  58% {
+  46%,
+  52% {
     opacity: 0.64;
+    transform: translateY(10px);
   }
 }
 
@@ -2231,11 +2292,29 @@
   70%,
   100% {
     opacity: var(--plan-opacity-low);
+    transform: translateY(0) scaleX(1.1);
   }
 
   43%,
   57% {
     opacity: var(--plan-opacity-high);
+    transform: translateY(-2px) scaleX(1.1);
+  }
+}
+
+@keyframes plan-drawing-breathe-mobile {
+  0%,
+  30%,
+  70%,
+  100% {
+    opacity: var(--plan-opacity-low);
+    transform: translateY(0) scaleX(1.1);
+  }
+
+  43%,
+  57% {
+    opacity: var(--plan-opacity-high);
+    transform: translateY(0) scaleX(1.1);
   }
 }
 
@@ -2255,15 +2334,15 @@
 
 @keyframes status-breathe {
   0%,
-  30%,
-  70%,
+  38%,
+  62%,
   100% {
     opacity: 0.82;
     transform: scale(1);
   }
 
-  44%,
-  56% {
+  44.4%,
+  55.6% {
     opacity: 1;
     transform: scale(1.16);
   }
@@ -2271,22 +2350,22 @@
 
 @keyframes purchase-sheen {
   0%,
-  75.99% {
+  77.99% {
     opacity: 0;
     transform: translateX(-180%) skewX(-18deg);
   }
 
-  76% {
+  78% {
     opacity: 0;
     transform: translateX(-180%) skewX(-18deg);
   }
 
-  84% {
+  82.3% {
     opacity: 0.2;
     transform: translateX(110%) skewX(-18deg);
   }
 
-  94%,
+  86.6%,
   100% {
     opacity: 0;
     transform: translateX(480%) skewX(-18deg);
@@ -2307,19 +2386,109 @@
 
 @keyframes telemetry-group-sweep {
   0%,
-  72%,
+  75.99%,
   100% {
     opacity: 0;
     transform: translateY(0);
   }
 
-  78% {
+  82% {
     opacity: 0.72;
   }
 
-  92% {
+  98% {
     opacity: 0.12;
     transform: translateY(4.55rem);
+  }
+}
+
+@keyframes dock-print-rail {
+  0%,
+  67.99%,
+  79.25%,
+  100% {
+    opacity: 0;
+    transform: translateX(0) scaleX(0.35);
+  }
+
+  68% {
+    opacity: 0;
+    transform: translateX(0) scaleX(0.35);
+  }
+
+  72% {
+    opacity: 0.72;
+  }
+
+  79.24% {
+    opacity: 0;
+    transform: translateX(257%) scaleX(1);
+  }
+}
+
+@keyframes telemetry-summary-rail {
+  0%,
+  57.99%,
+  69.25%,
+  100% {
+    opacity: 0;
+    transform: translateX(-110%) scaleX(0.4);
+  }
+
+  58% {
+    opacity: 0;
+    transform: translateX(-110%) scaleX(0.4);
+  }
+
+  62% {
+    opacity: 0.24;
+  }
+
+  69.24% {
+    opacity: 0;
+    transform: translateX(390%) scaleX(1);
+  }
+}
+
+@keyframes hero-mark-expansion {
+  0%,
+  57.99%,
+  69.5%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+
+  58% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+
+  63.5% {
+    opacity: 0.32;
+    transform: scaleX(1.65);
+  }
+}
+
+@keyframes cube-microfloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes cube-microfloat-mobile {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1px);
   }
 }
 
@@ -2395,6 +2564,12 @@
   .controlDock:hover .dockUtilities {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  .stage:hover .cubeFrame,
+  .stage:focus-within .cubeFrame,
+  .stage:active .cubeFrame {
+    animation-play-state: paused;
   }
 }
 
@@ -2522,6 +2697,10 @@
     min-height: 19rem;
   }
 
+  .experience[data-intro-phase="ready"] .cubeFrame {
+    animation-name: cube-microfloat-mobile;
+  }
+
   .groundShadow {
     top: 67%;
     left: 56%;
@@ -2536,6 +2715,7 @@
     left: -12%;
     width: 124%;
     height: 34rem;
+    animation-name: plan-drawing-breathe-mobile;
   }
 
   .firstUseHint {
@@ -2618,12 +2798,34 @@
   }
 
   .mobileTelemetrySummary {
+    position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
+    overflow: hidden;
+  }
+
+  .telemetrySummaryRail {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 24%;
+    height: 2px;
+    background: var(--cobalt);
+    opacity: 0;
+    transform: translateX(-110%) scaleX(0.4);
+    transform-origin: left center;
+    animation: telemetry-summary-rail var(--ambient-dock) linear -3.6s
+      infinite;
+    pointer-events: none;
   }
 
   .mobileTelemetrySummary > div {
+    position: relative;
+    z-index: 1;
     min-width: 0;
     padding: 0.65rem 0.55rem;
     border-right: 1px solid var(--line);
@@ -2861,10 +3063,18 @@
   .planRegistrationMotion,
   .cobaltSpine::before,
   .cobaltSpine::after,
+  .telemetrySummaryRail,
+  .controlDock::before,
   .purchaseButton::after,
+  .heroRule::after,
   .plotterGlyph,
-  .plotterRegister {
+  .plotterRegister,
+  .cubeFrame {
     animation-name: none !important;
+  }
+
+  .plotterBase {
+    opacity: 0;
   }
 }
 

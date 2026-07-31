@@ -16,7 +16,10 @@ export function HeroCopy({
 }: HeroCopyProps) {
   return (
     <section className={styles.heroCopy} data-region="hero-copy">
-      <div className={styles.registrationMark} aria-hidden="true" />
+      <div
+        className={`${styles.registrationMark} ${styles.heroRule}`}
+        aria-hidden="true"
+      />
       <PlotterTitle id="experience-title" title={dictionary.title} />
       <p className={styles.promise}>{dictionary.description}</p>
       <button

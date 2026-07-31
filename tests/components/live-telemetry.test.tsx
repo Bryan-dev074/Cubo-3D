@@ -323,6 +323,25 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
       "true",
     );
   });
+
+  it("keeps the mobile print rail decorative and outside truthful values", () => {
+    renderTelemetry(createInitialGameState(), "es");
+
+    const summary = screen.getByRole("group", {
+      name: dictionaries.es.telemetrySummary,
+    });
+    const rail = screen.getByTestId("telemetry-summary-rail");
+    const moveValue = screen.getByTestId("telemetry-move-count");
+    const scrambleValue = screen.getByTestId("telemetry-scramble-progress");
+
+    expect(rail).toHaveAttribute("aria-hidden", "true");
+    expect(rail).toBeEmptyDOMElement();
+    expect(rail.parentElement).toBe(summary);
+    expect(moveValue).not.toContainElement(rail);
+    expect(scrambleValue).not.toContainElement(rail);
+    expect(summary).toHaveTextContent("0");
+    expect(summary).toHaveTextContent("0 / 20");
+  });
 });
 
 function renderTelemetry(

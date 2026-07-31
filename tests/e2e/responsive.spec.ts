@@ -43,6 +43,12 @@ const CINEMATIC_VIEWPORTS = [
   { name: "mobile-390", width: 390, height: 844 },
   { name: "mobile-320", width: 320, height: 700 },
 ] as const;
+const AMBIENT_VIEWPORTS = [
+  { name: "desktop", width: 1440, height: 900 },
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-landscape", width: 844, height: 390 },
+] as const;
 
 for (const viewport of DESKTOP_COLLISION_VIEWPORTS) {
   test(`${viewport.name} keeps all editorial regions collision-free`, async ({
@@ -665,6 +671,81 @@ test("desktop keeps the complete live instrument open", async ({ page }) => {
   ).toHaveAttribute("open", "");
   await expect(page.getByText("26 piezas")).toBeVisible();
   await diagnostics.assertClean();
+});
+
+for (const viewport of AMBIENT_VIEWPORTS) {
+  test(`${viewport.name} keeps ambient DOM motion viewport-safe`, async ({
+    browser,
+  }) => {
+    const mobile = viewport.width <= 900;
+    const context = await browser.newContext({
+      baseURL: "http://127.0.0.1:4173",
+      hasTouch: mobile,
+      isMobile: mobile,
+      reducedMotion: "no-preference",
+      viewport,
+    });
+    const page = await context.newPage();
+    const diagnostics = monitorBrowser(page);
+    await setDeterministicBrowserState(page);
+    await openExperience(page);
+    await waitForWebGLScene(page);
+
+    const cubeFrame = page.getByTestId("cube-frame");
+    await expect(cubeFrame).toHaveCSS(
+      "animation-name",
+      mobile ? /cube-microfloat-mobile$/ : /cube-microfloat$/,
+    );
+    await expect(page.getByTestId("telemetry-summary-rail")).toHaveCSS(
+      "display",
+      mobile ? "block" : "none",
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBe(0);
+    if (mobile) {
+      await expectMobileInputEnvironment(page);
+    }
+    await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
+    await page.screenshot({
+      path: resolve(
+        VISUAL_ARTIFACT_DIRECTORY,
+        `task-4-${viewport.name}-ambient.png`,
+      ),
+    });
+    await diagnostics.assertClean();
+    await context.close();
+  });
+}
+
+test("reduced motion leaves the plotter solid and disables every ambient name", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    reducedMotion: "reduce",
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+  await setDeterministicBrowserState(page);
+  await openExperience(page);
+  await waitForWebGLScene(page);
+
+  await expect(page.getByTestId("plotter-glyph").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await expect(page.getByTestId("plotter-base").first()).toHaveCSS(
+    "opacity",
+    "0",
+  );
+  await expect(page.getByTestId("cube-frame")).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await context.close();
 });
 
 async function createVisualPage(
