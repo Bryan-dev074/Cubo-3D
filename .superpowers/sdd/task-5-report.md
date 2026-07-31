@@ -2,7 +2,7 @@
 
 ## Status
 
-RELEASE VERIFIED; PUBLICATION PENDING
+RELEASE VERIFIED AND PUBLISHED
 
 The acceptance gate also proved one production defect in the plotter title:
 two fixed registration blocks and a broad fade could not produce the approved
@@ -178,6 +178,5 @@ originally owned layer preview before release.
 - `tests/e2e/performance.spec.ts` remains unchanged because the audited gaps do
   not require a new threshold or probe, and performance execution was reserved
   for the root release.
-- Build, performance, complete browser verification, and independent reviews
-  are complete. Only the final commit, push, and published-main equality check
-  remain.
+- Build, performance, complete browser verification, independent reviews,
+  final push, and the `HEAD == origin/main` equality check are complete.
