@@ -233,7 +233,7 @@ test("scrambles, confirms a move, undoes it and resets the real cube", async ({
   await diagnostics.assertClean();
 });
 
-test("supports a real layer drag and keeps background orbit separate", async ({
+test("keeps left background orbit separate from a cubie-owned layer drag", async ({
   page,
 }) => {
   const diagnostics = monitorBrowser(page);
@@ -254,11 +254,12 @@ test("supports a real layer drag and keeps background orbit separate", async ({
   await waitForAnimationFrames(page, 2);
   const beforeLeftBackground = sha256(await canvas.screenshot());
   await page.mouse.down({ button: "left" });
-  await page.mouse.move(backgroundX + 96, backgroundY - 22, { steps: 8 });
+  await page.mouse.move(centerX + 60, centerY - 22, { steps: 8 });
   await page.mouse.up({ button: "left" });
   await page.mouse.move(backgroundX, backgroundY);
   await waitForAnimationFrames(page, 2);
-  expect(sha256(await canvas.screenshot())).toBe(beforeLeftBackground);
+  expect(sha256(await canvas.screenshot())).not.toBe(beforeLeftBackground);
+  await expect(page.getByTestId("telemetry-move-count")).toHaveText("0");
 
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
@@ -322,7 +323,7 @@ test("supports a real layer drag and keeps background orbit separate", async ({
   await diagnostics.assertClean();
 });
 
-test("keeps one cubie owner and exposes every fine-pointer cursor intent safely", async ({
+test("locks the original layer through an L-shaped drag and keeps its cubie owner", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -364,8 +365,10 @@ test("keeps one cubie owner and exposes every fine-pointer cursor intent safely"
   const centerY = box!.y + box!.height * 0.5;
   const baselineX = centerX + 54;
   const baselineY = centerY + 4;
-  const crossingX = centerX + 112;
-  const crossingY = centerY + 8;
+  const lShapeX = baselineX + 10;
+  const lShapeY = baselineY + 100;
+  const foreignX = centerX + 112;
+  const foreignY = centerY + 8;
 
   // Baseline releases before the pointer reaches the independently interactive
   // crossing endpoint.
@@ -388,29 +391,21 @@ test("keeps one cubie owner and exposes every fine-pointer cursor intent safely"
     "Sin giros",
   );
 
-  // Repeat the same origin/direction but deliver an intermediate pointermove.
-  // Matching the baseline move proves that crossing hit regions did not alter
-  // the owned layer. Exact cubie-ID ownership remains covered by the unit test.
+  // The first horizontal movement selects a layer. A non-collinear movement
+  // then crosses a foreign surface but must retain that original layer.
   await page.mouse.move(centerX, centerY);
   await expect(cursor).toHaveAttribute("data-mode", "layer-ready");
   await page.mouse.down({ button: "left" });
   await page.mouse.move(baselineX, baselineY, { steps: 4 });
   await expect(cursor).toHaveAttribute("data-mode", "layer-drag");
-  const initialIntent = await cursor.evaluate((element) => ({
-    axis: element.getAttribute("data-axis"),
-    direction: element.getAttribute("data-direction"),
-  }));
-  expect(initialIntent.axis).toMatch(/^[xyz]$/);
-  expect(initialIntent.direction).toMatch(/^(positive|negative)$/);
+  const initialAxis = await cursor.getAttribute("data-axis");
+  const initialDirection = await cursor.getAttribute("data-direction");
+  expect(initialAxis).toMatch(/^[xyz]$/);
+  expect(initialDirection).toMatch(/^(positive|negative)$/);
 
-  await page.mouse.move(crossingX, crossingY, { steps: 6 });
+  await page.mouse.move(lShapeX, lShapeY, { steps: 6 });
   await expect(cursor).toHaveAttribute("data-mode", "layer-drag");
-  expect(
-    await cursor.evaluate((element) => ({
-      axis: element.getAttribute("data-axis"),
-      direction: element.getAttribute("data-direction"),
-    })),
-  ).toEqual(initialIntent);
+  await expect(cursor).toHaveAttribute("data-axis", initialAxis!);
   await page.mouse.up({ button: "left" });
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("1", {
     timeout: 15_000,
@@ -422,12 +417,12 @@ test("keeps one cubie owner and exposes every fine-pointer cursor intent safely"
   await page.getByRole("button", { name: "Reiniciar" }).click();
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("0");
 
-  // A direct vertical drag from the crossing endpoint proves it is a distinct
+  // A direct vertical drag from a foreign endpoint proves it is a distinct
   // usable origin: its confirmed layer move must differ from the baseline.
-  await page.mouse.move(crossingX, crossingY);
+  await page.mouse.move(foreignX, foreignY);
   await expect(cursor).toHaveAttribute("data-mode", "layer-ready");
   await page.mouse.down({ button: "left" });
-  await page.mouse.move(crossingX + 6, crossingY + 82, { steps: 8 });
+  await page.mouse.move(foreignX + 6, foreignY + 82, { steps: 8 });
   await page.mouse.up({ button: "left" });
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("1", {
     timeout: 15_000,

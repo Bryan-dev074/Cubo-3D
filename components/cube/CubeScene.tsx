@@ -105,6 +105,12 @@ const VIEW_CONFIG: Readonly<
 
 RectAreaLightUniformsLib.init();
 
+export const ORBIT_MOUSE_BUTTONS = {
+  LEFT: MOUSE.ROTATE,
+  MIDDLE: undefined,
+  RIGHT: MOUSE.ROTATE,
+} as const;
+
 export function CubeScene({
   cube,
   introPhase = "ready",
@@ -245,11 +251,10 @@ function CubeStudio({
     (locked: boolean) => {
       if (controlsRef.current) {
         controlsRef.current.enabled =
-          interaction.stateRef.current.orbitActive ||
-          (interactionReady && !locked && queue.length === 0);
+          interactionReady && !locked && queue.length === 0;
       }
     },
-    [interaction.stateRef, interactionReady, queue.length],
+    [interactionReady, queue.length],
   );
 
   return (
@@ -310,8 +315,7 @@ function CubeStudio({
         makeDefault
         enabled={
           interactionReady &&
-          (!interaction.snapshot.layerActive ||
-            interaction.snapshot.orbitActive) &&
+          !interaction.snapshot.layerActive &&
           queue.length === 0
         }
         autoRotate={false}
@@ -319,11 +323,7 @@ function CubeStudio({
         dampingFactor={0.075}
         enablePan={false}
         enableZoom={false}
-        mouseButtons={{
-          LEFT: undefined,
-          MIDDLE: undefined,
-          RIGHT: MOUSE.ROTATE,
-        }}
+        mouseButtons={ORBIT_MOUSE_BUTTONS}
         maxPolarAngle={Math.PI * 0.69}
         minPolarAngle={Math.PI * 0.2}
         onEnd={handleOrbitEnd}

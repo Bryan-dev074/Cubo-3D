@@ -31,7 +31,9 @@ npm run start
 - **Mouse izquierdo sobre una pieza:** arrastrá para girar su capa. La pieza y
   la capa iniciales conservan el gesto hasta soltar, aunque el puntero cruce
   otras piezas.
-- **Mouse izquierdo sobre el fondo:** no altera el cubo ni la vista.
+- **Mouse izquierdo sobre el fondo:** arrastrá para rotar la vista completa;
+  aunque el puntero cruce una pieza, el gesto sigue siendo de órbita y no mueve
+  el cubo.
 - **Mouse derecho en cualquier punto del escenario:** arrastrá para rotar la
   vista completa. El menú contextual se bloquea solo dentro del escenario 3D.
 - **Toque:** arrastrar desde una pieza gira su capa; arrastrar desde el fondo

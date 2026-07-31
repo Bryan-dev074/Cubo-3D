@@ -193,7 +193,7 @@ describe("useLayerGesture interaction ownership", () => {
     );
   });
 
-  it("restores layer-ready intent when an active drag returns to its origin", () => {
+  it("keeps the locked layer intent when an active drag returns to its origin", () => {
     const fixture = createFixture();
     const { result } = renderHook(() => useLayerGesture(fixture.options));
     const handlers = result.current.handlersFor(fixture.cubie);
@@ -206,6 +206,7 @@ describe("useLayerGesture interaction ownership", () => {
       );
     });
     expect(fixture.previewRef.current.move).not.toBeNull();
+    const firstResolvedMove = fixture.previewRef.current.move as CubeMove | null;
     expect(
       fixture.onCursorIntentChange.mock.calls.at(-1)?.[0].mode,
     ).toBe("layer-drag");
@@ -216,9 +217,9 @@ describe("useLayerGesture interaction ownership", () => {
       );
     });
 
-    expect(fixture.previewRef.current.move).toBeNull();
+    expect(fixture.previewRef.current.move).toEqual(firstResolvedMove);
     expect(fixture.onCursorIntentChange).toHaveBeenLastCalledWith(
-      LAYER_READY_CURSOR_INTENT,
+      cursorIntentForMove(firstResolvedMove!),
     );
   });
 
@@ -351,6 +352,57 @@ describe("useLayerGesture interaction ownership", () => {
     expect(move.layer).toBe(fixture.cubie.position[axisIndex]);
     expect(move.layer).not.toBe(other.position[axisIndex]);
     expect(fixture.captureTarget.releasePointerCapture).toHaveBeenCalledWith(7);
+  });
+
+  it("locks the first resolved layer through an L-shaped drag over a foreign cubie", () => {
+    const fixture = createFixture();
+    const owner = fixture.cubie;
+    const foreignCubie = fixture.cube.find(({ id }) => id !== owner.id)!;
+    const { result } = renderHook(() => useLayerGesture(fixture.options));
+    const ownerHandlers = result.current.handlersFor(owner);
+    const foreignHandlers = result.current.handlersFor(foreignCubie);
+
+    act(() => {
+      ownerHandlers.onPointerDown(fixture.event({ timeStamp: 100 }));
+      ownerHandlers.onPointerMove(
+        fixture.event({ clientX: 474, clientY: 249, timeStamp: 120 }),
+      );
+    });
+
+    const firstResolvedMove: CubeMove | null = fixture.previewRef.current.move;
+
+    act(() => {
+      foreignHandlers.onPointerMove(
+        fixture.event({ clientX: 484, clientY: 349, timeStamp: 140 }),
+      );
+    });
+
+    const lShapePreview = fixture.previewRef.current as {
+      readonly move: CubeMove | null;
+      readonly selectedIds: ReadonlySet<string>;
+    };
+    const lastDragIntent = fixture.onCursorIntentChange.mock.calls.at(-1)?.[0];
+
+    expect(firstResolvedMove).not.toBeNull();
+    expect(lShapePreview.move).toMatchObject({
+      axis: firstResolvedMove!.axis,
+      layer: firstResolvedMove!.layer,
+    });
+    expect(lShapePreview.selectedIds).toEqual(new Set([owner.id]));
+    expect(lastDragIntent).toBe(cursorIntentForMove(lShapePreview.move!));
+
+    act(() => {
+      foreignHandlers.onPointerUp(
+        fixture.event({ clientX: 484, clientY: 349, timeStamp: 160 }),
+      );
+    });
+
+    expect(fixture.onMoveRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        axis: firstResolvedMove!.axis,
+        layer: firstResolvedMove!.layer,
+      }),
+    );
   });
 
   it("cancels and releases capture when disabled becomes true mid-drag", async () => {

@@ -23,7 +23,6 @@ import type {
   CubiePivotMap,
   LayerVisualPreview,
 } from "@/components/cube/useMoveQueue";
-import { selectLayerCubieIds } from "@/components/cube/useMoveQueue";
 import { resolveLayerGesture } from "@/lib/cube/gesture";
 import type {
   Axis,
@@ -73,6 +72,7 @@ interface ActiveGesture {
   readonly candidates: readonly ProjectedCandidate[];
   readonly captureTarget: PointerCaptureTarget;
   readonly cubie: CubieState;
+  lockedCandidate: ProjectedCandidate | null;
   readonly nativeTarget: EventTarget;
   readonly pointerId: number;
   readonly nativeCancelHandler: EventListener;
@@ -94,7 +94,6 @@ interface ProjectedCandidate {
 }
 
 export function useLayerGesture({
-  cube,
   disabled,
   invalidate,
   onActiveChange,
@@ -237,6 +236,7 @@ export function useLayerGesture({
           candidates,
           captureTarget,
           cubie,
+          lockedCandidate: null,
           nativeTarget,
           nativeCancelHandler,
           pointerId: event.pointerId,
@@ -281,10 +281,7 @@ export function useLayerGesture({
         gesture.last.copy(point);
         gesture.lastTime = event.timeStamp;
 
-        const move = resolveLayerGesture({
-          drag: [drag.x, drag.y],
-          candidates: gesture.candidates,
-        });
+        const move = resolveGestureMove(gesture, drag) ?? gesture.move;
         gesture.move = move;
 
         if (move) {
@@ -304,7 +301,7 @@ export function useLayerGesture({
             move,
             angle,
             angularVelocity,
-            selectedIds: new Set(selectLayerCubieIds(cube, move)),
+            selectedIds: new Set([gesture.cubie.id]),
           };
         } else {
           emitCursorIntent(LAYER_READY_CURSOR_INTENT);
@@ -350,10 +347,7 @@ export function useLayerGesture({
         event.stopPropagation();
         const releasePoint = new Vector2(event.clientX, event.clientY);
         const drag = releasePoint.clone().sub(gesture.start);
-        const move = resolveLayerGesture({
-          drag: [drag.x, drag.y],
-          candidates: gesture.candidates,
-        });
+        const move = resolveGestureMove(gesture, drag) ?? gesture.move;
         const distance = releasePoint.distanceTo(gesture.start);
         const angle = move ? gesturePreviewAngle(drag, move) : 0;
         const releaseVelocity = deriveReleaseVelocity({
@@ -385,7 +379,6 @@ export function useLayerGesture({
     [
       camera,
       clearGesture,
-      cube,
       disabled,
       emitCursorIntent,
       invalidate,
@@ -473,6 +466,29 @@ function localAxisToWorld(root: Group, axis: Axis): Vector3 {
         ? new Vector3(0, 1, 0)
         : new Vector3(0, 0, 1);
   return local.transformDirection(root.matrixWorld).normalize();
+}
+
+function resolveGestureMove(
+  gesture: ActiveGesture,
+  drag: Vector2,
+): CubeMove | null {
+  const candidates = gesture.lockedCandidate
+    ? [gesture.lockedCandidate]
+    : gesture.candidates;
+  const move = resolveLayerGesture({
+    drag: [drag.x, drag.y],
+    candidates,
+  });
+
+  if (move && !gesture.lockedCandidate) {
+    gesture.lockedCandidate =
+      gesture.candidates.find(
+        (candidate) =>
+          candidate.axis === move.axis && candidate.layer === move.layer,
+      ) ?? null;
+  }
+
+  return move;
 }
 
 function eventStillIntersectsCubie(

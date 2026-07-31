@@ -5,7 +5,9 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CubeCanvas, detectWebGL } from "@/components/cube/CubeCanvas";
+import { ORBIT_MOUSE_BUTTONS } from "@/components/cube/CubeScene";
 import { createSolvedCube } from "@/lib/cube/state";
+import { MOUSE } from "three";
 import type { IntroPhase } from "@/lib/motion/intro-sequence";
 import {
   cursorIntentForMove,
@@ -67,6 +69,13 @@ afterEach(() => {
 });
 
 describe("CubeCanvas", () => {
+  it("maps both primary mouse buttons to orbit when no cubie claims the pointer", () => {
+    expect(ORBIT_MOUSE_BUTTONS).toMatchObject({
+      LEFT: MOUSE.ROTATE,
+      RIGHT: MOUSE.ROTATE,
+    });
+  });
+
   it("uses the same loading poster on the server before client WebGL detection", () => {
     const webGLDetector = vi.fn(() => true);
 
