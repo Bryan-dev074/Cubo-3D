@@ -29,6 +29,7 @@
   --ambient-cube: 6.4s;
   --ambient-matrix-peak-opacity: 0.72;
   --ambient-status-peak-opacity: 1;
+  --ambient-dock-peak-opacity: 0.72;
   --ambient-purchase-peak-opacity: 0.2;
   --ambient-hero-peak-opacity: 0.32;
   --ambient-summary-peak-opacity: 0.24;
@@ -2421,7 +2422,7 @@
   }
 
   72% {
-    opacity: 0.72;
+    opacity: var(--ambient-dock-peak-opacity);
   }
 
   79.24% {
@@ -2617,6 +2618,7 @@
   .experience {
     --ambient-matrix-peak-opacity: 0.12;
     --ambient-status-peak-opacity: 0.88;
+    --ambient-dock-peak-opacity: 0.12;
     --ambient-purchase-peak-opacity: 0.1;
     --ambient-hero-peak-opacity: 0.1;
     --ambient-summary-peak-opacity: 0.1;

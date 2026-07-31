@@ -236,12 +236,22 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
     "opening",
   );
   await expect(page.locator(".cube-scene canvas")).toHaveCount(1);
+  const experience = page.locator("main#cubo");
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(experience).toHaveAttribute("data-page-visible", "false");
 
   const at160 = await readMechanicalCheckpoint(page, 160);
   expect(at160.registrations).toHaveLength(4);
   expect(at160.registrations.every((mark) => mark.opacity > 0.95)).toBe(true);
   expect(at160.seal.opacity).toBeGreaterThan(0.9);
   expect(at160.seal.transform).not.toBe("none");
+  await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at450 = await readMechanicalCheckpoint(page, 450);
   expect(
@@ -257,6 +267,7 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
     at450.apertureExposure.exposedSamples,
     `The 450ms aperture remained sealed: ${JSON.stringify(at450.apertureExposure)}`,
   ).toBeGreaterThanOrEqual(8);
+  await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at650 = await readMechanicalCheckpoint(page, 650);
   expect(new Set(at650.flaps.map((flap) => flap.transform)).size).toBe(4);
@@ -271,6 +282,7 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-650.png"),
   });
+  await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at900 = await readMechanicalCheckpoint(page, 900);
   expect(at900.flaps).toHaveLength(4);
@@ -286,6 +298,7 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-900.png"),
   });
+  await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at1100 = await readMechanicalCheckpoint(page, 1_100);
   expect(at1100.paperOpacity).toBeLessThanOrEqual(0.01);
@@ -302,12 +315,15 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-1100.png"),
   });
+  await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at1350 = await readMechanicalCheckpoint(page, 1_350);
   expect(at1350.timelineOpacity).toBeLessThanOrEqual(0.01);
   expect(at1350.wrapperBackground).toBe("rgba(0, 0, 0, 0)");
+  await restoreVisiblePage(page);
+  await resumeIntroAnimations(page);
   await expect.poll(
-    () => page.locator("main#cubo").getAttribute("data-intro-phase"),
+    () => experience.getAttribute("data-intro-phase"),
     { timeout: 2_000 },
   ).toMatch(/^(?:drop|ready)$/);
   expect([null, "none"]).toContain(
@@ -316,8 +332,7 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
     ),
   );
 
-  await resumeIntroAnimations(page);
-  await expect(page.locator("main#cubo")).toHaveAttribute(
+  await expect(experience).toHaveAttribute(
     "data-intro-phase",
     "ready",
     { timeout: 2_000 },

@@ -1011,6 +1011,7 @@ describe("commercial CSS contract", () => {
     for (const variable of [
       "--ambient-matrix-peak-opacity: 0.12",
       "--ambient-status-peak-opacity: 0.88",
+      "--ambient-dock-peak-opacity: 0.12",
       "--ambient-purchase-peak-opacity: 0.1",
       "--ambient-hero-peak-opacity: 0.1",
       "--ambient-summary-peak-opacity: 0.1",
@@ -1020,6 +1021,7 @@ describe("commercial CSS contract", () => {
     for (const variable of [
       "--ambient-matrix-peak-opacity",
       "--ambient-status-peak-opacity",
+      "--ambient-dock-peak-opacity",
       "--ambient-purchase-peak-opacity",
       "--ambient-hero-peak-opacity",
       "--ambient-summary-peak-opacity",

@@ -2,6 +2,7 @@ import {
   expect,
   test,
   type Browser,
+  type BrowserContext,
   type Locator,
   type Page,
 } from "@playwright/test";
@@ -176,8 +177,7 @@ for (const viewport of AMBIENT_VIEWPORTS) {
       });
       await diagnostics.assertClean();
     } finally {
-      await releaseWebGLContexts(page);
-      await context.close();
+      await releaseAndCloseWebGLContext(page, context);
     }
   });
 }
@@ -199,11 +199,24 @@ test("mobile sustains at most one high contrast ambient pulse across later coinc
     await openExperience(page);
     await waitForWebGLScene(page);
 
-    const samples = [];
-    for (const elapsedMs of [40_340, 213_140, 385_940, 558_740]) {
-      samples.push(
-        await page.evaluate(async (forcedTime) => {
-          for (const animation of document.getAnimations()) {
+    const forcedTimes = [
+      46_530,
+      53_210,
+      79_870,
+      118_260,
+      167_940,
+      ...Array.from({ length: 320 }, (_, index) => index * 540),
+    ].filter((elapsedMs, index, all) => all.indexOf(elapsedMs) === index);
+    const samples = await page.evaluate(async (sweepTimes) => {
+      const animations = document
+        .getAnimations()
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations === Infinity,
+        );
+      const samples = [];
+
+      for (const forcedTime of sweepTimes) {
+        for (const animation of animations) {
             if (animation.effect?.getTiming().iterations !== Infinity) {
               continue;
             }
@@ -221,26 +234,75 @@ test("mobile sustains at most one high contrast ambient pulse across later coinc
             }
             return Number.parseFloat(getComputedStyle(element, pseudo).opacity);
           };
+          const maxOpacity = (selector: string) => {
+            const elements = document.querySelectorAll<HTMLElement>(selector);
+            if (elements.length === 0) {
+              throw new Error(`Missing ambient probes: ${selector}`);
+            }
+            return Math.max(
+              ...Array.from(elements, (element) =>
+                Number.parseFloat(getComputedStyle(element).opacity),
+              ),
+            );
+          };
 
-          return {
+          samples.push({
+            elapsedMs: forcedTime,
             dock: opacity('section[class*="controlDock"]', "::before"),
             hero: opacity('[class*="heroRule"]', "::after"),
             matrix: opacity('ul[class*="pieceMatrix"]', "::after"),
+            plotterGlyph: maxOpacity('[class*="plotterGlyph"]'),
+            plotterRegister: maxOpacity('[class*="plotterRegister"]'),
             purchase: opacity('a[class*="purchaseButton"]', "::after"),
             summary: opacity('[data-testid="telemetry-summary-rail"]'),
-          };
-        }, elapsedMs),
-      );
-    }
+          });
+        }
 
-    expect(samples[0].dock).toBeGreaterThan(0.2);
-    expect(samples[0].hero).toBeGreaterThan(0);
-    expect(samples[0].purchase).toBeGreaterThan(0);
+        return samples;
+      }, forcedTimes);
+
+    const knownCollision = samples.find(
+      (sample) => sample.elapsedMs === 46_530,
+    );
+    expect(knownCollision).toBeDefined();
+    expect(knownCollision!.dock).toBeGreaterThan(0);
+    expect(knownCollision!.plotterGlyph).toBeGreaterThan(0.2);
+    expect(
+      [
+        knownCollision!.dock,
+        knownCollision!.hero,
+        knownCollision!.matrix,
+        Math.max(
+          knownCollision!.plotterGlyph,
+          knownCollision!.plotterRegister,
+        ),
+        knownCollision!.purchase,
+        knownCollision!.summary,
+      ].filter((opacity) => opacity > 0.2),
+    ).toHaveLength(1);
+    expect(samples.some((sample) => sample.dock > 0)).toBe(true);
+    expect(samples.some((sample) => sample.plotterGlyph > 0.2)).toBe(true);
+    expect(samples.some((sample) => sample.plotterRegister > 0.2)).toBe(true);
     for (const sample of samples) {
+      const plotter = Math.max(
+        sample.plotterGlyph,
+        sample.plotterRegister,
+      );
+      const highContrastCues = {
+        dock: sample.dock,
+        hero: sample.hero,
+        matrix: sample.matrix,
+        plotter,
+        purchase: sample.purchase,
+        summary: sample.summary,
+      };
       expect(
-        Object.values(sample).filter((opacity) => opacity > 0.2),
-      ).toHaveLength(1);
+        Object.values(highContrastCues).filter((opacity) => opacity > 0.2)
+          .length,
+        `High-contrast collision at ${sample.elapsedMs}ms: ${JSON.stringify(highContrastCues)}`,
+      ).toBeLessThanOrEqual(1);
       for (const secondary of [
+        sample.dock,
         sample.hero,
         sample.matrix,
         sample.purchase,
@@ -250,8 +312,7 @@ test("mobile sustains at most one high contrast ambient pulse across later coinc
       }
     }
   } finally {
-    await releaseWebGLContexts(page);
-    await context.close();
+    await releaseAndCloseWebGLContext(page, context);
   }
 });
 
@@ -283,9 +344,25 @@ test("reduced motion leaves the plotter solid and disables every ambient name", 
       "none",
     );
   } finally {
-    await releaseWebGLContexts(page);
-    await context.close();
+    await releaseAndCloseWebGLContext(page, context);
   }
+});
+
+test("closes its browser context when WebGL release cannot inspect the page", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+  });
+  const page = await context.newPage();
+  let contextClosed = false;
+  context.on("close", () => {
+    contextClosed = true;
+  });
+  await page.close();
+
+  await expect(releaseAndCloseWebGLContext(page, context)).rejects.toThrow();
+  expect(contextClosed).toBe(true);
 });
 
 test("mobile-390 keeps the fixed ground shadow unchanged during a real orbit", async ({
@@ -500,7 +577,9 @@ test("mobile landscape keeps each primary interaction region viewport-safe", asy
     [controlDock, "control dock"],
   ] as const;
   for (const [region, label] of regions) {
-    await region.scrollIntoViewIfNeeded();
+    await region.evaluate((element) =>
+      element.scrollIntoView({ block: "nearest", inline: "nearest" }),
+    );
     const box = await requiredBox(region, label);
     expect(box.x, `${label} left edge`).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width, `${label} right edge`).toBeLessThanOrEqual(
@@ -839,6 +918,17 @@ async function releaseWebGLContexts(page: Page): Promise<void> {
       context?.getExtension("WEBGL_lose_context")?.loseContext();
     }
   });
+}
+
+async function releaseAndCloseWebGLContext(
+  page: Page,
+  context: BrowserContext,
+): Promise<void> {
+  try {
+    await releaseWebGLContexts(page);
+  } finally {
+    await context.close();
+  }
 }
 
 async function createVisualPage(

@@ -598,8 +598,18 @@ describe("production rendering contracts", () => {
     expect(reducedStory).toBeGreaterThan(cadenceStory);
     expect(orbitShadowStory).toBeGreaterThan(reducedStory);
     expect(source).toContain("async function releaseWebGLContexts");
+    expect(source).toContain("async function releaseAndCloseWebGLContext");
     expect(source).toContain('getExtension("WEBGL_lose_context")');
-    expect(source.match(/await releaseWebGLContexts\(page\)/g)).toHaveLength(3);
+    expect(source.match(/await releaseWebGLContexts\(page\)/g)).toHaveLength(1);
+    expect(
+      source.match(/releaseAndCloseWebGLContext\(page, context\)/g),
+    ).toHaveLength(4);
+    expect(source).toMatch(
+      /async function releaseAndCloseWebGLContext[\s\S]*?try\s*\{\s*await releaseWebGLContexts\(page\);\s*\}\s*finally\s*\{\s*await context\.close\(\);/,
+    );
+    expect(source).toContain(
+      'test("closes its browser context when WebGL release cannot inspect the page"',
+    );
     expect(source).not.toContain("test.setTimeout");
   });
 
