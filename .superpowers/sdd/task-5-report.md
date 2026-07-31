@@ -2,7 +2,7 @@
 
 ## Status
 
-IMPLEMENTATION COMPLETE; RELEASE GATES PENDING
+RELEASE VERIFIED; PUBLICATION PENDING
 
 The acceptance gate also proved one production defect in the plotter title:
 two fixed registration blocks and a broad fade could not produce the approved
@@ -126,10 +126,10 @@ The browser stories regenerated these local QA artifacts without Playwright's
 
 | State | Artifact | SHA-256 |
 | --- | --- | --- |
-| Intro registration and seal at `160ms` | `.superpowers/sdd/mechanical-opening-160.png` | `5005472557e121f71abd61635a4e1dfd9a0bcc7b7fb2089c1e91f59a2283986f` |
-| Plotter title mid-write | `.superpowers/sdd/task-5-title-mid-write.png` | `a54c1a31892c2a9dd8db90e5f2d8cf1ea9e6cd969eb308fc74f80cd82d07affb` |
-| Fine-pointer hover with microfloat paused | `.superpowers/sdd/task-5-hover-paused-microfloat.png` | `e432accf6f574654f9e838ab6a94947499ad244d946c2698afcd4b702fd322b7` |
-| L-shaped layer gesture held before release | `.superpowers/sdd/task-5-l-shaped-held-before-release.png` | `a0baf0582abf459c95d7303f442d22624b9be3ab7c3a09659d462400367cd4d6` |
+| Intro registration and seal at `160ms` | `.superpowers/sdd/mechanical-opening-160.png` | `06342681913d55789519f04affa26e6b6ba2d2a193932eda3d3197e381a67334` |
+| Plotter title mid-write | `.superpowers/sdd/task-5-title-mid-write.png` | `5ad3c8b15b7352385aac2d3e90a8df560605337af87e3c043c9c4947261c19c6` |
+| Fine-pointer hover with microfloat paused | `.superpowers/sdd/task-5-hover-paused-microfloat.png` | `325a029fbacd12b6b596bd44d3bf6989933a50ebf89a7991b417314e30ac44cc` |
+| L-shaped layer gesture held before release | `.superpowers/sdd/task-5-l-shaped-held-before-release.png` | `ed3c5ffd25e2fa0a94ad33502ae7ea6dd57eff62bf54060e164df031b4b2c3e3` |
 
 Visual inspection confirmed the title remains readable in the partial-ink
 frame with one register following the active glyph, hover freezes a non-zero
@@ -147,6 +147,26 @@ originally owned layer preview before release.
   phase that reaches erase `6.4s` after `ready`, transform/opacity-only motion,
   causal hover resume, and the fresh captures with no remaining Critical or
   Important finding.
+- Code quality: `PASS / Approve`, with no Critical, Important, or Minor
+  finding. The reviewer covered accessibility, animation performance,
+  React/Next behavior, responsive evidence, non-weakened tests, and the
+  separation between empty-stage orbit and cubie-owned layer gestures.
+
+## Root release verification
+
+- Full Vitest: `36 files`, `333/333` passed.
+- ESLint and TypeScript: passed.
+- Production `next build`: passed with `NEXT_PUBLIC_SITE_URL` absent; all
+  static routes, including `/_not-found`, generated successfully.
+- Full production-browser E2E: `51/51` passed in `4.4m`.
+- Performance lab: LCP `328ms`, CLS `0.00022040199311181843`, worst
+  interaction `56ms`; all remain comfortably below `2500ms`, `0.1`, and
+  `200ms` respectively.
+- Production browser audit: the expected interactive structure was present,
+  axe-core reported `0` WCAG A/AA violations, ES/PT switched real labels and
+  `document.lang`, and WhatsApp used `595982064334` with localized purchase
+  messages in both languages.
+- Final diff checks passed.
 
 ## Scope and residual release work
 
@@ -158,5 +178,6 @@ originally owned layer preview before release.
 - `tests/e2e/performance.spec.ts` remains unchanged because the audited gaps do
   not require a new threshold or probe, and performance execution was reserved
   for the root release.
-- The root release still owns the complete build, performance run, complete
-  browser run, and published-main equality check.
+- Build, performance, complete browser verification, and independent reviews
+  are complete. Only the final commit, push, and published-main equality check
+  remain.
