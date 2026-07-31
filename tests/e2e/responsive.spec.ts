@@ -203,10 +203,14 @@ test("mobile sustains at most one high contrast ambient pulse across later coinc
       46_530,
       53_210,
       79_870,
-      118_260,
-      167_940,
+      118_370,
+      167_830,
       ...Array.from({ length: 320 }, (_, index) => index * 540),
     ].filter((elapsedMs, index, all) => all.indexOf(elapsedMs) === index);
+    expect(forcedTimes).toEqual(
+      expect.arrayContaining([46_530, 53_210, 79_870, 118_370, 167_830]),
+    );
+    expect(forcedTimes.length).toBe(325);
     const samples = await page.evaluate(async (sweepTimes) => {
       const animations = document
         .getAnimations()
