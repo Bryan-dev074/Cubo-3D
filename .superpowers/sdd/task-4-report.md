@@ -126,3 +126,58 @@ button/icon loop.
 - CSS Modules prefixes keyframe names in production. Browser assertions match
   the stable keyframe suffix so they verify the intended animation without
   coupling tests to a generated build hash.
+
+## Review-fix addendum (2026-07-31)
+
+Fix commit: `ae8a4319a93f71954c3b94326b84a4e553528045`
+
+### Findings closed
+
+1. Narrowed `status-breathe` to the requested `44.375% / 50% / 55.625%`
+   shape. At the existing `3.2s` period, the complete non-base window is now
+   `11.25%`, or exactly `360ms`.
+2. Kept all mobile loops alive while capping matrix at `0.12` and
+   purchase/hero/summary peaks at `0.10`. Status remains `0.88`; the dock stays
+   the sole high-contrast pulse at the known coincidences. Desktop peak values
+   remain unchanged through root custom-property defaults.
+3. Moved the four ambient viewport stories, sustained cadence story and
+   reduced-motion story before the mobile orbit/shadow stress story. Every new
+   context source now uses `WEBGL_lose_context` in `finally` before closing its
+   browser context. No timeout or assertion was increased, removed or relaxed.
+4. The first complete rerun exposed a separate deterministic race in the intro
+   visibility test: a `160ms` finite animation advanced between two browser
+   evaluations after being reset. Reset and hide now happen atomically in one
+   evaluation; its original `140ms` waits and `+40ms` resume assertion are
+   unchanged.
+
+### TDD RED
+
+- `npm test -- tests/components/experience.test.tsx tests/unit/production-contracts.test.ts`
+  — expected RED: 67/70 passed; the precise 360ms status window, mobile peak
+  variables, and WebGL release/order contract were absent.
+- `npx playwright test tests/e2e/responsive.spec.ts --grep "mobile sustains at most one high contrast ambient pulse"`
+  — expected RED: 0/1; at `40.34s`, two signals exceeded `0.2` (dock
+  `0.514889`, hero `0.319783`).
+- The initial complete E2E rerun and isolated intro rerun both reproduced the
+  reset/hide race at the `package-registration-engage` duration boundary before
+  its atomic setup fix.
+
+### GREEN and final gates
+
+- Focal Vitest command above: PASS, 70/70.
+- Sustained coincidence E2E at `40.34s`, `213.14s`, `385.94s` and `558.74s`:
+  PASS, 1/1; every sample had exactly one opacity above `0.2`, with all sampled
+  secondary signals at or below `0.12`.
+- Stress-ordered E2E grep covering four ambient viewports, sustained cadence,
+  reduced motion, then mobile orbit/shadow: PASS, 7/7 in 2.0 minutes.
+- Atomic intro visibility focal E2E: PASS, 1/1 with unchanged assertions.
+- `npm test`: PASS, 36 files and 333/333 tests.
+- `npm run test:e2e`: PASS, 50/50 in 3.6 minutes.
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `git diff --check`: PASS.
+
+The complete E2E run retains the real idle WebGL draw-call proof, director
+pause/resume, gesture stories, truthful telemetry/state coverage, fixed-shadow
+orbit checks, reduced motion, and responsive layouts. The review fixes add no
+React ambient state, timer, rAF loop, Three.js invalidation or dependency.
