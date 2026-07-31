@@ -552,9 +552,98 @@
   text-wrap: balance;
 }
 
-.heroCopy h1 span {
+.heroCopy h1 > .plotterLine {
   display: block;
   white-space: nowrap;
+}
+
+.plotterTitle {
+  --plotter-cycle: 10.8s;
+  --plotter-first-cycle: 6.4s;
+
+  isolation: isolate;
+}
+
+.plotterLine {
+  position: relative;
+}
+
+.plotterBase,
+.plotterInk {
+  display: block;
+}
+
+.plotterBase {
+  color: var(--graphite-soft);
+  opacity: 0.46;
+}
+
+.plotterInk {
+  position: absolute;
+  inset: 0;
+  color: var(--graphite);
+}
+
+.plotterGlyph {
+  display: inline-block;
+  white-space: pre;
+  animation: plotter-glyph-cycle var(--plotter-cycle) var(--ease-in-out)
+    calc(var(--plotter-first-cycle) + var(--glyph-delay)) infinite both;
+}
+
+.plotterRegister {
+  position: absolute;
+  top: 0.13em;
+  right: -0.14em;
+  width: 0.11em;
+  height: 0.11em;
+  background: var(--cobalt);
+  animation: plotter-register-cycle var(--plotter-cycle) var(--ease-in-out)
+    var(--plotter-first-cycle) infinite both;
+}
+
+@keyframes plotter-glyph-cycle {
+  0%,
+  14% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  36% {
+    opacity: 0;
+    transform: translateY(0.08em);
+  }
+
+  58% {
+    opacity: 0;
+    transform: translateY(-0.08em);
+  }
+
+  82%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes plotter-register-cycle {
+  0%,
+  14%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  36%,
+  58% {
+    opacity: 0;
+    transform: translateX(0.22em);
+  }
+
+  82% {
+    opacity: 1;
+    transform: translateX(-0.1em);
+  }
 }
 
 .promise {
@@ -1063,7 +1152,9 @@
 .experience[data-motion-paused="true"] .planRegistrationMotion,
 .experience[data-motion-paused="true"] .cobaltSpine::before,
 .experience[data-motion-paused="true"] .cobaltSpine::after,
-.experience[data-motion-paused="true"] .purchaseButton::after {
+.experience[data-motion-paused="true"] .purchaseButton::after,
+.experience[data-motion-paused="true"] .plotterGlyph,
+.experience[data-motion-paused="true"] .plotterRegister {
   animation-play-state: paused !important;
 }
 
@@ -2207,7 +2298,9 @@
   .planRegistrationMotion,
   .cobaltSpine::before,
   .cobaltSpine::after,
-  .purchaseButton::after {
+  .purchaseButton::after,
+  .plotterGlyph,
+  .plotterRegister {
     animation-name: none !important;
   }
 }

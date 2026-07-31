@@ -1,5 +1,6 @@
 import type { Dictionary } from "@/lib/i18n/types";
 
+import { PlotterTitle } from "./PlotterTitle";
 import styles from "./experience.module.css";
 
 interface HeroCopyProps {
@@ -13,19 +14,10 @@ export function HeroCopy({
   disabled,
   onScramble,
 }: HeroCopyProps) {
-  const [titleLead, ...titleRest] = dictionary.title.split(" ");
-
   return (
     <section className={styles.heroCopy} data-region="hero-copy">
       <div className={styles.registrationMark} aria-hidden="true" />
-      <h1 aria-label={dictionary.title} id="experience-title">
-        <span aria-hidden="true" data-testid="title-line">
-          {titleLead}
-        </span>
-        <span aria-hidden="true" data-testid="title-line">
-          {titleRest.join(" ")}
-        </span>
-      </h1>
+      <PlotterTitle id="experience-title" title={dictionary.title} />
       <p className={styles.promise}>{dictionary.description}</p>
       <button
         className={styles.scrambleButton}

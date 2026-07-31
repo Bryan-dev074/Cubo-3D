@@ -475,11 +475,39 @@ describe("MagicCubeExperience locale and commerce", () => {
       level: 1,
       name: "Cubo Mágico 3D",
     });
-    const lines = within(heading).getAllByTestId("title-line");
+    const lines = within(heading).getAllByTestId("plotter-line");
 
     expect(lines).toHaveLength(2);
-    expect(lines[0]).toHaveTextContent(/^Cubo$/);
-    expect(lines[1]).toHaveTextContent(/^Mágico 3D$/);
+    expect(within(lines[0]).getByTestId("plotter-base")).toHaveTextContent(
+      /^Cubo$/,
+    );
+    expect(within(lines[1]).getByTestId("plotter-base")).toHaveTextContent(
+      /^Mágico 3D$/,
+    );
+  });
+
+  it("keeps the plotter title semantic while CSS owns its paused motion cycle", () => {
+    const titleSource = readFileSync(
+      resolve(process.cwd(), "components/experience/PlotterTitle.tsx"),
+      "utf8",
+    );
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(titleSource).toContain('aria-hidden="true"');
+    expect(titleSource).toContain('const lines = [first, rest.join(" ")];');
+    expect(titleSource).toContain("<h1");
+    expect(titleSource).not.toMatch(/setTimeout|requestAnimationFrame/);
+    expect(css).toContain("--plotter-cycle: 10.8s");
+    expect(css).toContain("--plotter-first-cycle: 6.4s");
+    expect(css).toMatch(
+      /\.experience\[data-motion-paused="true"\] \.plotterGlyph,[\s\S]*?\.experience\[data-motion-paused="true"\] \.plotterRegister/,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.plotterGlyph,[\s\S]*?\.plotterRegister\s*\{[\s\S]*?animation-name:\s*none\s*!important;/,
+    );
   });
 
   it("renders the CUBO 3D wordmark and localized editorial spine", () => {
@@ -578,7 +606,7 @@ describe("MagicCubeExperience locale and commerce", () => {
       name: "Desordenar cubo",
     });
     const hint = screen
-      .getByText("Izquierdo: capas · Derecho: rotar")
+      .getByText("Izquierdo: pieza = capas · fondo = rotar · Derecho: rotar")
       .closest("p");
 
     expect(hint).toHaveAttribute("id", "cube-drag-hint");
@@ -625,7 +653,11 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(screen.getByTestId("editorial-spine")).toHaveTextContent(
       "A CAIXA ABERTA",
     );
-    expect(screen.getByText("Esquerdo: camadas · Direito: girar")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Esquerdo: peça = camadas · fundo = girar · Direito: girar",
+      ),
+    ).toBeVisible();
     expect(
       screen.getByText("Com o dedo: peça = camada · fundo = girar"),
     ).toBeVisible();
