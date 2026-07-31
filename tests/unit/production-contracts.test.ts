@@ -234,6 +234,7 @@ describe("production rendering contracts", () => {
       ".packageInnerFace",
       ".packageAperture",
       ".packageFlap",
+      ".packageIntroSpine",
       ".cobaltSpine",
       ".header",
       ".registrationMark",
@@ -259,6 +260,10 @@ describe("production rendering contracts", () => {
 
     expect(flapRule).toContain("backface-visibility: visible");
     expect(flapRule).not.toContain("backface-visibility: hidden");
+    expect(flapRule).toContain("background: transparent");
+    expect(styles).toMatch(
+      /\.packageFlap::after\s*\{[\s\S]*?backface-visibility:\s*hidden;[\s\S]*?translateZ\(1px\)/,
+    );
     expect(styles).toMatch(
       /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
     );
@@ -276,6 +281,27 @@ describe("production rendering contracts", () => {
     );
     expect(styles).toMatch(
       /data-intro-phase="opening"\] \.stage,[\s\S]*?380ms/,
+    );
+    for (const [flap, delay] of [
+      ["top", "120ms"],
+      ["right", "165ms"],
+      ["bottom", "210ms"],
+      ["left", "255ms"],
+    ] as const) {
+      expect(styles).toMatch(
+        new RegExp(
+          `data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\][\\s\\S]*?${delay} forwards`,
+        ),
+      );
+    }
+    expect(styles).toMatch(
+      /data-phase="opening"\] \.packageIntroSpine\s*\{[\s\S]*?package-spine-release/,
+    );
+    expect(styles).toContain(
+      "package-opened-flap-fade 240ms linear 980ms",
+    );
+    expect(styles).toMatch(
+      /data-phase="opening"\] \.packageFlap\[data-flap="left"\]\s*\{[\s\S]*?z-index:\s*8/,
     );
   });
 

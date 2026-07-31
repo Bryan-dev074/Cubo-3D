@@ -249,8 +249,15 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
       (signal) => signal.opacity >= 0.25 && signal.overlapArea >= 200,
     ),
   ).toBe(true);
-
   await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-450.png"),
+  });
+  expect(
+    at450.apertureExposure.exposedSamples,
+    `The 450ms aperture remained sealed: ${JSON.stringify(at450.apertureExposure)}`,
+  ).toBeGreaterThanOrEqual(8);
+
   const at650 = await readMechanicalCheckpoint(page, 650);
   expect(new Set(at650.flaps.map((flap) => flap.transform)).size).toBe(4);
   expect(at650.paperOpacity).toBeLessThan(1);
@@ -272,6 +279,10 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   );
   expect(at900.flaps.every((flap) => flap.opacity > 0.95)).toBe(true);
   expect(at900.flaps.every((flap) => flap.area >= 1_000)).toBe(true);
+  expect(
+    at900.flapSurfaceSamples.every((samples) => samples >= 8),
+    `Every opened inner plane must win the visual stack: ${JSON.stringify(at900.flapSurfaceSamples)}`,
+  ).toBe(true);
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-900.png"),
   });
@@ -280,7 +291,11 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   expect(at1100.paperOpacity).toBeLessThanOrEqual(0.01);
   expect(at1100.innerFaceOpacity).toBeLessThanOrEqual(0.01);
   expect(at1100.flaps.every((flap) => flap.opacity < 1)).toBe(true);
-  expect(at1100.flaps.every((flap) => flap.opacity > 0.01)).toBe(true);
+  expect(at1100.flaps.every((flap) => flap.opacity >= 0.35)).toBe(true);
+  expect(
+    at1100.flapSurfaceSamples.every((samples) => samples >= 8),
+    `Every fading inner plane must remain perceptible: ${JSON.stringify(at1100.flapSurfaceSamples)}`,
+  ).toBe(true);
   expect(at1100.headerOpacity).toBeGreaterThan(0.95);
   expect(at1100.titleOpacity).toBeGreaterThan(0.9);
   expect(at1100.telemetryOpacity).toBeGreaterThan(0.8);
@@ -587,7 +602,65 @@ async function readMechanicalCheckpoint(
         };
       });
 
+    const packageBlocker = (element: Element) =>
+      element.closest('[data-testid="package-intro-flap"]') ??
+      element.closest('[data-testid="package-inner-face"]') ??
+      element.closest('[data-testid="package-spine"]');
+    const realInterface = (element: Element) =>
+      !element.closest('[data-testid="package-intro"]') &&
+      Boolean(
+        element.closest("header") ??
+          element.closest('[data-testid="workspace"]') ??
+          element.closest("#cube-stage") ??
+          element.closest('[data-testid="editorial-spine"]'),
+      );
+    const apertureExposure = { exposedSamples: 0, occludedSamples: 0 };
+    for (let row = 1; row <= 5; row += 1) {
+      for (let column = 1; column <= 7; column += 1) {
+        const x = apertureRect.left + (apertureRect.width * column) / 8;
+        const y = apertureRect.top + (apertureRect.height * row) / 6;
+        const stack = document.elementsFromPoint(x, y);
+        const interfaceIndex = stack.findIndex(realInterface);
+        if (interfaceIndex < 0) {
+          continue;
+        }
+        const isOccluded = stack
+          .slice(0, interfaceIndex)
+          .some((element) => Boolean(packageBlocker(element)));
+        if (isOccluded) {
+          apertureExposure.occludedSamples += 1;
+        } else {
+          apertureExposure.exposedSamples += 1;
+        }
+      }
+    }
+
+    const flapSurfaceSamples = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '[data-testid="package-intro-flap"]',
+      ),
+      (flap) => {
+        const rect = flap.getBoundingClientRect();
+        let visibleSamples = 0;
+        for (let row = 1; row <= 7; row += 1) {
+          for (let column = 1; column <= 7; column += 1) {
+            const x = rect.left + (rect.width * column) / 8;
+            const y = rect.top + (rect.height * row) / 8;
+            const firstPackageSurface = document
+              .elementsFromPoint(x, y)
+              .map(packageBlocker)
+              .find(Boolean);
+            if (firstPackageSurface === flap) {
+              visibleSamples += 1;
+            }
+          }
+        }
+        return visibleSamples;
+      },
+    );
+
     return {
+      apertureExposure,
       apertureBackground: getComputedStyle(
         aperture,
       ).backgroundColor,
@@ -595,6 +668,7 @@ async function readMechanicalCheckpoint(
         document.querySelectorAll('[data-testid="package-intro-flap"]'),
         readMotion,
       ),
+      flapSurfaceSamples,
       headerOpacity: Number(
         getComputedStyle(document.querySelector("header")!).opacity,
       ),
