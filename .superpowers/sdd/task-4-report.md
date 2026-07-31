@@ -250,3 +250,36 @@ The final run preserves the single director, finite intro behavior, zero idle
 WebGL draws, truthful telemetry, fixed shadow, gestures, responsive layouts and
 reduced-motion behavior. No timeout was raised and no production dependency,
 React ambient state, timer, rAF loop or Three.js invalidation was added.
+
+## Re-review round 3 addendum (2026-07-31)
+
+Code commit: `55b342a`
+
+### Evidence correction
+
+The round 2 report overstated the executable sample count. Explicit times
+`118260ms` and `167940ms` were already members of the `540ms` grid, so the
+deduplicated array contained 323 samples rather than 325. They are now replaced
+by genuinely off-grid later phases `118370ms` and `167830ms`. The test retains
+the earlier explicit phases `46530ms`, `53210ms`, and `79870ms`, asserts that all
+five explicit phases survive deduplication, and asserts
+`forcedTimes.length === 325` before sampling the browser.
+
+### TDD and verification evidence
+
+- RED: the cadence command failed 0/1 with `Expected length: 325` and
+  `Received length: 323` after the length contract was added against the old
+  times.
+- GREEN:
+  `npx playwright test tests/e2e/responsive.spec.ts --grep "mobile sustains at most one high contrast ambient pulse"`
+  passed 1/1 with the five explicit phases and 320-point grid producing 325
+  unique samples.
+- `npm test -- tests/unit/production-contracts.test.ts`: PASS, 21/21.
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `git diff --check`: PASS.
+
+The exact 51/51 E2E suite from round 2 was not repeated because this final
+review changes only cadence sample times and assertions inside that one test;
+the affected cadence browser story was rerun directly. No production code,
+timeout, threshold, or behavioral assertion was changed.
