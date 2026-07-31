@@ -60,7 +60,15 @@ En `pointerdown` se conservan:
 
 Ningún `pointerover`, `pointerout`, raycast o handler de otro cubie puede reemplazar esos datos.
 
-### 5.2 Elección de capa
+### 5.2 Mapa de botones y espacio vacío
+
+- Un arrastre con botón izquierdo que comienza sobre un cubie pertenece exclusivamente al gesto de capa.
+- Un arrastre con botón izquierdo que comienza sobre el fondo vacío del stage pertenece exclusivamente a la órbita del cubo completo.
+- El botón derecho conserva la órbita desde cualquier punto permitido del stage y su menú contextual permanece deshabilitado dentro del escenario.
+- El propietario se decide en `pointerdown`: cruzar posteriormente una pieza o salir de ella no convierte una órbita en gesto de capa ni un gesto de capa en órbita.
+- Un clic izquierdo vacío sin superar la zona muerta no altera la orientación.
+
+### 5.3 Elección de capa
 
 El drag mantiene la zona muerta existente de `8 px`.
 
@@ -75,7 +83,7 @@ Después del bloqueo solo puede cambiar `turns` al cruzar el origen y arrastrar 
 
 Si un flick llega directamente a `pointerup` sin un `pointermove` previo, la capa se resuelve y bloquea allí una única vez para conservar el comportamiento de flick rápido.
 
-### 5.3 Cue visual
+### 5.4 Cue visual
 
 La señal de propiedad permanece exclusivamente sobre el cubie inicial durante todo el gesto.
 
@@ -84,7 +92,7 @@ La señal de propiedad permanece exclusivamente sobre el cubie inicial durante t
 - Cruzar otra pieza no cambia el cue, el eje del cursor ni la capa comprometida.
 - Al liberar, cancelar, perder captura, deshabilitar o desmontar, se limpian captura, cue y bloqueo.
 
-### 5.4 Invariante verificable
+### 5.5 Invariante verificable
 
 > Después del primer movimiento no nulo, `{ axis, layer }`, el cubie marcado y el eje del cursor permanecen idénticos hasta `pointerup/cancel`, aunque la trayectoria forme una L y el raycast cruce otros cubies. Solo `turns` puede invertirse.
 
@@ -255,11 +263,12 @@ El trabajo se considera terminado cuando:
 
 1. una trayectoria en L no puede cambiar la capa elegida;
 2. el cue permanece en la pieza inicial hasta liberar;
-3. la intro muestra una caja con profundidad que revela y se convierte en la interfaz dentro de 2 segundos;
-4. el título ejecuta el ciclo de plotter sin desaparecer ni cambiar de layout;
-5. todas las regiones principales participan en el director ambiental;
-6. el cubo no rota solo, conserva precisión y no genera render WebGL permanente;
-7. sombra, móvil, ES/PT, WhatsApp y Vercel continúan funcionando;
-8. pruebas unitarias, componentes, E2E, lint, TypeScript y build pasan;
-9. una revisión independiente de interacción y otra de motion entregan `PASS`;
-10. el commit publicado en `origin/main` coincide con el HEAD local.
+3. arrastrar con clic izquierdo sobre espacio vacío orbita el cubo sin tomar una capa;
+4. la intro muestra una caja con profundidad que revela y se convierte en la interfaz dentro de 2 segundos;
+5. el título ejecuta el ciclo de plotter sin desaparecer ni cambiar de layout;
+6. todas las regiones principales participan en el director ambiental;
+7. el cubo no rota solo, conserva precisión y no genera render WebGL permanente;
+8. sombra, móvil, ES/PT, WhatsApp y Vercel continúan funcionando;
+9. pruebas unitarias, componentes, E2E, lint, TypeScript y build pasan;
+10. una revisión independiente de interacción y otra de motion entregan `PASS`;
+11. el commit publicado en `origin/main` coincide con el HEAD local.
