@@ -20,38 +20,33 @@ describe("PackageIntro", () => {
     delete (document as { visibilityState?: string }).visibilityState;
   });
 
-  it("renders the complete decorative mechanical package", () => {
-    const onPackageOpened = vi.fn();
+  it("renders a dimensional package whose panels name their live destinations", () => {
     render(
       <PackageIntro
         phase="opening"
         reducedMotion={false}
-        onPackageOpened={onPackageOpened}
+        onPackageOpened={vi.fn()}
       />,
     );
-    const intro = screen.getByTestId("package-intro");
-
-    expect(intro).toHaveAttribute("aria-hidden", "true");
-    expect(intro).toHaveAttribute("data-phase", "opening");
-    expect(screen.getByTestId("package-shell")).toBeInTheDocument();
-    expect(screen.getByTestId("package-inner-face")).toBeInTheDocument();
-    expect(screen.getByTestId("package-aperture")).toBeInTheDocument();
-    expect(screen.getByTestId("package-spine")).toBeInTheDocument();
-    expect(screen.getByTestId("package-serial")).toHaveTextContent(
-      "CM3D / 03",
-    );
-    expect(screen.getAllByTestId("package-registration")).toHaveLength(4);
-    expect(
-      screen
-        .getAllByTestId("package-registration")
-        .map((mark) => mark.getAttribute("data-registration")),
-    ).toEqual(["nw", "ne", "se", "sw"]);
-    expect(screen.getAllByTestId("package-rail")).toHaveLength(2);
-    expect(screen.getAllByTestId("package-hinge")).toHaveLength(4);
-    expect(screen.getAllByTestId("package-intro-flap")).toHaveLength(4);
-    expect(screen.getAllByTestId("package-flap-print")).toHaveLength(4);
+    expect(screen.getByTestId("package-intro")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("package-ground-shadow")).toBeInTheDocument();
+    expect(screen.getByTestId("package-origin")).toBeInTheDocument();
+    expect(screen.getAllByTestId("package-intro-flap").map((panel) => [
+      panel.getAttribute("data-flap"),
+      panel.getAttribute("data-destination"),
+    ])).toEqual([
+      ["top", "header"],
+      ["right", "telemetry"],
+      ["bottom", "dock"],
+      ["left", "hero"],
+    ]);
+    expect(screen.getAllByTestId("package-flap-face")).toHaveLength(8);
+    expect(screen.getAllByTestId("package-flap-face").map((face) => face.getAttribute("data-face")))
+      .toEqual(["outer", "inner", "outer", "inner", "outer", "inner", "outer", "inner"]);
     expect(screen.getAllByTestId("package-flap-edge")).toHaveLength(4);
-    expect(screen.getByTestId("package-seal")).toBeInTheDocument();
+    expect(screen.getAllByTestId("package-hinge")).toHaveLength(4);
+    expect(screen.getAllByTestId("package-seal-half").map((half) => half.getAttribute("data-side")))
+      .toEqual(["start", "end"]);
   });
 
   it("accepts only the finish animation and completes once", () => {
