@@ -1,3 +1,9 @@
+import {
+  DESKTOP_CUBE_DROP_PROFILE,
+  MOBILE_CUBE_DROP_PROFILE,
+  type CubeDropProfile,
+} from "@/lib/motion/cube-drop";
+
 export type CubeReviewMode = "grazing" | "neutral" | "opposite";
 
 export interface CubePresentation {
@@ -5,6 +11,7 @@ export interface CubePresentation {
   readonly cameraTarget: readonly [number, number, number];
   readonly cubePosition: readonly [number, number, number];
   readonly cubeScale: number;
+  readonly dropProfile: CubeDropProfile;
   readonly isMobile: boolean;
 }
 
@@ -41,6 +48,7 @@ export function resolveCubePresentation(
         cameraTarget: MOBILE_CAMERA_TARGET,
         cubePosition: MOBILE_CUBE_POSITION,
         cubeScale: 0.99,
+        dropProfile: MOBILE_CUBE_DROP_PROFILE,
         isMobile: true,
       }
     : {
@@ -48,6 +56,7 @@ export function resolveCubePresentation(
         cameraTarget: DESKTOP_CAMERA_TARGET,
         cubePosition: DESKTOP_CUBE_POSITION,
         cubeScale: 0.94,
+        dropProfile: DESKTOP_CUBE_DROP_PROFILE,
         isMobile: false,
       };
 }

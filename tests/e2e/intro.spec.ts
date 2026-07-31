@@ -219,6 +219,69 @@ test("captures the package opening and the real cube mid-drop from explicit phas
   await context.close();
 });
 
+test("honors the mechanical package checkpoints before the 650 ms drop", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    reducedMotion: "no-preference",
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("package-intro")).toHaveAttribute(
+    "data-phase",
+    "opening",
+  );
+  await expect(page.locator(".cube-scene canvas")).toHaveCount(1);
+
+  const at160 = await readMechanicalCheckpoint(page, 160);
+  expect(at160.registrations).toHaveLength(4);
+  expect(at160.registrations.every((mark) => mark.opacity > 0.95)).toBe(true);
+  expect(at160.seal.opacity).toBeGreaterThan(0.9);
+  expect(at160.seal.transform).not.toBe("none");
+
+  const at650 = await readMechanicalCheckpoint(page, 650);
+  expect(new Set(at650.flaps.map((flap) => flap.transform)).size).toBe(4);
+  expect(at650.paperOpacity).toBeLessThan(1);
+  expect(at650.innerFaceOpacity).toBeLessThan(1);
+  expect(at650.apertureBackground).toBe("rgba(0, 0, 0, 0)");
+  expect(at650.interfaceMounted).toBe(true);
+
+  const at1100 = await readMechanicalCheckpoint(page, 1_100);
+  expect(at1100.paperOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1100.innerFaceOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1100.flaps.every((flap) => flap.opacity < 1)).toBe(true);
+  expect(at1100.headerOpacity).toBeGreaterThan(0.95);
+  expect(at1100.titleOpacity).toBeGreaterThan(0.9);
+  expect(at1100.telemetryOpacity).toBeGreaterThan(0.8);
+
+  const at1350 = await readMechanicalCheckpoint(page, 1_350);
+  expect(at1350.timelineOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1350.wrapperBackground).toBe("rgba(0, 0, 0, 0)");
+  await expect.poll(
+    () => page.locator("main#cubo").getAttribute("data-intro-phase"),
+    { timeout: 2_000 },
+  ).toMatch(/^(?:drop|ready)$/);
+  expect([null, "none"]).toContain(
+    await page.getByTestId("package-intro").evaluateAll((elements) =>
+      elements.length === 0 ? null : getComputedStyle(elements[0]!).pointerEvents,
+    ),
+  );
+
+  await resumeIntroAnimations(page);
+  await expect(page.locator("main#cubo")).toHaveAttribute(
+    "data-intro-phase",
+    "ready",
+    { timeout: 2_000 },
+  );
+  await expect(page.getByTestId("package-intro")).toHaveCount(0);
+  await diagnostics.assertClean();
+  await context.close();
+});
+
 test("reduced motion uses the short crossfade and reaches ready without spatial motion", async ({
   browser,
 }) => {
@@ -276,7 +339,12 @@ async function setIntroAnimationTime(
       throw new Error("Package intro was unavailable for phase capture");
     }
 
-    const animations = intro.getAnimations({ subtree: true });
+    const openingAnimation = (animation: Animation) => {
+      return animation.effect?.getTiming().iterations === 1;
+    };
+    const animations = document
+      .getAnimations()
+      .filter(openingAnimation);
     for (const animation of animations) {
       animation.pause();
       // All package animations share one opening clock. CSS delays retain the
@@ -291,12 +359,84 @@ async function resumeIntroAnimations(
   page: import("@playwright/test").Page,
 ): Promise<void> {
   await page.evaluate(() => {
+    const openingAnimation = (animation: Animation) => {
+      return animation.effect?.getTiming().iterations === 1;
+    };
+    for (const animation of document
+      .getAnimations()
+      .filter(openingAnimation)) {
+      animation.play();
+    }
+  });
+}
+
+async function readMechanicalCheckpoint(
+  page: import("@playwright/test").Page,
+  time: number,
+) {
+  await setIntroAnimationTime(page, time);
+  return page.evaluate(() => {
+    const readMotion = (element: Element | null) => {
+      if (!element) {
+        throw new Error("Mechanical checkpoint element was unavailable");
+      }
+      const style = getComputedStyle(element);
+      return {
+        opacity: Number(style.opacity),
+        transform: style.transform,
+      };
+    };
     const intro = document.querySelector<HTMLElement>(
       '[data-testid="package-intro"]',
     );
-    for (const animation of intro?.getAnimations({ subtree: true }) ?? []) {
-      animation.play();
+    const timeline = document.querySelector<HTMLElement>(
+      '[data-testid="package-intro-timeline"]',
+    );
+    if (!intro || !timeline) {
+      throw new Error("Mechanical package was unavailable for checkpoint");
     }
+
+    return {
+      apertureBackground: getComputedStyle(
+        document.querySelector('[data-testid="package-aperture"]')!,
+      ).backgroundColor,
+      flaps: Array.from(
+        document.querySelectorAll('[data-testid="package-intro-flap"]'),
+        readMotion,
+      ),
+      headerOpacity: Number(
+        getComputedStyle(document.querySelector("header")!).opacity,
+      ),
+      innerFaceOpacity: Number(
+        getComputedStyle(
+          document.querySelector('[data-testid="package-inner-face"]')!,
+        ).opacity,
+      ),
+      interfaceMounted: Boolean(
+        document.querySelector("header") &&
+          document.querySelector('[data-testid="workspace"]') &&
+          document.querySelector('[data-testid="plotter-title"]'),
+      ),
+      paperOpacity: Number(getComputedStyle(intro, "::before").opacity),
+      pointerEvents: getComputedStyle(intro).pointerEvents,
+      registrations: Array.from(
+        document.querySelectorAll('[data-testid="package-registration"]'),
+        readMotion,
+      ),
+      seal: readMotion(document.querySelector('[data-testid="package-seal"]')),
+      telemetryOpacity: Number(
+        getComputedStyle(
+          document.querySelector('[data-testid="live-telemetry"]')!,
+        ).opacity,
+      ),
+      timelineOpacity: Number(getComputedStyle(timeline).opacity),
+      titleOpacity: Number(
+        getComputedStyle(
+          document.querySelector('[data-testid="plotter-line"]')!,
+        ).opacity,
+      ),
+      wrapperBackground: getComputedStyle(intro).backgroundColor,
+    };
   });
 }
 

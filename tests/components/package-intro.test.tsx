@@ -20,9 +20,9 @@ describe("PackageIntro", () => {
     delete (document as { visibilityState?: string }).visibilityState;
   });
 
-  it("is decorative and accepts only the outer package animation once", () => {
+  it("renders the complete decorative mechanical package", () => {
     const onPackageOpened = vi.fn();
-    const { rerender } = render(
+    render(
       <PackageIntro
         phase="opening"
         reducedMotion={false}
@@ -33,12 +33,43 @@ describe("PackageIntro", () => {
 
     expect(intro).toHaveAttribute("aria-hidden", "true");
     expect(intro).toHaveAttribute("data-phase", "opening");
+    expect(screen.getByTestId("package-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("package-inner-face")).toBeInTheDocument();
+    expect(screen.getByTestId("package-aperture")).toBeInTheDocument();
+    expect(screen.getByTestId("package-spine")).toBeInTheDocument();
+    expect(screen.getByTestId("package-serial")).toHaveTextContent(
+      "CM3D / 03",
+    );
+    expect(screen.getAllByTestId("package-registration")).toHaveLength(4);
+    expect(
+      screen
+        .getAllByTestId("package-registration")
+        .map((mark) => mark.getAttribute("data-registration")),
+    ).toEqual(["nw", "ne", "se", "sw"]);
+    expect(screen.getAllByTestId("package-rail")).toHaveLength(2);
+    expect(screen.getAllByTestId("package-hinge")).toHaveLength(4);
     expect(screen.getAllByTestId("package-intro-flap")).toHaveLength(4);
+    expect(screen.getAllByTestId("package-flap-print")).toHaveLength(4);
+    expect(screen.getAllByTestId("package-flap-edge")).toHaveLength(4);
+    expect(screen.getByTestId("package-seal")).toBeInTheDocument();
+  });
+
+  it("accepts only the finish animation and completes once", () => {
+    const onPackageOpened = vi.fn();
+    const { rerender } = render(
+      <PackageIntro
+        phase="opening"
+        reducedMotion={false}
+        onPackageOpened={onPackageOpened}
+      />,
+    );
     const timeline = screen.getByTestId("package-intro-timeline");
     fireTimelineAnimationEnd(timeline, "package-intro-open");
     expect(onPackageOpened).not.toHaveBeenCalled();
     fireTimelineAnimationEnd(timeline, "package-intro-reveal");
-    fireTimelineAnimationEnd(timeline, "package-intro-reveal");
+    expect(onPackageOpened).not.toHaveBeenCalled();
+    fireTimelineAnimationEnd(timeline, "intro-package-finish");
+    fireTimelineAnimationEnd(timeline, "intro-package-finish");
     expect(onPackageOpened).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -49,8 +80,24 @@ describe("PackageIntro", () => {
       />,
     );
     expect(screen.queryByTestId("package-intro")).not.toBeInTheDocument();
-    fireTimelineAnimationEnd(timeline, "package-intro-reveal");
+    fireTimelineAnimationEnd(timeline, "intro-package-finish");
     expect(onPackageOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts the reduced package completion animation once", () => {
+    const onPackageOpened = vi.fn();
+    render(
+      <PackageIntro
+        phase="opening"
+        reducedMotion
+        onPackageOpened={onPackageOpened}
+      />,
+    );
+
+    const timeline = screen.getByTestId("package-intro-timeline");
+    fireTimelineAnimationEnd(timeline, "package-intro-reduced");
+    fireTimelineAnimationEnd(timeline, "package-intro-reduced");
+    expect(onPackageOpened).toHaveBeenCalledOnce();
   });
 
   it("lets Escape skip the finite sequence", () => {

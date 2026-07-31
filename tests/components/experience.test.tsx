@@ -1150,7 +1150,7 @@ function renderReadyExperience() {
 function firePackageAnimationEnd() {
   const event = new Event("animationend", { bubbles: true });
   Object.defineProperty(event, "animationName", {
-    value: "package-intro-reveal",
+    value: "intro-package-finish",
   });
   fireEvent(screen.getByTestId("package-intro-timeline"), event);
 }

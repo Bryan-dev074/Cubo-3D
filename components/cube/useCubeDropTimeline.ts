@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 
 import {
   sampleCubeDrop,
+  type CubeDropProfile,
   type CubeDropSample,
 } from "@/lib/motion/cube-drop";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/lib/motion/intro-sequence";
 
 interface CubeDropTimelineOptions {
+  readonly dropProfile: CubeDropProfile;
   readonly introPhase: IntroPhase;
   readonly invalidate: () => void;
   readonly onComplete?: () => void;
@@ -22,6 +24,7 @@ interface CubeDropTimelineOptions {
 }
 
 export function useCubeDropTimeline({
+  dropProfile,
   introPhase,
   invalidate,
   onComplete,
@@ -34,7 +37,12 @@ export function useCubeDropTimeline({
   const dropActiveRef = useRef(false);
   const dropCompletedRef = useRef(true);
   const onCompleteRef = useRef(onComplete);
+  const dropProfileRef = useRef(dropProfile);
   const onSampleRef = useRef(onSample);
+
+  useLayoutEffect(() => {
+    dropProfileRef.current = dropProfile;
+  }, [dropProfile]);
 
   useLayoutEffect(() => {
     onCompleteRef.current = onComplete;
@@ -50,7 +58,7 @@ export function useCubeDropTimeline({
       activeStartedAtRef.current = null;
       dropActiveRef.current = false;
       dropCompletedRef.current = true;
-      onSampleRef.current(sampleCubeDrop(1));
+      onSampleRef.current(sampleCubeDrop(1, dropProfileRef.current));
       invalidate();
       return;
     }
@@ -59,7 +67,7 @@ export function useCubeDropTimeline({
       accumulatedVisibleMsRef.current = 0;
       dropActiveRef.current = true;
       dropCompletedRef.current = false;
-      onSampleRef.current(sampleCubeDrop(0));
+      onSampleRef.current(sampleCubeDrop(0, dropProfileRef.current));
       invalidate();
     }
 
@@ -115,7 +123,7 @@ export function useCubeDropTimeline({
           : Math.max(0, performance.now() - startedAt)),
     );
     const progress = elapsed / INTRO_DROP_MS;
-    onSampleRef.current(sampleCubeDrop(progress));
+    onSampleRef.current(sampleCubeDrop(progress, dropProfileRef.current));
 
     if (progress < 1) {
       return;

@@ -6,7 +6,33 @@ export interface CubeDropSample {
   readonly shadowScale: number;
 }
 
-const INITIAL_TILT = (5 * Math.PI) / 180;
+export interface CubeDropProfile {
+  readonly contactAt: number;
+  readonly initialTiltRadians: number;
+  readonly motionScale: number;
+  readonly settleDepth: number;
+  readonly startOffsetY: number;
+}
+
+export const DESKTOP_CUBE_DROP_PROFILE: CubeDropProfile = Object.freeze({
+  contactAt: 0.72,
+  initialTiltRadians: (4 * Math.PI) / 180,
+  motionScale: 1,
+  settleDepth: 0.032,
+  startOffsetY: 0.68,
+});
+
+export const MOBILE_CUBE_DROP_PROFILE: CubeDropProfile = Object.freeze({
+  contactAt: 0.72,
+  initialTiltRadians: (3 * Math.PI) / 180,
+  motionScale: 1,
+  settleDepth: 0.026,
+  startOffsetY: 0.62,
+});
+
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
 
 function smoothstep(edge0: number, edge1: number, value: number): number {
   const progress = Math.min(
@@ -16,19 +42,25 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
   return progress * progress * (3 - 2 * progress);
 }
 
-export function sampleCubeDrop(progress: number): CubeDropSample {
-  const p = Math.min(1, Math.max(0, progress));
-  const contactProgress = Math.min(1, p / 0.78);
-  const fall = 1 - contactProgress * contactProgress;
-  const settleProgress = Math.min(1, Math.max(0, (p - 0.78) / 0.22));
-  const settlement =
-    p < 0.78
+export function sampleCubeDrop(
+  progress: number,
+  profile: CubeDropProfile = DESKTOP_CUBE_DROP_PROFILE,
+): CubeDropSample {
+  const p = clamp01(progress);
+  const motionScale = clamp01(profile.motionScale);
+  const fallT = clamp01(p / profile.contactAt);
+  const fall = profile.startOffsetY * (1 - fallT * fallT);
+  const settleT = clamp01(
+    (p - profile.contactAt) / (1 - profile.contactAt),
+  );
+  const settle =
+    p < profile.contactAt
       ? 0
-      : -0.065 *
-        Math.sin(settleProgress * Math.PI) *
-        (1 - settleProgress * 0.2);
-  const orientation = 1 - smoothstep(0.12, 0.86, p);
-  const contactCue = smoothstep(0.28, 0.82, p);
+      : -profile.settleDepth *
+        Math.sin(settleT * Math.PI) *
+        (1 - settleT * 0.18);
+  const orientation = 1 - smoothstep(0.08, 0.68, p);
+  const contactCue = smoothstep(0.12, profile.contactAt, p);
 
   if (p === 1) {
     return {
@@ -41,9 +73,10 @@ export function sampleCubeDrop(progress: number): CubeDropSample {
   }
 
   return {
-    offsetY: 4.8 * fall + settlement,
-    rotationX: -INITIAL_TILT * 0.45 * orientation,
-    rotationZ: INITIAL_TILT * orientation,
+    offsetY: (fall + settle) * motionScale,
+    rotationX:
+      -profile.initialTiltRadians * 0.45 * orientation * motionScale,
+    rotationZ: profile.initialTiltRadians * orientation * motionScale,
     shadowOpacity: 0.12 + contactCue * 0.88,
     shadowScale: 0.74 + contactCue * 0.26,
   };

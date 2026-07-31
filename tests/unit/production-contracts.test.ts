@@ -152,6 +152,10 @@ describe("production rendering contracts", () => {
     expect(magicCubeSource).toContain("useCubeDropTimeline");
     expect(dropTimelineSource).toContain("useLayoutEffect");
     expect(dropTimelineSource).toContain("sampleCubeDrop");
+    expect(dropTimelineSource).toContain("dropProfile");
+    expect(dropTimelineSource).toContain(
+      "sampleCubeDrop(progress, dropProfileRef.current)",
+    );
     expect(magicCubeSource).toContain("applyRootDrop(rootRef.current");
     expect(dropTimelineSource).toContain("dropCompletedRef");
     expect(dropTimelineSource).toContain("accumulatedVisibleMsRef");
@@ -159,6 +163,40 @@ describe("production rendering contracts", () => {
     expect(introSequenceSource).toContain('type: "reveal-timeout"');
     expect(magicCubeSource).toContain(
       'disabled: introPhase !== "ready"',
+    );
+  });
+
+  it("keeps the mechanical package and real interface on one 1350 ms clock", () => {
+    const packageSource = readFileSync(
+      resolve(process.cwd(), "components/experience/PackageIntro.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(packageSource).toContain('event.animationName === "intro-package-finish"');
+    expect(packageSource).not.toContain('event.animationName === "package-intro-reveal"');
+    expect(styles).toMatch(
+      /animation:\s*intro-package-finish 1350ms linear forwards/,
+    );
+    expect(styles).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
+    expect(styles).toContain("cubic-bezier(0.77, 0, 0.175, 1)");
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.header[\s\S]*?700ms/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?780ms/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?830ms/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="sealed"\][\s\S]*?\.cubeFrame[\s\S]*?opacity:\s*0/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\][\s\S]*?\.plotterGlyph[\s\S]*?animation-play-state:\s*paused/,
     );
   });
 
@@ -199,16 +237,16 @@ describe("production rendering contracts", () => {
     expect(shadowKeyframes).toContain("--cube-shadow-start-opacity");
     expect(shadowKeyframes).toContain("--cube-shadow-final-opacity");
     expect(shadowKeyframes).toMatch(
-      /0%,\s*28%\s*\{[^}]*--cube-shadow-start-opacity[^}]*--cube-shadow-start-scale/,
+      /0%\s*\{[^}]*--cube-shadow-start-opacity[^}]*--cube-shadow-start-scale/,
     );
     expect(shadowKeyframes).toMatch(
-      /50%\s*\{[^}]*opacity:\s*0\.439;[^}]*scale\(0\.834\)/,
+      /50%\s*\{[^}]*opacity:\s*0\.732;[^}]*scale\(0\.921\)/,
     );
     expect(shadowKeyframes).toMatch(
-      /65%\s*\{[^}]*opacity:\s*0\.793;[^}]*scale\(0\.939\)/,
+      /65%\s*\{[^}]*opacity:\s*0\.967;[^}]*scale\(0\.99\)/,
     );
     expect(shadowKeyframes).toMatch(
-      /82%,\s*100%\s*\{[^}]*--cube-shadow-final-opacity[^}]*--cube-shadow-final-scale/,
+      /72%,\s*100%\s*\{[^}]*--cube-shadow-final-opacity[^}]*--cube-shadow-final-scale/,
     );
     expect(shadowKeyframes).not.toMatch(/\b(?:top|left):/);
     expect(experienceStyles).toMatch(
@@ -323,7 +361,7 @@ describe("production rendering contracts", () => {
       styles.indexOf("@media (prefers-reduced-motion: reduce)"),
     );
     const reducedAmbientRule = reducedMotionStyles.match(
-      /\.pieceMatrix::after,[\s\S]*?\.purchaseButton::after\s*\{([^}]*)\}/,
+      /\.pieceMatrix::after,[\s\S]*?\.plotterRegister\s*\{([^}]*)\}/,
     )?.[1];
 
     expect(reducedAmbientRule).toMatch(/animation-name:\s*none\s*!important;/);

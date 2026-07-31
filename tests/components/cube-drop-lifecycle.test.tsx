@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useCubeDropTimeline } from "@/components/cube/useCubeDropTimeline";
 import {
+  DESKTOP_CUBE_DROP_PROFILE,
+  MOBILE_CUBE_DROP_PROFILE,
   sampleCubeDrop,
   type CubeDropSample,
 } from "@/lib/motion/cube-drop";
@@ -39,7 +41,9 @@ describe("useCubeDropTimeline", () => {
       />,
     );
 
-    expect(observedDuringLayout).toHaveBeenCalledWith(sampleCubeDrop(0));
+    expect(observedDuringLayout).toHaveBeenCalledWith(
+      sampleCubeDrop(0, MOBILE_CUBE_DROP_PROFILE),
+    );
   });
 
   it("counts only visible time, resumes from the paused sample and completes once", () => {
@@ -139,6 +143,7 @@ function PrePaintDropProbe({
   readonly onSample: (sample: CubeDropSample) => void;
 }) {
   useCubeDropTimeline({
+    dropProfile: MOBILE_CUBE_DROP_PROFILE,
     introPhase: "drop",
     invalidate: vi.fn(),
     onSample,
@@ -168,6 +173,7 @@ function DropTimelineProbe({
   readonly pageVisible: boolean;
 }) {
   useCubeDropTimeline({
+    dropProfile: DESKTOP_CUBE_DROP_PROFILE,
     introPhase,
     invalidate,
     onComplete,

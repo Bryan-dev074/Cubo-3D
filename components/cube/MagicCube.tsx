@@ -27,12 +27,16 @@ import {
 } from "@/components/cube/useMoveQueue";
 import type { CubeMove, CubieState } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
-import type { CubeDropSample } from "@/lib/motion/cube-drop";
+import type {
+  CubeDropProfile,
+  CubeDropSample,
+} from "@/lib/motion/cube-drop";
 import type { CursorIntent } from "@/lib/motion/cursor-intent";
 import type { IntroPhase } from "@/lib/motion/intro-sequence";
 
 interface MagicCubeProps {
   readonly cube: readonly CubieState[];
+  readonly dropProfile: CubeDropProfile;
   readonly introPhase: IntroPhase;
   readonly isCelebrating: boolean;
   readonly onDropComplete?: () => void;
@@ -53,6 +57,7 @@ const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
 
 export function MagicCube({
   cube,
+  dropProfile,
   introPhase,
   isCelebrating,
   onDropComplete,
@@ -118,6 +123,7 @@ export function MagicCube({
     [presentationPosition],
   );
   useCubeDropTimeline({
+    dropProfile,
     introPhase,
     invalidate,
     onComplete: onDropComplete,

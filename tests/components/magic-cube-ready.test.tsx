@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MagicCube } from "@/components/cube/MagicCube";
+import { DESKTOP_CUBE_DROP_PROFILE } from "@/lib/motion/cube-drop";
 
 const fiberState = vi.hoisted(() => ({ invalidate: vi.fn() }));
 
@@ -38,6 +39,7 @@ describe("MagicCube scene readiness", () => {
       <StrictMode>
         <MagicCube
           cube={[]}
+          dropProfile={DESKTOP_CUBE_DROP_PROFILE}
           introPhase="opening"
           isCelebrating={false}
           onGestureActiveChange={vi.fn()}
@@ -61,6 +63,7 @@ describe("MagicCube scene readiness", () => {
       <StrictMode>
         <MagicCube
           cube={[]}
+          dropProfile={DESKTOP_CUBE_DROP_PROFILE}
           introPhase="opening"
           isCelebrating={false}
           onGestureActiveChange={vi.fn()}

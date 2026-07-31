@@ -15,6 +15,9 @@ describe("cube presentation", () => {
     expect(desktop.cameraTarget).not.toEqual(mobile.cameraTarget);
     expect(desktop.cubePosition).not.toEqual(mobile.cubePosition);
     expect(desktop.cubeScale).not.toBe(mobile.cubeScale);
+    expect(JSON.stringify(desktop)).toContain('"startOffsetY":0.68');
+    expect(JSON.stringify(mobile)).toContain('"startOffsetY":0.62');
+    expect(JSON.stringify(desktop)).toContain('"contactAt":0.72');
     expect(resolveCubePresentation(720, "neutral")).toEqual(desktop);
     expect(resolveCubePresentation(719, "neutral")).toEqual(mobile);
     expect(
@@ -33,5 +36,7 @@ describe("cube presentation", () => {
     );
     expect(source).toContain("position: presentation.cameraPosition");
     expect(source).toContain("presentation={presentation}");
+    expect(source).toContain("resolveFramedCubeDropProfile");
+    expect(source).toContain("dropProfile={dropProfile}");
   });
 });

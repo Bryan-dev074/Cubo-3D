@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -34,6 +35,7 @@ import type { QueuedMove } from "@/lib/game/reducer";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/types";
 import type { IntroPhase } from "@/lib/motion/intro-sequence";
+import { resolveFramedCubeDropProfile } from "@/lib/motion/cube-drop-framing";
 import {
   INITIAL_CUBE_INTERACTION,
   cubeInteractionReducer,
@@ -227,6 +229,19 @@ function CubeStudio({
   reviewMode,
 }: CubeStudioProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const canvasSize = useThree((state) => state.size);
+  const dropProfile = useMemo(
+    () =>
+      resolveFramedCubeDropProfile({
+        aspect: canvasSize.width / Math.max(1, canvasSize.height),
+        cameraPosition: presentation.cameraPosition,
+        cameraTarget: presentation.cameraTarget,
+        cubePosition: presentation.cubePosition,
+        cubeScale: presentation.cubeScale,
+        desiredProfile: presentation.dropProfile,
+      }),
+    [canvasSize.height, canvasSize.width, presentation],
+  );
   const view = VIEW_CONFIG[reviewMode];
   const interactionReady = introPhase === "ready";
   const interaction = useCubeInteractionAggregate({
@@ -294,6 +309,7 @@ function CubeStudio({
       />
       <MagicCube
         cube={cube}
+        dropProfile={dropProfile}
         introPhase={introPhase}
         isCelebrating={isCelebrating}
         onDropComplete={onDropComplete}
