@@ -1,190 +1,128 @@
-# Task 4: composición del plan, telemetría y dock compacto
+# Task 4 report - Coordinated ambient motion director
 
-## Estado
+## Status
 
-Completo. La portada ahora integra un plano desplegado de empaque como fondo
-editorial, una columna de telemetría diagramática y un dock compacto de tres
-acciones. Se preservan el cubo 3D real, la cola de movimientos, gestos,
-localización ES/PT, celebración, fallback y render WebGL bajo demanda.
+DONE
 
-## Evidencia TDD
+- Baseline: `fde0b2075c37f0c9cd9663f3d8a9a4e1a8e806b2` on `main`.
+- Implementation commit: `26ed7477554da8f12ce853e0962dea2868dcce06`.
+- Scope is limited to the ambient director, its DOM hooks, and its automated/browser contracts.
+
+## Implemented result
+
+- Kept `MagicCubeExperience.shouldPauseAmbientMotion` and the single root
+  `data-motion-paused` attribute as the only ambient director. No ambient React
+  state, timer, rAF loop, Three.js invalidation, or dependency was added.
+- Declared named periods on `.experience` for plotter `10.8s`, plan `8.4s`,
+  registration `6.4s`, spine `7.2s`, matrix `4.8s`, status `3.2s`, dock `6.4s`,
+  purchase `7.2s`, hero `5.4s`, and cube `6.4s`.
+- Coordinated the existing plotter, dieline, registration, cobalt spine,
+  matrix, status, purchase sheen, hero mark and the new dock print rail with
+  long inactive windows and negative phase offsets.
+- Added one mobile-only, `aria-hidden` telemetry summary rail as a direct child
+  of the summary. It remains outside the move, state and scramble value wrappers.
+- Reused the existing hero registration mark for `.heroRule::after`; no new
+  semantic hero or dock content was introduced.
+- Added cube microfloat only to the DOM `.cubeFrame`: maximum `-2px` desktop,
+  `-1px` at the mobile/tablet layout breakpoint. `.groundShadow` remains its
+  sibling and keeps the fixed translate/rotation/scale anchor.
+- Paused microfloat through the central director and on fine-pointer stage
+  hover, focus-within and active interaction.
+- Added every ambient selector explicitly to the central pause list, including
+  pseudo-elements, the mobile rail and `.cubeFrame`.
+- Preserved the finite `planDrawing` intro by allowing its opening animation to
+  run only while `data-page-visible="true"`. Hidden-page pause still wins, and
+  ambient motion remains paused until the root reaches the ready state.
+- Reduced motion removes every ambient animation name, keeps the title ink
+  solid, keeps the mobile spine collapsed, and leaves finite reduced intro and
+  success treatments separate.
+- Telemetry values are unchanged at idle. Only decorative sweeps/rails move.
+
+## TDD evidence
 
 ### RED
 
-Comando:
+Command:
 
-`npm test -- tests/components/live-telemetry.test.tsx`
+`npm test -- tests/components/experience.test.tsx tests/components/live-telemetry.test.tsx tests/unit/production-contracts.test.ts`
 
-Resultado esperado: fallo porque todavía no existían
-`[data-testid="layer-diagram"]`, el dial técnico ni el medidor de mezcla
-semántico.
+Observed before implementation: 79 total, 75 passed, 4 failed for the expected
+missing behavior:
 
-Después se agregaron los contratos de composición y dock en
-`tests/components/experience.test.tsx`; el pase focal siguió rojo mientras el
-plano permanecía dentro del stage y el dock todavía mostraba cinco controles.
+1. named director periods / dock / hero / cube contracts;
+2. decorative mobile rail DOM;
+3. complete central pause and finite-intro override;
+4. complete reduced-motion ambient list.
 
-### GREEN focal
+### GREEN
 
-Comando:
+The same focal command passed: 3 files, 79/79 tests.
 
-`npm test -- tests/components/live-telemetry.test.tsx tests/components/experience.test.tsx`
+Full Vitest verification passed: 36 files, 331/331 tests.
 
-Resultado: 2 archivos, 35/35.
+## Browser and rendering evidence
 
-Los contratos cubren:
+- Help open pauses the root director and plotter; close resumes it.
+- A real background orbit pauses the same director on pointer down and resumes
+  it on release.
+- Forced a running `cube-microfloat` DOM phase, reset the WebGL draw-call
+  counter, waited 950 ms, and observed exactly 0 new draw calls.
+- Full E2E command passed in one final run: 49/49 tests in 3.2 minutes.
+- Actual touch environments passed at 390x844, 320x700 and 844x390.
+- Reduced-motion browser contract passed with plotter base hidden, plotter ink
+  solid, and cube ambient animation name `none`.
 
-- plano localizado, decorativo y hermano del hero/stage;
-- exactamente tres acciones primarias: Desordenar, Reiniciar y Ayuda;
-- utilidades secundarias mediante overlay con estado `aria-expanded`;
-- diagrama real de nueve planos, dial de giro y progreso fiel al snapshot.
+One earlier full E2E run reached 48/49 because the pre-existing mobile shadow
+orbit test timed out after five new WebGL contexts had run before it. The test
+passed isolated in 56.9 seconds. The new responsive coverage was moved to the
+end of its file to preserve historical WebGL ordering; the next full run then
+passed 49/49. No timeout threshold or production behavior was weakened.
 
-## Implementación final
+## Visual review
 
-### Plano de empaque
+Reviewed real browser captures:
 
-- `MagicCubeExperience.tsx:359` dibuja cuatro paneles, pestañas redondeadas,
-  cortes sólidos, pliegues punteados, marca CUBO 3D, cubo lineal, matriz de 42
-  puntos y registros.
-- Vive en el workspace y detrás del hero/stage, no dentro del lienzo WebGL.
-- El contorno superior izquierdo se retiró y la pestaña lateral se bajó para
-  mantener limpio el bloque de título y promesa.
-- ES usa `Desafiá tu mente.` y PT `Desafie sua mente.`.
+- `.superpowers/sdd/task-4-desktop-ambient.png`
+- `.superpowers/sdd/task-4-mobile-390-ambient.png`
+- `.superpowers/sdd/task-4-mobile-320-ambient.png`
+- `.superpowers/sdd/task-4-mobile-landscape-ambient.png`
 
-### Telemetría diagramática
+Desktop keeps the editorial split and anchored cube/shadow. At 390 and 320 the
+cube, dock and telemetry summary remain separated with no horizontal overflow.
+At 844x390 the hero remains usable in the first viewport, while automated scroll
+checks prove each primary interaction region fits the viewport when brought
+into view.
 
-- `LiveTelemetry.tsx:208` reemplaza la grilla abstracta por un cubo isométrico
-  3×3 con nueve planos de datos verdaderos.
-- `LiveTelemetry.tsx:133` muestra el giro como dial técnico de 90 grados.
-- `LiveTelemetry.tsx:191` expone el progreso real con `aria-valuemin`,
-  `aria-valuemax` y `aria-valuenow`.
-- La columna ocupa la altura editorial disponible y mantiene separación
-  geométrica en 1440 y 1600.
+## Animation self-review
 
-### Dock compacto
+| Before | After | Why |
+| --- | --- | --- |
+| Partial pause list omitted dock, hero, mobile rail and cube wrapper | One explicit root pause list covers every approved ambient selector | Pause/resume now has one auditable source of truth |
+| Existing plan ambient loop conflicted with its finite opening animation | A page-visible opening override runs only the finite plan entry | Preserves intro timing without letting hidden-page or ready-state ambient motion leak |
+| Cube had no DOM microfloat contract | `.cubeFrame` moves by 2px/1px; sibling shadow never translates ambiently | Adds depth without touching Three.js or causing WebGL draws |
+| Ambient periods reused broad tokens or mismatched the requested active windows | Named periods and restrained active windows match the addendum | Makes cadence intentional and keeps high-contrast cues sparse |
+| Reduced motion relied on a shorter ambient list | Every ambient name becomes `none`; title base is hidden | Produces a solid title and no spatial idle movement |
 
-- `ControlDock.tsx:36` mantiene solo Desordenar, Reiniciar y Ayuda en el dock
-  principal de aproximadamente `266×78 px`.
-- Deshacer y los giros por capa viven en un overlay secundario.
-- El disparador conserva `aria-controls`, `aria-expanded`, cierre por Escape
-  con devolución de foco y cierre por puntero externo.
-- En móvil el botón secundario permanece visible y el dock entra en el flujo.
-- Se corrigió un defecto descubierto por E2E: el grid expandido de giros
-  cubría Deshacer. Ahora abre por encima de toda la bandeja en desktop; en
-  móvil conserva su layout estático.
+Verdict: **Approve**. Ambient keyframes animate only `transform` and `opacity`,
+use custom/linear easing appropriate to the motion, gate hover behavior behind
+fine pointers, provide complete reduced-motion handling, and add no high-frequency
+button/icon loop.
 
-## Revisión de movimiento
+## Final gates
 
-| Antes | Después | Por qué |
-|---|---|---|
-| 26 celdas con delays independientes | Un solo barrido de grupo de 4.8 s | Mantiene una señal instrumental tenue sin 26 loops coordinados (`experience.module.css:578`, `experience.module.css:1008`). |
-| Capas sin transición diagramática útil | Opacidad de 180 ms con `ease-out` | Comunica el plano activo sin animar layout (`experience.module.css:623`). |
-| Dirección representada por un marcador mínimo | Aguja del dial, 220 ms con `ease-out` | Hace legible el giro real de 90 grados (`experience.module.css:665`). |
-| Contador remontado por `key` con `number-enter` de 180 ms y traslación | Actualización numérica estática, sin keyframes ni remount | Los movimientos pueden iniciarse con teclado y son una acción frecuente; deben responder sin movimiento (`LiveTelemetry.tsx:152`, `experience.module.css:703`). |
-| Utilidades solo reveladas por hover/foco en desktop | Aparición de 140 ms para puntero fino y visibilidad permanente con touch/coarse | Reduce ruido con mouse sin esconder la acción a dispositivos táctiles anchos (`experience.module.css:766`, `experience.module.css:1101`). |
-
-Pausas verificadas:
-
-- la telemetría usa `data-motion-paused` ante interacción, pestaña oculta y
-  preferencia reducida;
-- hover/focus dentro del dock pausa el único barrido;
-- `prefers-reduced-motion` limita animaciones a una iteración de 1 ms y vuelve
-  instantáneas las transiciones de plano/dial;
-- el contador de movimientos se actualiza de forma completamente estática;
-- no se introdujo `transition: all`, animación de layout, autorrotación ni
-  loop WebGL.
-
-Veredicto de movimiento: **SHIP (Approve)**. No queda animación en acciones
-frecuentes o iniciadas por teclado. El único loop nuevo pertenece a un
-instrumento de estado, afecta un solo pseudo-elemento, permanece tenue y tiene
-todos los mecanismos de pausa requeridos.
-
-## Capturas finales inspeccionadas
-
-- `D:\CODE\Cubo3D\.superpowers\sdd\task-4-desktop-1600.png`
-  - Plano visible aproximadamente entre `x=228..1292`.
-  - Telemetría entre `y=116..904`, igual al alto editorial de referencia.
-  - Hero limpio, cubo completo y dock `266×80 px` con tres acciones.
-  - La curva restante comienza en `x=744.5` y el registro superior fue movido
-    a `x=600.9`; ninguno toca la promesa o el hint.
-- `D:\CODE\Cubo3D\.superpowers\sdd\task-4-desktop-1440.png`
-  - Sin colisión entre H1, cubo, plano, dock y telemetría.
-  - Matriz y marca técnica conservan lectura secundaria.
-- `D:\CODE\Cubo3D\.superpowers\sdd\task-4-mobile-390.png`
-  - H1, promesa, CTA, hint y cubo completo dentro del primer viewport.
-  - Plano atenuado, botón de utilidades táctil y dock en flujo.
-- `D:\CODE\Cubo3D\.superpowers\sdd\task-4-mobile-320.png`
-  - Encabezado sin cruces, cubo completo y acciones de 44 px o más.
-  - Cero overflow horizontal.
-
-El runner visual inicial pasó 4/4. La recaptura focal 1600 posterior pasó 1/1
-con aserciones geométricas de `x>=600` y copy libre. Ambos runners temporales
-fueron retirados antes del commit.
-
-## Verificación E2E
-
-Durante el pase focal aparecieron expectativas antiguas: los tests buscaban
-los giros antes de abrir el nuevo overlay o después de un cambio de idioma que
-lo cerraba. Las ayudas se actualizaron para aceptar overlay abierto/cerrado y
-reabrirlo en el idioma vigente.
-
-También se detectó el solapamiento real entre el grid de giros y Deshacer,
-descrito arriba. Evidencia posterior:
-
-- caso scramble/undo focal: 1/1;
-- seis casos afectados: 6/6;
-- matriz inicial, ejecutada una vez ya verde: 21/21.
-
-La matriz final incluye:
-
-- cero draw calls WebGL durante idle después de una órbita real;
-- mouse, teclado y touch;
-- mezcla, giro, deshacer, reinicio y celebración;
-- fallback WebGL y localización;
-- geometría responsive en 1600×1000, 1440×900, 390×844 y 320×700;
-- consola, requests, HTTP, hidratación y errores de página limpios.
-
-### Corrección posterior a revisión
-
-RED:
-
-- componentes + contrato de fuente: 2 fallos esperados y 31 pases; faltaban
-  el contrato de geometría copy-clear y la eliminación de
-  `key={snapshot.confirmedUserMoves}` / `number-enter`;
-- coarse-touch 1024×768: el tap agotó 5 s porque el workspace interceptaba el
-  botón con `opacity: 0` y `pointer-events: none`;
-- recaptura geométrica: el registro quedó inicialmente en `x=599.84`, 0.16 px
-  antes del límite explícito.
-
-GREEN:
-
-- componentes + contrato de fuente: 2 archivos, 33/33;
-- contrato de fuente de animación aislado: 9/9;
-- coarse-touch real 1024×768: 1/1; abre con tap, confirma
-  `aria-expanded`, muestra Deshacer/FaceControls y cierra con tap;
-- plan 1600: 1/1 con registro en `x=600.9`, curva en `x=744.5` y copy libre;
-- matriz final posterior, ejecutada una sola vez: 22/22.
-
-## Gates finales
-
-- Suite unitaria focal original: 2 archivos, 35/35.
-- Focal posterior de componentes + contratos: 2 archivos, 33/33.
-- Contrato de fuente de animación: 9/9.
-- Suite unitaria completa: 25 archivos, 219/219.
-- E2E coarse-touch 1024×768: 1/1.
-- E2E experiencia + responsive: 22/22.
-- WebGL idle: PASS dentro de E2E.
-- Build de producción: PASS dentro del arranque E2E.
-- Lint: PASS.
-- TypeScript: PASS.
+- `npm test`: PASS - 36 files, 331 tests.
+- Focal component/contracts command: PASS - 3 files, 79 tests.
+- `npm run test:e2e`: PASS - 49 tests.
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
 - `git diff --check`: PASS.
+- Browser console/page diagnostics in responsive tests: clean.
 
-No se ejecutó el detector final de Impeccable, por instrucción explícita.
+## Residual risks
 
-## Autorrevisión y preocupaciones
-
-- La bandeja completa de 18 giros es deliberadamente densa en desktop; queda
-  fuera de la composición base y solo aparece por petición explícita.
-- El plano móvil está atenuado para no competir con interacción y texto.
-- El barrido de matriz es decorativo-instrumental y no representa progreso;
-  los valores, capas, dirección y mezcla sí provienen del snapshot real.
-- No quedan bloqueos conocidos.
+- Ambient screenshots capture one phase of long staggered loops; exact perceived
+  cadence still varies by wall-clock phase, though all individual bounds, pause
+  states and responsive modes are automated.
+- CSS Modules prefixes keyframe names in production. Browser assertions match
+  the stable keyframe suffix so they verify the intended animation without
+  coupling tests to a generated build hash.
