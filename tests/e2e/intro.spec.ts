@@ -402,8 +402,6 @@ test("pauses and resumes every finite intro animation with page visibility", asy
       )) {
       animation.currentTime = 0;
     }
-  });
-  await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
       get: () => "hidden",

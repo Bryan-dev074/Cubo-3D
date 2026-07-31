@@ -988,13 +988,51 @@ describe("commercial CSS contract", () => {
       /\.pieceMatrix::after\s*\{[^}]*animation:\s*telemetry-group-sweep var\(--ambient-matrix\)/,
     );
     expect(css).toMatch(
-      /@keyframes status-breathe[\s\S]*?opacity:\s*0\.82;[\s\S]*?opacity:\s*1;[\s\S]*?scale\(1\.16\)/,
+      /@keyframes status-breathe\s*\{[\s\S]*?0%,\s*44\.375%,\s*55\.625%,\s*100%\s*\{[^}]*opacity:\s*0\.82;[^}]*scale\(1\);[^}]*\}[\s\S]*?50%\s*\{[^}]*opacity:\s*var\(--ambient-status-peak-opacity\);[^}]*scale\(1\.16\)/,
     );
     expect(css).toMatch(
       /@keyframes purchase-sheen[\s\S]*?78%[\s\S]*?86\.6%/,
     );
     expect(css).toMatch(
       /\.dockUtilitiesPanel\s*\{[^}]*animation:\s*dock-utilities-enter 220ms var\(--ease-out\) both;/,
+    );
+  });
+
+  it("keeps every secondary mobile ambient cue alive but unambiguously low contrast", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const mobileStyles = css.slice(
+      css.indexOf("@media (max-width: 900px)"),
+      css.indexOf("@media (max-width: 390px)"),
+    );
+
+    for (const variable of [
+      "--ambient-matrix-peak-opacity: 0.12",
+      "--ambient-status-peak-opacity: 0.88",
+      "--ambient-purchase-peak-opacity: 0.1",
+      "--ambient-hero-peak-opacity: 0.1",
+      "--ambient-summary-peak-opacity: 0.1",
+    ]) {
+      expect(mobileStyles).toContain(variable);
+    }
+    for (const variable of [
+      "--ambient-matrix-peak-opacity",
+      "--ambient-status-peak-opacity",
+      "--ambient-purchase-peak-opacity",
+      "--ambient-hero-peak-opacity",
+      "--ambient-summary-peak-opacity",
+    ]) {
+      expect(css).toMatch(
+        new RegExp(`opacity:\\s*var\\(${variable}\\)`),
+      );
+    }
+    expect(mobileStyles).toMatch(
+      /\.telemetrySummaryRail\s*\{[^}]*animation:\s*telemetry-summary-rail/,
+    );
+    expect(mobileStyles).not.toMatch(
+      /(?:purchaseButton|heroRule|telemetrySummaryRail|pieceMatrix)[\s\S]*?animation-name:\s*none/,
     );
   });
 

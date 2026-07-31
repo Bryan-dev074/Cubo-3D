@@ -27,6 +27,11 @@
   --ambient-purchase: 7.2s;
   --ambient-hero: 5.4s;
   --ambient-cube: 6.4s;
+  --ambient-matrix-peak-opacity: 0.72;
+  --ambient-status-peak-opacity: 1;
+  --ambient-purchase-peak-opacity: 0.2;
+  --ambient-hero-peak-opacity: 0.32;
+  --ambient-summary-peak-opacity: 0.24;
   position: relative;
   display: grid;
   grid-template-columns: clamp(7rem, 9.6vw, 9.625rem) minmax(0, 1fr);
@@ -2334,16 +2339,15 @@
 
 @keyframes status-breathe {
   0%,
-  38%,
-  62%,
+  44.375%,
+  55.625%,
   100% {
     opacity: 0.82;
     transform: scale(1);
   }
 
-  44.4%,
-  55.6% {
-    opacity: 1;
+  50% {
+    opacity: var(--ambient-status-peak-opacity);
     transform: scale(1.16);
   }
 }
@@ -2361,7 +2365,7 @@
   }
 
   82.3% {
-    opacity: 0.2;
+    opacity: var(--ambient-purchase-peak-opacity);
     transform: translateX(110%) skewX(-18deg);
   }
 
@@ -2393,7 +2397,7 @@
   }
 
   82% {
-    opacity: 0.72;
+    opacity: var(--ambient-matrix-peak-opacity);
   }
 
   98% {
@@ -2441,7 +2445,7 @@
   }
 
   62% {
-    opacity: 0.24;
+    opacity: var(--ambient-summary-peak-opacity);
   }
 
   69.24% {
@@ -2465,7 +2469,7 @@
   }
 
   63.5% {
-    opacity: 0.32;
+    opacity: var(--ambient-hero-peak-opacity);
     transform: scaleX(1.65);
   }
 }
@@ -2611,6 +2615,11 @@
 
 @media (max-width: 900px) {
   .experience {
+    --ambient-matrix-peak-opacity: 0.12;
+    --ambient-status-peak-opacity: 0.88;
+    --ambient-purchase-peak-opacity: 0.1;
+    --ambient-hero-peak-opacity: 0.1;
+    --ambient-summary-peak-opacity: 0.1;
     display: block;
     overflow-x: clip;
   }

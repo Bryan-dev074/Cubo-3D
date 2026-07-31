@@ -575,6 +575,34 @@ describe("production rendering contracts", () => {
     expect(source).toContain('".superpowers/**"');
   });
 
+  it("releases new WebGL contexts before the orbit-shadow stress story", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "tests/e2e/responsive.spec.ts"),
+      "utf8",
+    );
+    const ambientStory = source.indexOf(
+      "for (const viewport of AMBIENT_VIEWPORTS)",
+    );
+    const cadenceStory = source.indexOf(
+      'test("mobile sustains at most one high contrast ambient pulse',
+    );
+    const reducedStory = source.indexOf(
+      'test("reduced motion leaves the plotter solid',
+    );
+    const orbitShadowStory = source.indexOf(
+      'test("mobile-390 keeps the fixed ground shadow unchanged',
+    );
+
+    expect(ambientStory).toBeGreaterThan(-1);
+    expect(cadenceStory).toBeGreaterThan(ambientStory);
+    expect(reducedStory).toBeGreaterThan(cadenceStory);
+    expect(orbitShadowStory).toBeGreaterThan(reducedStory);
+    expect(source).toContain("async function releaseWebGLContexts");
+    expect(source).toContain('getExtension("WEBGL_lose_context")');
+    expect(source.match(/await releaseWebGLContexts\(page\)/g)).toHaveLength(3);
+    expect(source).not.toContain("test.setTimeout");
+  });
+
   it("scopes deterministic randomness to the scramble click instead of the page lifetime", () => {
     const source = readFileSync(
       resolve(process.cwd(), "tests/e2e/helpers.ts"),
