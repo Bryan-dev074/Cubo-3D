@@ -27,8 +27,11 @@
 **Files:**
 - Modify: `components/cube/useLayerGesture.ts`
 - Modify: `components/cube/CubeScene.tsx`
+- Modify: `lib/i18n/dictionaries.ts`
+- Modify: `README.md`
 - Modify: `tests/components/layer-gesture.test.tsx`
 - Modify: `tests/components/cube-canvas.test.tsx`
+- Modify: `tests/components/help-dialog.test.tsx`
 - Modify: `tests/e2e/experience.spec.ts`
 
 **Interfaces:**
@@ -198,7 +201,18 @@ Commit: `feat: add kinetic plotter headline`
 **Files:**
 - Modify: `components/experience/PackageIntro.tsx`
 - Modify: `components/experience/experience.module.css`
+- Modify: `components/cube/cube-presentation.ts`
+- Modify: `lib/motion/cube-drop.ts`
+- Create: `lib/motion/cube-drop-framing.ts`
+- Modify: `components/cube/useCubeDropTimeline.ts`
+- Modify: `components/cube/MagicCube.tsx`
+- Modify: `components/cube/CubeScene.tsx`
 - Modify: `tests/components/package-intro.test.tsx`
+- Modify: `tests/components/cube-drop-lifecycle.test.tsx`
+- Modify: `tests/unit/cube-drop.test.ts`
+- Modify: `tests/unit/cube-presentation.test.ts`
+- Create: `tests/unit/cube-drop-framing.test.ts`
+- Modify: `tests/unit/production-contracts.test.ts`
 - Modify: `tests/e2e/intro.spec.ts`
 
 **Interfaces:**
@@ -245,7 +259,7 @@ Inside the shared timeline, render a `packageShell` containing exterior and inne
 
 - [ ] **Step 4: Implement the approved 0–2000 ms visual choreography**
 
-Use the existing 1350 ms package animation clock: registration `0–160`, rails `140–360`, flaps `320–980` with 45–60 ms stagger, aperture/interface reveal `650–1350`. Keep the actual cube drop in the existing 650 ms `drop` phase with no more than 5 degrees tilt and one settle. Overlay backgrounds fade to transparent and pointer events become none during reveal/drop. Reduced motion keeps the current 180 ms crossfade.
+Use the existing 1350 ms package animation clock: registration `0–160`, rails `140–360`, flaps `320–980` with 45–60 ms stagger, aperture/interface reveal `650–1350`. Reframe the actual 650 ms `drop` phase so the complete cube is visible from its first frame: replace the old off-stage `offsetY: 4.8` start with a camera-aware desired presentation of `0.62` on mobile and `0.68` on desktop, leaving at least `0.028` NDC safe margin. Keep tilt at or below 4 degrees desktop/3 degrees mobile, reach contact at drop progress `0.72` (about `1818 ms` global), then perform one settle of at most `0.032` desktop/`0.026` mobile through `2000 ms`. Resolve a `motionScale` with 18 binary-search iterations by projecting a conservative `1.51` half-extent at FOV `34` for the actual Canvas aspect; scale offset, tilt and settle together, never cube scale. Unit tests sample 257 points at 1440, 390, 320 and 844×390, while E2E requires at least 4 CSS pixels of rendered alpha margin throughout the drop. Overlay backgrounds fade to transparent and pointer events become none during reveal/drop. Reduced motion keeps the current 180 ms crossfade.
 
 - [ ] **Step 5: Run intro tests and commit**
 
