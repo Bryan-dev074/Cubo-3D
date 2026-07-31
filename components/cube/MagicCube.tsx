@@ -3,11 +3,12 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type MutableRefObject,
 } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import type { Group } from "three";
 
 import { Cubie } from "@/components/cube/Cubie";
@@ -16,23 +17,31 @@ import {
   createCubeRenderResources,
   disposeCubeRenderResources,
 } from "@/components/cube/cube-materials";
+import { useCelebrationTimeline } from "@/components/cube/useCelebrationTimeline";
 import { useLayerGesture } from "@/components/cube/useLayerGesture";
+import { useCubeDropTimeline } from "@/components/cube/useCubeDropTimeline";
 import {
   useMoveQueue,
   type CubiePivotMap,
   type LayerVisualPreview,
 } from "@/components/cube/useMoveQueue";
 import type { CubeMove, CubieState } from "@/lib/cube/types";
-import { CELEBRATION_DURATION_MS } from "@/lib/game/celebration";
 import type { QueuedMove } from "@/lib/game/reducer";
+import type { CubeDropSample } from "@/lib/motion/cube-drop";
+import type { CursorIntent } from "@/lib/motion/cursor-intent";
+import type { IntroPhase } from "@/lib/motion/intro-sequence";
 
 interface MagicCubeProps {
   readonly cube: readonly CubieState[];
+  readonly introPhase: IntroPhase;
   readonly isCelebrating: boolean;
+  readonly onDropComplete?: () => void;
+  readonly onCursorIntentChange?: (intent: CursorIntent) => void;
   readonly onGestureActiveChange: (active: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly onOrbitLockChange: (locked: boolean) => void;
+  readonly onSceneReady?: () => void;
   readonly pageVisible: boolean;
   readonly presentationPosition: readonly [number, number, number];
   readonly presentationScale: number;
@@ -44,11 +53,15 @@ const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
 
 export function MagicCube({
   cube,
+  introPhase,
   isCelebrating,
+  onDropComplete,
+  onCursorIntentChange,
   onGestureActiveChange,
   onMoveComplete,
   onMoveRequest,
   onOrbitLockChange,
+  onSceneReady,
   pageVisible,
   presentationPosition,
   presentationScale,
@@ -57,6 +70,7 @@ export function MagicCube({
 }: MagicCubeProps) {
   const invalidate = useThree((state) => state.invalidate);
   const rootRef = useRef<Group>(null);
+  const sceneReadyCalledRef = useRef(false);
   const pivotRefs = useRef<CubiePivotMap>(new Map());
   const previewRef = useRef<LayerVisualPreview>({
     move: null,
@@ -64,7 +78,6 @@ export function MagicCube({
     angularVelocity: 0,
     selectedIds: EMPTY_SELECTION,
   });
-  const celebrationStartRef = useRef<number | null>(null);
   const resources = useMemo(() => createCubeRenderResources(), []);
 
   useEffect(
@@ -87,9 +100,10 @@ export function MagicCube({
 
   const { handlersFor } = useLayerGesture({
     cube,
-    disabled: queue.length > 0 || isCelebrating,
+    disabled: introPhase !== "ready" || queue.length > 0 || isCelebrating,
     invalidate,
     onActiveChange: onGestureActiveChange,
+    onCursorIntentChange: onCursorIntentChange,
     onMoveRequest,
     onOrbitLockChange,
     pivotRefs,
@@ -97,51 +111,46 @@ export function MagicCube({
     rootRef: rootRef as MutableRefObject<Group | null>,
   });
 
-  useEffect(() => {
-    const restoreCanonicalPositions = () => {
-      applyCelebrationSeparation(cube, pivotRefs.current, 1);
-    };
-
-    if (!isCelebrating || reducedMotion || !pageVisible) {
-      celebrationStartRef.current = null;
-      restoreCanonicalPositions();
-      invalidate();
+  const applyDropSample = useCallback(
+    (sample: CubeDropSample) => {
+      applyRootDrop(rootRef.current, presentationPosition, sample);
+    },
+    [presentationPosition],
+  );
+  useCubeDropTimeline({
+    introPhase,
+    invalidate,
+    onComplete: onDropComplete,
+    onSample: applyDropSample,
+    pageVisible,
+    reducedMotion,
+  });
+  useLayoutEffect(() => {
+    if (
+      !rootRef.current ||
+      !onSceneReady ||
+      sceneReadyCalledRef.current
+    ) {
       return;
     }
 
-    celebrationStartRef.current = performance.now();
-    let frame = 0;
-    const animate = (time: number) => {
-      invalidate();
-      if (
-        celebrationStartRef.current !== null &&
-        time - celebrationStartRef.current < CELEBRATION_DURATION_MS
-      ) {
-        frame = window.requestAnimationFrame(animate);
-      }
-    };
-    frame = window.requestAnimationFrame(animate);
+    sceneReadyCalledRef.current = true;
+    onSceneReady?.();
+  }, [onSceneReady]);
 
-    return () => {
-      window.cancelAnimationFrame(frame);
-      celebrationStartRef.current = null;
-      restoreCanonicalPositions();
-      invalidate();
-    };
-  }, [cube, invalidate, isCelebrating, pageVisible, reducedMotion]);
-
-  useFrame(() => {
-    const celebrationStart = celebrationStartRef.current;
-    if (celebrationStart === null) {
-      return;
-    }
-
-    const progress = Math.min(
-      1,
-      (performance.now() - celebrationStart) / CELEBRATION_DURATION_MS,
-    );
-    const separation = celebrationSeparationScale(progress, reducedMotion);
-    applyCelebrationSeparation(cube, pivotRefs.current, separation);
+  const applyCelebrationSample = useCallback(
+    (progress: number) => {
+      const separation = celebrationSeparationScale(progress, reducedMotion);
+      applyCelebrationSeparation(cube, pivotRefs.current, separation);
+    },
+    [cube, reducedMotion],
+  );
+  useCelebrationTimeline({
+    active: isCelebrating,
+    invalidate,
+    onSample: applyCelebrationSample,
+    pageVisible,
+    reducedMotion,
   });
 
   const registerPivot = useCallback(
@@ -189,6 +198,24 @@ export function MagicCube({
       ))}
     </group>
   );
+}
+
+export function applyRootDrop(
+  root: Group | null,
+  canonicalPosition: readonly [number, number, number],
+  sample: CubeDropSample,
+): void {
+  if (!root) {
+    return;
+  }
+
+  root.position.set(
+    canonicalPosition[0],
+    canonicalPosition[1] + sample.offsetY,
+    canonicalPosition[2],
+  );
+  root.rotation.set(sample.rotationX, 0, sample.rotationZ);
+  root.updateMatrix();
 }
 
 export function celebrationSeparationScale(

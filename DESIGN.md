@@ -9,12 +9,15 @@ colors:
   mold-graphite: "#20262a"
   soft-graphite: "#596269"
   technical-smoke: "#d5dce0"
+  package-fold-light: "#e7ebed"
+  mask-opaque: "#000000"
   construction-line: "rgba(32, 38, 42, 0.22)"
   light-text: "#ffffff"
   shadow-fallback: "rgba(18, 27, 32, 0.16)"
   shadow-controls: "rgba(18, 27, 32, 0.18)"
   shadow-success: "rgba(14, 26, 35, 0.18)"
   shadow-dialog: "rgba(8, 15, 20, 0.28)"
+  indicator-shadow: "rgba(18, 27, 32, 0.18)"
   modal-backdrop: "rgba(16, 23, 28, 0.62)"
 typography:
   display:
@@ -103,6 +106,14 @@ typography:
     fontFamily: "Archivo, Arial, sans-serif"
     fontSize: "13px"
     fontWeight: 600
+  packaging-seal:
+    fontFamily: "Archivo Black, Arial, sans-serif"
+    fontSize: "clamp(0.85rem, 1.3vw, 1.15rem)"
+    fontWeight: 400
+  cursor-axis:
+    fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace"
+    fontSize: "8px"
+    fontWeight: 800
   move-display:
     fontFamily: "Archivo Black, Arial, sans-serif"
     fontSize: "clamp(2.6rem, 3.4vw, 3.35rem)"
@@ -122,6 +133,22 @@ spacing:
   control: "0.75rem"
   section: "1rem"
   touch-target: "2.75rem"
+motion:
+  easing:
+    out: "cubic-bezier(0.23, 1, 0.32, 1)"
+    in-out: "cubic-bezier(0.77, 0, 0.175, 1)"
+  duration:
+    micro: "160ms"
+    state: "260ms"
+    editorial: "420ms"
+    dock-entry: "220ms"
+    cube-drop: "650ms"
+  ambient:
+    short: "4.8s"
+    status: "6.4s"
+    long: "8.4s"
+  introPhases: "sealed -> opening -> reveal -> drop -> ready"
+  cursorModes: "idle, action, layer-ready, layer-drag, orbit, disabled"
 components:
   button-primary:
     backgroundColor: "{colors.cobalt-action}"
@@ -328,6 +355,29 @@ forma tenue; las capas y el dial reaccionan a datos reales y el contador se
 actualiza sin movimiento para respetar acciones iniciadas por teclado. Toda
 actividad se pausa al interactuar, cuando la pestaña queda oculta y con
 movimiento reducido.
+
+### Motion System
+
+La entrada recorre `sealed → opening → reveal → drop → ready`. La apertura es
+editorial y excepcional; la caída del cubo ocupa 650 ms dentro de la secuencia
+completa de aproximadamente dos segundos. Los estados breves usan 160 ms para
+microfeedback, 220 ms para la utilidad del dock, 260 ms para cambios de estado
+y 420 ms para revelados editoriales. Las curvas del sistema son
+`cubic-bezier(0.23, 1, 0.32, 1)` para entradas y respuestas, y
+`cubic-bezier(0.77, 0, 0.175, 1)` para movimiento continuo en pantalla.
+
+Los ciclos ambientales duran 4.8 s, 6.4 s y 8.4 s, siempre con largos periodos
+de reposo. Un único `data-motion-paused` en la raíz detiene solo esos ciclos
+durante la introducción, interacción con el cubo, cola de giros, celebración,
+ayuda, éxito, pestaña oculta o movimiento reducido. No detiene la caja, sus
+solapas, la sombra de caída ni las transiciones que comunican un cambio real.
+El contador de movimientos permanece completamente estático.
+
+El cursor técnico dispone de seis modos: `idle`, `action`, `layer-ready`,
+`layer-drag`, `orbit` y `disabled`. `indicator-shadow` nombra la sombra de
+instrumentación flotante; no introduce una superficie oscura ni una segunda
+paleta. Con movimiento reducido, los loops ambientales eliminan su nombre de
+animación y el cursor nativo permanece disponible.
 
 ### Success Moment
 

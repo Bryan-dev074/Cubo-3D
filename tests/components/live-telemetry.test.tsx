@@ -42,6 +42,7 @@ describe("LiveTelemetry localization and truthfulness", () => {
     render(
       <LiveTelemetry
         dictionary={dictionaries.es}
+        motionPaused={false}
         snapshot={telemetry}
       />,
     );
@@ -131,6 +132,7 @@ describe("LiveTelemetry localization and truthfulness", () => {
     const { rerender } = render(
       <LiveTelemetry
         dictionary={dictionaries.es}
+        motionPaused={false}
         snapshot={createTelemetrySnapshot(state, state.queue[0]?.move)}
       />,
     );
@@ -146,6 +148,7 @@ describe("LiveTelemetry localization and truthfulness", () => {
     rerender(
       <LiveTelemetry
         dictionary={dictionaries.es}
+        motionPaused={false}
         snapshot={createTelemetrySnapshot(state)}
       />,
     );
@@ -199,6 +202,7 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
     const { rerender } = render(
       <LiveTelemetry
         dictionary={dictionaries.es}
+        motionPaused={false}
         snapshot={createTelemetrySnapshot(initial)}
       />,
     );
@@ -214,6 +218,7 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
     rerender(
       <LiveTelemetry
         dictionary={dictionaries.es}
+        motionPaused={false}
         snapshot={createTelemetrySnapshot(queued, RIGHT)}
       />,
     );
@@ -224,7 +229,11 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
     const snapshot = createTelemetrySnapshot(createInitialGameState());
     vi.stubGlobal("document", undefined);
     const html = renderToString(
-      <LiveTelemetry dictionary={dictionaries.es} snapshot={snapshot} />,
+      <LiveTelemetry
+        dictionary={dictionaries.es}
+        motionPaused={false}
+        snapshot={snapshot}
+      />,
     );
     expect(html).not.toMatch(/<details[^>]*\sopen(?:=|>)/);
     vi.unstubAllGlobals();
@@ -253,7 +262,11 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
     await act(async () => {
       root = hydrateRoot(
         container,
-        <LiveTelemetry dictionary={dictionaries.es} snapshot={snapshot} />,
+        <LiveTelemetry
+          dictionary={dictionaries.es}
+          motionPaused={false}
+          snapshot={snapshot}
+        />,
       );
     });
 
@@ -267,52 +280,41 @@ describe("LiveTelemetry motion and mobile disclosure", () => {
     container.remove();
   });
 
-  it("pauses decorative motion when the page becomes hidden", async () => {
-    renderTelemetry(createInitialGameState(), "es");
-    const instrument = screen.getByTestId("live-telemetry");
-    expect(instrument).toHaveAttribute("data-motion-paused", "false");
-
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      value: "hidden",
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-
-    await waitFor(() =>
-      expect(instrument).toHaveAttribute("data-motion-paused", "true"),
-    );
-  });
-
-  it("pauses decorative motion for reduced-motion preference or an active layer gesture", () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(
-      (query) =>
+  it("reflects the root pause decision without subscribing to visibility or reduced motion", () => {
+    const visibilityListener = vi.spyOn(document, "addEventListener");
+    const matchMedia = vi.fn(
+      (query: string) =>
         ({
-          matches: query === "(prefers-reduced-motion: reduce)",
+          matches: false,
           media: query,
           addEventListener: vi.fn(),
           removeEventListener: vi.fn(),
         }) as unknown as MediaQueryList,
-      ),
     );
-
+    vi.stubGlobal("matchMedia", matchMedia);
     const { rerender } = render(
       <LiveTelemetry
         dictionary={dictionaries.es}
+        motionPaused={false}
         snapshot={createTelemetrySnapshot(createInitialGameState())}
       />,
     );
     expect(screen.getByTestId("live-telemetry")).toHaveAttribute(
       "data-motion-paused",
-      "true",
+      "false",
+    );
+    expect(visibilityListener).not.toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function),
+    );
+    expect(matchMedia).not.toHaveBeenCalledWith(
+      "(prefers-reduced-motion: reduce)",
     );
 
-    vi.unstubAllGlobals();
     rerender(
       <LiveTelemetry
         dictionary={dictionaries.es}
-        pauseMotion
+        motionPaused
         snapshot={createTelemetrySnapshot(createInitialGameState())}
       />,
     );
@@ -331,6 +333,7 @@ function renderTelemetry(
   return render(
     <LiveTelemetry
       dictionary={dictionaries[locale]}
+      motionPaused={false}
       snapshot={createTelemetrySnapshot(state, activeMove)}
     />,
   );

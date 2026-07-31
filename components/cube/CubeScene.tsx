@@ -3,18 +3,19 @@
 import {
   useCallback,
   useEffect,
+  useReducer,
   useRef,
   useState,
   type RefObject,
 } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useThree, type RootState } from "@react-three/fiber";
 import {
   AdaptiveDpr,
-  ContactShadows,
   OrbitControls,
 } from "@react-three/drei";
 import {
   ACESFilmicToneMapping,
+  MOUSE,
   type RectAreaLight,
   SRGBColorSpace,
 } from "three";
@@ -22,6 +23,7 @@ import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLigh
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 import { MagicCube } from "@/components/cube/MagicCube";
+import { usePageVisibility } from "@/components/experience/usePageVisibility";
 import {
   resolveCubePresentation,
   type CubePresentation,
@@ -31,6 +33,19 @@ import type { CubeMove, CubieState } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/types";
+import type { IntroPhase } from "@/lib/motion/intro-sequence";
+import {
+  INITIAL_CUBE_INTERACTION,
+  cubeInteractionReducer,
+  selectCubeCursorIntent,
+  selectCubeInteractionLocked,
+  type CubeInteractionEvent,
+  type CubeInteractionSnapshot,
+} from "@/lib/motion/cube-interaction";
+import {
+  IDLE_CURSOR_INTENT,
+  type CursorIntent,
+} from "@/lib/motion/cursor-intent";
 
 export {
   resolveCubePresentation,
@@ -40,18 +55,21 @@ export {
 
 export interface CubeSceneProps {
   readonly cube: readonly CubieState[];
+  readonly introPhase?: IntroPhase;
   readonly isCelebrating?: boolean;
   readonly locale?: Locale;
+  readonly onDropComplete?: () => void;
+  readonly onCursorIntentChange?: (intent: CursorIntent) => void;
   readonly onInteractionLockChange?: (locked: boolean) => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
+  readonly onSceneReady?: () => void;
   readonly queue: readonly QueuedMove[];
   readonly reviewMode?: CubeReviewMode;
 }
 
 interface SceneBudget {
   readonly dprCap: number;
-  readonly shadowSize: 512 | 1024;
   readonly viewportWidth: number;
 }
 
@@ -89,11 +107,15 @@ RectAreaLightUniformsLib.init();
 
 export function CubeScene({
   cube,
+  introPhase = "ready",
   isCelebrating = false,
   locale = "es",
+  onDropComplete,
+  onCursorIntentChange,
   onInteractionLockChange,
   onMoveComplete,
   onMoveRequest,
+  onSceneReady,
   queue,
   reviewMode = "neutral",
 }: CubeSceneProps) {
@@ -104,15 +126,14 @@ export function CubeScene({
   );
   const pageVisible = usePageVisibility();
   const reducedMotion = useReducedMotionPreference();
-  const [isGestureActive, setGestureActive] = useState(false);
-  const handleGestureActiveChange = useCallback(
-    (active: boolean) => {
-      setGestureActive(active);
-      onInteractionLockChange?.(active);
+  const handleSceneCreated = useCallback(
+    ({ gl }: RootState) => {
+      gl.outputColorSpace = SRGBColorSpace;
+      gl.toneMapping = ACESFilmicToneMapping;
+      gl.toneMappingExposure = 1;
     },
-    [onInteractionLockChange],
+    [],
   );
-
   return (
     <div
       className="cube-scene"
@@ -121,6 +142,7 @@ export function CubeScene({
       aria-label={dictionaries[locale].stageLabel}
       aria-describedby="cube-drag-hint"
       tabIndex={0}
+      onContextMenu={(event) => event.preventDefault()}
     >
       <Canvas
         dpr={[1, budget.dprCap]}
@@ -136,21 +158,20 @@ export function CubeScene({
           near: 0.1,
           position: presentation.cameraPosition,
         }}
-        onCreated={({ gl }) => {
-          gl.outputColorSpace = SRGBColorSpace;
-          gl.toneMapping = ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1;
-        }}
+        onCreated={handleSceneCreated}
       >
         <AdaptiveDpr pixelated={false} />
         <CubeStudio
-          budget={budget}
           cube={cube}
+          introPhase={introPhase}
+          interactionResetKey={locale}
           isCelebrating={isCelebrating}
-          isGestureActive={isGestureActive}
-          onGestureActiveChange={handleGestureActiveChange}
+          onCursorIntentChange={onCursorIntentChange}
+          onInteractionLockChange={onInteractionLockChange}
           onMoveComplete={onMoveComplete}
           onMoveRequest={onMoveRequest}
+          onDropComplete={onDropComplete}
+          onSceneReady={onSceneReady}
           pageVisible={pageVisible}
           palette={LIGHT_PALETTE}
           presentation={presentation}
@@ -164,14 +185,16 @@ export function CubeScene({
 }
 
 interface CubeStudioProps extends Required<
-  Pick<CubeSceneProps, "isCelebrating" | "reviewMode">
+  Pick<CubeSceneProps, "introPhase" | "isCelebrating" | "reviewMode">
 > {
-  readonly budget: SceneBudget;
   readonly cube: readonly CubieState[];
-  readonly isGestureActive: boolean;
-  readonly onGestureActiveChange: (active: boolean) => void;
+  readonly interactionResetKey: Locale;
+  readonly onCursorIntentChange?: (intent: CursorIntent) => void;
+  readonly onInteractionLockChange?: (locked: boolean) => void;
+  readonly onDropComplete?: () => void;
   readonly onMoveComplete: () => void;
   readonly onMoveRequest: (move: CubeMove) => void;
+  readonly onSceneReady?: () => void;
   readonly pageVisible: boolean;
   readonly palette: ScenePalette;
   readonly presentation: CubePresentation;
@@ -180,13 +203,16 @@ interface CubeStudioProps extends Required<
 }
 
 function CubeStudio({
-  budget,
   cube,
+  introPhase,
+  interactionResetKey,
   isCelebrating,
-  isGestureActive,
-  onGestureActiveChange,
+  onCursorIntentChange,
+  onInteractionLockChange,
   onMoveComplete,
   onMoveRequest,
+  onDropComplete,
+  onSceneReady,
   pageVisible,
   palette,
   presentation,
@@ -196,13 +222,34 @@ function CubeStudio({
 }: CubeStudioProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const view = VIEW_CONFIG[reviewMode];
+  const interactionReady = introPhase === "ready";
+  const interaction = useCubeInteractionAggregate({
+    onCursorIntentChange,
+    onInteractionLockChange,
+  });
+  const handleOrbitEnd = interaction.endOrbit;
+  const handleOrbitStart = interaction.startOrbit;
+  const resetInteraction = interaction.reset;
+  const resetKeyRef = useRef(interactionResetKey);
+
+  useEffect(() => {
+    if (resetKeyRef.current === interactionResetKey) {
+      return;
+    }
+
+    resetKeyRef.current = interactionResetKey;
+    resetInteraction();
+  }, [interactionResetKey, resetInteraction]);
+
   const handleOrbitLockChange = useCallback(
     (locked: boolean) => {
       if (controlsRef.current) {
-        controlsRef.current.enabled = !locked && queue.length === 0;
+        controlsRef.current.enabled =
+          interaction.stateRef.current.orbitActive ||
+          (interactionReady && !locked && queue.length === 0);
       }
     },
-    [queue.length],
+    [interaction.stateRef, interactionReady, queue.length],
   );
 
   return (
@@ -242,11 +289,15 @@ function CubeStudio({
       />
       <MagicCube
         cube={cube}
+        introPhase={introPhase}
         isCelebrating={isCelebrating}
-        onGestureActiveChange={onGestureActiveChange}
+        onDropComplete={onDropComplete}
+        onCursorIntentChange={interaction.setLayerIntent}
+        onGestureActiveChange={interaction.setLayerActive}
         onMoveComplete={onMoveComplete}
         onMoveRequest={onMoveRequest}
         onOrbitLockChange={handleOrbitLockChange}
+        onSceneReady={onSceneReady}
         pageVisible={pageVisible}
         presentationPosition={presentation.cubePosition}
         presentationScale={presentation.cubeScale}
@@ -254,38 +305,149 @@ function CubeStudio({
         reducedMotion={reducedMotion}
       />
 
-      <ContactShadows
-        color="#1d252b"
-        far={4}
-        frames={1}
-        opacity={0.36}
-        position={[
-          presentation.cubePosition[0],
-          presentation.cubePosition[1] -
-            presentation.cubeScale * 1.49,
-          0,
-        ]}
-        resolution={budget.shadowSize}
-        scale={4.8}
-        blur={1.9}
-      />
-
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enabled={!isGestureActive && queue.length === 0}
+        enabled={
+          interactionReady &&
+          (!interaction.snapshot.layerActive ||
+            interaction.snapshot.orbitActive) &&
+          queue.length === 0
+        }
         autoRotate={false}
         enableDamping={!reducedMotion}
         dampingFactor={0.075}
         enablePan={false}
         enableZoom={false}
+        mouseButtons={{
+          LEFT: undefined,
+          MIDDLE: undefined,
+          RIGHT: MOUSE.ROTATE,
+        }}
         maxPolarAngle={Math.PI * 0.69}
         minPolarAngle={Math.PI * 0.2}
+        onEnd={handleOrbitEnd}
+        onStart={handleOrbitStart}
         rotateSpeed={0.62}
         target={presentation.cameraTarget}
       />
     </>
   );
+}
+
+interface CubeInteractionAggregateOptions {
+  readonly onCursorIntentChange?: (intent: CursorIntent) => void;
+  readonly onInteractionLockChange?: (locked: boolean) => void;
+}
+
+interface InteractionReport<TCallback, TValue> {
+  readonly callback: TCallback;
+  readonly value: TValue;
+}
+
+function useCubeInteractionAggregate({
+  onCursorIntentChange,
+  onInteractionLockChange,
+}: CubeInteractionAggregateOptions) {
+  const [snapshot, dispatch] = useReducer(
+    cubeInteractionReducer,
+    INITIAL_CUBE_INTERACTION,
+  );
+  const stateRef = useRef<CubeInteractionSnapshot>(
+    INITIAL_CUBE_INTERACTION,
+  );
+  const cursorCallbackRef = useRef(onCursorIntentChange);
+  const lockCallbackRef = useRef(onInteractionLockChange);
+  const lastCursorReportRef = useRef<
+    InteractionReport<typeof onCursorIntentChange, CursorIntent> | undefined
+  >(undefined);
+  const lastLockReportRef = useRef<
+    InteractionReport<typeof onInteractionLockChange, boolean> | undefined
+  >(undefined);
+  const reportSnapshot = useCallback((next: CubeInteractionSnapshot) => {
+    const cursorCallback = cursorCallbackRef.current;
+    const cursorIntent = selectCubeCursorIntent(next);
+    const cursorReport = lastCursorReportRef.current;
+    if (
+      cursorCallback &&
+      (cursorReport?.callback !== cursorCallback ||
+        cursorReport.value !== cursorIntent)
+    ) {
+      cursorCallback(cursorIntent);
+    }
+    lastCursorReportRef.current = {
+      callback: cursorCallback,
+      value: cursorIntent,
+    };
+
+    const lockCallback = lockCallbackRef.current;
+    const locked = selectCubeInteractionLocked(next);
+    const lockReport = lastLockReportRef.current;
+    if (
+      lockCallback &&
+      (lockReport?.callback !== lockCallback || lockReport.value !== locked)
+    ) {
+      lockCallback(locked);
+    }
+    lastLockReportRef.current = { callback: lockCallback, value: locked };
+  }, []);
+
+  const update = useCallback(
+    (event: CubeInteractionEvent) => {
+      const next = cubeInteractionReducer(stateRef.current, event);
+      if (next === stateRef.current) {
+        return;
+      }
+
+      stateRef.current = next;
+      dispatch(event);
+      reportSnapshot(next);
+    },
+    [reportSnapshot],
+  );
+
+  const setLayerActive = useCallback(
+    (active: boolean) => update({ active, type: "layer-active" }),
+    [update],
+  );
+  const setLayerIntent = useCallback(
+    (intent: CursorIntent) => update({ intent, type: "layer-intent" }),
+    [update],
+  );
+  const startOrbit = useCallback(
+    () => update({ active: true, type: "orbit-active" }),
+    [update],
+  );
+  const endOrbit = useCallback(
+    () => update({ active: false, type: "orbit-active" }),
+    [update],
+  );
+  const reset = useCallback(() => update({ type: "reset" }), [update]);
+
+  useEffect(() => {
+    cursorCallbackRef.current = onCursorIntentChange;
+    lockCallbackRef.current = onInteractionLockChange;
+    reportSnapshot(stateRef.current);
+  }, [onCursorIntentChange, onInteractionLockChange, reportSnapshot]);
+
+  useEffect(
+    () => () => {
+      stateRef.current = INITIAL_CUBE_INTERACTION;
+      cursorCallbackRef.current?.(IDLE_CURSOR_INTENT);
+      lockCallbackRef.current?.(false);
+    },
+    [],
+  );
+
+  return {
+    endOrbit,
+    reset,
+    setLayerActive,
+    setLayerIntent,
+    snapshot,
+    startOrbit,
+    stateRef,
+  } as const;
 }
 
 function StudioAreaLight({
@@ -352,7 +514,6 @@ function useSceneBudget(): SceneBudget {
   const readBudget = useCallback(
     (): SceneBudget => ({
       dprCap: window.innerWidth < 720 ? 1.5 : 1.75,
-      shadowSize: window.innerWidth < 720 ? 512 : 1024,
       viewportWidth: window.innerWidth,
     }),
     [],
@@ -366,18 +527,6 @@ function useSceneBudget(): SceneBudget {
   }, [readBudget]);
 
   return budget;
-}
-
-function usePageVisibility(): boolean {
-  const [visible, setVisible] = useState(() => document.visibilityState !== "hidden");
-
-  useEffect(() => {
-    const handleVisibility = () => setVisible(document.visibilityState !== "hidden");
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
-
-  return visible;
 }
 
 function useReducedMotionPreference(): boolean {

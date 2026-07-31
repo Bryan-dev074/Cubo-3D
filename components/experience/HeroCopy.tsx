@@ -36,7 +36,8 @@ export function HeroCopy({
         {dictionary.scramble}
       </button>
       <p className={styles.firstUseHint} id="cube-drag-hint">
-        {dictionary.dragHint}
+        <span className={styles.desktopDragHint}>{dictionary.dragHint}</span>
+        <span className={styles.touchDragHint}>{dictionary.dragHintTouch}</span>
       </p>
     </section>
   );

@@ -14,7 +14,8 @@ El sitio debe superar una demostración técnica de `img2threejs`: usa una image
 
 La dirección se llama **La caja abierta**. Convierte un empaque premium desplegado en la superficie de juego:
 
-- Fondo blanco humo frío y alternativa grafito según el esquema del sistema.
+- Un único fondo blanco humo frío, sin tema oscuro ni adaptación automática al
+  esquema de color del sistema.
 - Interfaz monocromática con un solo acento azul cobalto.
 - Los seis colores clásicos pertenecen exclusivamente al cubo.
 - Composición asimétrica: franja cobalto de empaque, promesa comercial a la izquierda, cubo monumental apoyado sobre el plano desplegado y columna técnica a la derecha.
@@ -24,7 +25,7 @@ La dirección se llama **La caja abierta**. Convierte un empaque premium despleg
 - No usar degradados morados, neón, glassmorphism, mallas decorativas, estrellas, precios, testimonios ni especificaciones inventadas.
 - Usar Archivo Black para el título y Archivo para cuerpo, controles y microcopy mediante `next/font`.
 
-El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, separaciones físicas, stickers geométricos redondeados, iluminación de estudio suave, reflejos controlados y sombra de contacto estable. Debe verse apoyado, no flotando.
+El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, separaciones físicas, stickers geométricos redondeados, iluminación de estudio suave y reflejos controlados. Debe verse apoyado, no flotando. La sombra visual principal es una elipse HTML anclada al escenario detrás del canvas: no pertenece al grupo 3D ni a la cámara, permanece idéntica al rotar la vista o mover una capa y solo cambia opacidad y escala durante la caída inicial.
 
 ## Contenido obligatorio
 
@@ -34,7 +35,8 @@ El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, sep
 - Descripción: `Desordenalo, resolvelo y descubrí por qué este clásico se siente mejor en tus manos.`
 - Desafío: `Desordenar cubo`
 - Compra: `Comprar cubo`
-- Ayuda: `Arrastrá una pieza para girar su capa. Arrastrá el fondo para explorar.`
+- Ayuda breve: `Izquierdo: capas · Derecho: rotar`
+- Ayuda táctil: `Con el dedo: pieza = capa · fondo = rotar`
 - Éxito: `Lo resolviste.`
 - Éxito secundario: `Ahora llevá el desafío a tus manos.`
 - CTA de éxito: `Comprar ahora`
@@ -45,7 +47,8 @@ El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, sep
 - Descripción: `Embaralhe, resolva e descubra por que este clássico fica ainda melhor nas suas mãos.`
 - Desafío: `Embaralhar cubo`
 - Compra: `Comprar cubo`
-- Ayuda: `Arraste uma peça para girar a camada. Arraste o fundo para explorar.`
+- Ayuda breve: `Esquerdo: camadas · Direito: girar`
+- Ayuda táctil: `Com o dedo: peça = camada · fundo = girar`
 - Éxito: `Você conseguiu.`
 - Éxito secundario: `Agora leve o desafio para as suas mãos.`
 - CTA de éxito: `Comprar agora`
@@ -83,15 +86,45 @@ Mensaje en portugués:
 
 ## Interacción
 
-- Arrastrar el fondo rota el cubo completo con inercia moderada.
-- El zoom y el paneo permanecen desactivados.
-- Arrastrar una pieza elige la capa según cara tocada, coordenada de la pieza y proyección de los dos movimientos tangentes posibles.
-- Mostrar feedback desde `pointerdown`.
-- Iniciar el gesto después de 8 a 10 px.
+### Mouse
+
+- Arrastrar con el botón izquierdo desde una pieza elige y gira su capa según la cara tocada, la coordenada de la pieza y la proyección de los dos movimientos tangentes posibles.
+- Arrastrar con el botón izquierdo desde el fondo es inerte: no rota la vista, no selecciona una capa y no modifica el estado.
+- Arrastrar con el botón derecho desde cualquier punto del escenario, incluso sobre una pieza, rota la vista completa con inercia moderada y nunca inicia una capa.
+- Desactivar el menú contextual únicamente dentro del escenario 3D.
+- Mantener zoom y paneo desactivados.
+
+### Propiedad del gesto
+
+- Mostrar feedback desde `pointerdown` e iniciar el gesto después de 8 a 10 px.
+- Al comenzar con el botón izquierdo sobre una pieza, congelar su ID, cara, normal, candidatos de eje, capa e ID de puntero hasta que termine el gesto.
+- Si el puntero cruza otra pieza mientras sigue presionado, conservar la pieza y la capa iniciales; ningún hover o `pointermove` posterior puede reemplazarlas.
 - Previsualizar el giro y completar o cancelar al soltar según distancia y velocidad.
-- Capturar el puntero y soportar mouse, touch y stylus.
-- No guardar valores continuos de puntero en estado React.
+- Liberar la propiedad solo con `pointerup`, `pointercancel`, `lostpointercapture`, desmontaje o bloqueo del juego.
+
+### Touch y teclado
+
+- En touch, arrastrar desde una pieza conserva un gesto de capa y arrastrar desde el fondo conserva la órbita.
+- Capturar el puntero y soportar mouse, touch y stylus sin guardar valores continuos del puntero en estado React.
 - Ofrecer controles HTML y teclado para caras e inversos.
+
+### Cursor contextual
+
+- En escritorio con puntero fino, usar un único cursor DOM `aria-hidden` y sin eventos propios; ocultar el cursor nativo solo después de que el personalizado esté montado.
+- Representar los estados `idle`, `action`, `layer-ready`, `layer-drag`, `orbit` y `disabled` con formas técnicas compactas que comuniquen la acción disponible.
+- Actualizar su posición mediante una referencia DOM y como máximo un `requestAnimationFrame`, no con estado React por cada movimiento.
+- Ocultarlo en touch, al salir de la ventana, con la pestaña oculta y bajo `prefers-reduced-motion`.
+
+## Entrada cinematográfica y sombra
+
+- Reproducir en cada carga completa una introducción finita de aproximadamente 2.000 ms con la máquina `sealed → opening → reveal → drop → ready`.
+- Construir la cubierta y las cuatro solapas en HTML/CSS sobre la interfaz ya renderizada. Entre 0 y 1.350 ms, el empaque sellado se abre con perspectiva, desfases leves y una revelación sin cambios de layout.
+- Entre 1.350 y 2.000 ms, dejar caer el grupo 3D real desde encima de su encuadre, con aceleración, inclinación inicial sutil y un único asentamiento cercano al 3%; terminar exactamente en su orientación y posición canónicas, sin rebotes repetidos.
+- Mantener fija la sombra HTML durante toda la secuencia: solo cambia su escala y opacidad para anticipar el contacto.
+- Bloquear los gestos del juego hasta `ready`, sin bloquear idioma, ayuda ni compra.
+- Permitir que `Escape`, navegación por teclado o el enlace de salto terminen la introducción inmediatamente en su estado final.
+- Esperar a que WebGL esté listo antes de iniciar la caída; si tarda, revelar la interfaz sin bloquearla y usar una aparición abreviada al estar disponible. Con fallo de WebGL, conservar el fallback localizado.
+- Hacer idempotente la finalización, limpiar eventos y watchdogs al desmontar y pausar el tiempo activo cuando la pestaña está oculta.
 
 ## Juego
 
@@ -120,14 +153,19 @@ En móvil, condensar la instrumentación en una banda horizontal con movimientos
 
 ## Motion
 
-- Feedback de controles entre 100 y 160 ms.
-- Transiciones ordinarias menores de 300 ms con propiedades explícitas.
+- Usar CSS y el bucle finito de React Three Fiber ya necesario para los giros y la caída; no agregar una dependencia externa de animación.
+- Centralizar curvas y tiempos: microfeedback de 120 a 180 ms, paneles de 180 a 240 ms, cambios de estado de 220 a 320 ms y revelados editoriales de 320 a 480 ms.
+- Usar `cubic-bezier(0.23, 1, 0.32, 1)` para entradas y respuestas, y `cubic-bezier(0.77, 0, 0.175, 1)` para movimiento continuo en pantalla.
 - No usar `transition: all`.
 - Escala activa aproximada de `0.97`.
 - Giros de capas con resorte interrumpible y sin rebote excesivo.
 - Celebración única: separación máxima de piezas del 6%, barrido de luz de 700 a 900 ms y reunión controlada.
-- Con `prefers-reduced-motion`, sustituir desplazamientos por color y opacidad.
+- Dar vida a las regiones principales mediante ciclos ambientales coordinados de 4,8 a 9 segundos y descansos visibles: respiración mínima de líneas de la franja, pulso del plano inferior al 8%, microdesplazamiento de una marca de registro, barrido lento de piezas, pulso de estado, brillo ocasional del CTA y elevación mínima del dock.
+- No animar continuamente números de movimientos, progreso, valores de telemetría ni el cubo 3D.
+- Pausar todos los ciclos ambientales durante la entrada, gesto de capa u órbita, cola de giros, celebración, ayuda abierta, pestaña oculta o movimiento reducido.
+- Con `prefers-reduced-motion`, mostrar la caja mediante un crossfade breve, omitir apertura de solapas y caída, colocar el cubo directamente en su estado final, conservar los giros solicitados y desactivar cursor personalizado y bucles ambientales.
 - Aplicar hover solo bajo `hover:hover` y `pointer:fine`.
+- Animar únicamente `transform` y `opacity` en la ambientación; evitar animaciones de layout, rAF infinitos y `useFrame` permanente.
 
 ## Responsive y accesibilidad
 
@@ -142,13 +180,14 @@ En móvil, condensar la instrumentación en una banda horizontal con movimientos
 
 ## Rendimiento y fallbacks
 
-- Usar Next.js App Router, React, TypeScript estricto, Three.js, React Three Fiber, Drei y Motion.
+- Usar Next.js App Router, React, TypeScript estricto, Three.js, React Three Fiber y Drei. No añadir una librería de animación para esta coreografía.
 - Cargar la escena solo en cliente y separar Server Components de la isla interactiva.
 - Compartir geometrías y materiales.
-- Limitar DPR a 1.75 en móvil y 2 en escritorio.
-- Usar sombras de 1024 en móvil y como máximo 2048 en escritorio.
+- Limitar DPR a 1.5 en móvil y 1.75 en escritorio.
+- Resolver la sombra de contacto principal con la elipse HTML anclada; no regenerar sombras WebGL al rotar la cámara.
 - Evitar bloom y profundidad de campo obligatorios.
-- Reservar el espacio del canvas y renderizar bajo demanda cuando sea posible.
+- Reservar el espacio del canvas, usar `frameloop="demand"` y solicitar frames únicamente durante la entrada, un giro, una órbita, una celebración o una transición 3D real.
+- Tras la intro, la órbita o un giro, volver a cero draw calls en reposo; el cubo no se autorrota ni flota continuamente.
 - Mostrar inmediatamente un póster local.
 - Si WebGL falla, conservar título, explicación, reintento y CTA de WhatsApp.
 - Objetivos: LCP menor de 2.5 s, INP menor de 200 ms y CLS menor de 0.1.
@@ -159,7 +198,10 @@ En móvil, condensar la instrumentación en una banda horizontal con movimientos
 - Implementar el motor puro con TDD usando Vitest.
 - Probar la interfaz con Testing Library.
 - Verificar escritorio y vistas de 390×844 y 320×700 con Playwright.
-- Comprobar idiomas, WhatsApp, teclado, órbita, giro de capa, mezcla, deshacer, reinicio, fallback, temas y ausencia de overflow.
+- Comprobar idiomas, WhatsApp, teclado, intro, órbita con botón derecho, fondo inerte con botón izquierdo, propiedad del gesto de capa, touch, cursor contextual, sombra fija, mezcla, deshacer, reinicio, fallback, movimiento reducido y ausencia de overflow.
+- Verificar que la sombra conserve caja y estilo al rotar, que el cursor no aparezca en touch ni movimiento reducido y que el canvas vuelva a cero draw calls después de entrada, giro y órbita.
+- Resolver automáticamente el origen público con `VERCEL_PROJECT_PRODUCTION_URL` y usar `VERCEL_URL` como respaldo; no exigir un dominio propio ni una variable manual para desplegar con la URL predeterminada de Vercel.
+- Permitir `NEXT_PUBLIC_SITE_URL` solo como override opcional para un dominio absoluto HTTP(S), sin credenciales ni barra final, y usar el origen resuelto en canonical, Open Graph, `robots.txt` y `sitemap.xml`.
 - Documentar desarrollo, pruebas y despliegue manual en Vercel.
 - No desplegar Vercel.
 - Publicar la versión verificada en la rama `main` de `Bryan-dev074/Cubo-3D`.

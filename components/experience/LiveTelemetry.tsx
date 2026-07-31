@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { LAYER_NOTATION } from "@/lib/cube/notation";
 import type { Axis, AxisValue, CubeMove } from "@/lib/cube/types";
@@ -16,7 +11,7 @@ import styles from "./experience.module.css";
 
 interface LiveTelemetryProps {
   readonly dictionary: Dictionary;
-  readonly pauseMotion?: boolean;
+  readonly motionPaused: boolean;
   readonly snapshot: CubeTelemetry;
 }
 
@@ -25,13 +20,10 @@ const LAYERS: readonly AxisValue[] = [-1, 0, 1];
 
 export function LiveTelemetry({
   dictionary,
-  pauseMotion = false,
+  motionPaused,
   snapshot,
 }: LiveTelemetryProps) {
-  const pageVisible = usePageVisibility();
-  const reducedMotion = useReducedMotion();
   const disclosureRef = useRef<HTMLDetailsElement>(null);
-  const motionPaused = pauseMotion || !pageVisible || reducedMotion;
   const status = statusLabel(snapshot.statusKey, dictionary);
   const scrambleTotal = snapshot.scrambleProgress.total || 20;
   const scrambleValue = `${snapshot.scrambleProgress.confirmed} / ${scrambleTotal}`;
@@ -360,68 +352,4 @@ function turnValue(snapshot: CubeTelemetry): string {
 
 function signedLayer(layer: AxisValue): string {
   return layer > 0 ? `+${layer}` : String(layer);
-}
-
-function usePageVisibility(): boolean {
-  return useSyncExternalStore(
-    subscribeToPageVisibility,
-    readPageVisibility,
-    readServerPageVisibility,
-  );
-}
-
-function subscribeToPageVisibility(onStoreChange: () => void): () => void {
-  document.addEventListener("visibilitychange", onStoreChange);
-  return () =>
-    document.removeEventListener("visibilitychange", onStoreChange);
-}
-
-function readPageVisibility(): boolean {
-  return document.visibilityState !== "hidden";
-}
-
-function readServerPageVisibility(): boolean {
-  return true;
-}
-
-function useReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeToReducedMotion,
-    readReducedMotion,
-    readServerMediaPreference,
-  );
-}
-
-function subscribeToReducedMotion(onStoreChange: () => void): () => void {
-  return subscribeToMediaQuery(
-    "(prefers-reduced-motion: reduce)",
-    onStoreChange,
-  );
-}
-
-function subscribeToMediaQuery(
-  query: string,
-  onStoreChange: () => void,
-): () => void {
-  if (typeof window.matchMedia !== "function") {
-    return () => undefined;
-  }
-  const media = window.matchMedia(query);
-  media.addEventListener("change", onStoreChange);
-  return () => media.removeEventListener("change", onStoreChange);
-}
-
-function readReducedMotion(): boolean {
-  return readMediaQuery("(prefers-reduced-motion: reduce)");
-}
-
-function readMediaQuery(query: string): boolean {
-  return (
-    typeof window.matchMedia === "function" &&
-    window.matchMedia(query).matches
-  );
-}
-
-function readServerMediaPreference(): boolean {
-  return false;
 }

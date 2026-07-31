@@ -18,6 +18,8 @@ import { SceneFallback } from "@/components/cube/SceneFallback";
 import type { CubieState, CubeMove } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
 import type { Locale } from "@/lib/i18n/types";
+import type { IntroPhase } from "@/lib/motion/intro-sequence";
+import type { CursorIntent } from "@/lib/motion/cursor-intent";
 
 export type WebGLDetector = () => boolean;
 
@@ -29,8 +31,12 @@ export interface CubeCanvasProps {
   readonly purchaseHref: string;
   readonly isCelebrating?: boolean;
   readonly locale?: Locale;
+  readonly introPhase?: IntroPhase;
+  readonly onDropComplete?: () => void;
+  readonly onCursorIntentChange?: (intent: CursorIntent) => void;
   readonly onInteractionLockChange?: (locked: boolean) => void;
   readonly onSceneError?: (reason: "error" | "webgl") => void;
+  readonly onSceneReady?: () => void;
   readonly reviewMode?: CubeReviewMode;
   readonly webGLDetector?: WebGLDetector;
 }

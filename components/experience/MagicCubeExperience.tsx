@@ -7,9 +7,11 @@ import {
   useReducer,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
 
 import { CubeCanvas } from "@/components/cube/CubeCanvas";
+import { AdaptiveCursor } from "@/components/experience/AdaptiveCursor";
 import { ControlDock } from "@/components/experience/ControlDock";
 import { ExperienceHeader } from "@/components/experience/ExperienceHeader";
 import { HelpDialog } from "@/components/experience/HelpDialog";
@@ -18,9 +20,12 @@ import {
   LiveTelemetry,
   formatMoveName,
 } from "@/components/experience/LiveTelemetry";
+import { PackageIntro } from "@/components/experience/PackageIntro";
 import { PurchaseLink } from "@/components/experience/PurchaseLink";
 import { SuccessMoment } from "@/components/experience/SuccessMoment";
+import { useIntroSequence } from "@/components/experience/useIntroSequence";
 import { useLocale } from "@/components/experience/useLocale";
+import { usePageVisibility } from "@/components/experience/usePageVisibility";
 import { generateScramble } from "@/lib/cube/scramble";
 import type { CubeMove } from "@/lib/cube/types";
 import { CELEBRATION_DURATION_MS } from "@/lib/game/celebration";
@@ -32,6 +37,13 @@ import {
 import { selectActiveMove, shouldCelebrate } from "@/lib/game/selectors";
 import { createTelemetrySnapshot } from "@/lib/game/telemetry";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/types";
+import { sampleCubeDrop } from "@/lib/motion/cube-drop";
+import {
+  IDLE_CURSOR_INTENT,
+  normalizeCursorIntent,
+  type CursorIntent,
+} from "@/lib/motion/cursor-intent";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 import styles from "./experience.module.css";
@@ -44,7 +56,52 @@ type Announcement =
   | { readonly kind: "success" }
   | null;
 
+const SHADOW_START = sampleCubeDrop(0);
+const SHADOW_FINAL = sampleCubeDrop(1);
+
+export interface AmbientMotionConditions {
+  readonly celebrationActive: boolean;
+  readonly helpOpen: boolean;
+  readonly introReady: boolean;
+  readonly pageVisible: boolean;
+  readonly queueActive: boolean;
+  readonly reducedMotion: boolean;
+  readonly sceneInteracting: boolean;
+  readonly successOpen: boolean;
+}
+
+export function shouldPauseAmbientMotion({
+  celebrationActive,
+  helpOpen,
+  introReady,
+  pageVisible,
+  queueActive,
+  reducedMotion,
+  sceneInteracting,
+  successOpen,
+}: AmbientMotionConditions): boolean {
+  return (
+    !introReady ||
+    sceneInteracting ||
+    queueActive ||
+    celebrationActive ||
+    helpOpen ||
+    successOpen ||
+    !pageVisible ||
+    reducedMotion
+  );
+}
+
 export function MagicCubeExperience() {
+  const {
+    markDropComplete,
+    markPackageOpened,
+    markSceneReady,
+    phase: introPhase,
+    reducedMotion: introReducedMotion,
+    skip: skipIntro,
+  } = useIntroSequence();
+  const pageVisible = usePageVisibility();
   const [locale, setLocale] = useLocale();
   const dictionary = dictionaries[locale];
   const [state, dispatch] = useReducer(
@@ -53,11 +110,16 @@ export function MagicCubeExperience() {
     createInitialGameState,
   );
   const [isSceneInteracting, setSceneInteracting] = useState(false);
+  const [cursorIntent, setCursorIntent] = useState<CursorIntent>(
+    IDLE_CURSOR_INTENT,
+  );
+  const [customCursorMounted, setCustomCursorMounted] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
   const [announcement, setAnnouncement] = useState<Announcement>(null);
   const backgroundRef = useRef<HTMLDivElement>(null);
+  const celebrationElapsedRef = useRef(0);
   const helpTriggerRef = useRef<HTMLButtonElement>(null);
   const moveRequestClaimedRef = useRef(false);
   const purchaseHref = useMemo(() => buildWhatsAppUrl(locale), [locale]);
@@ -67,29 +129,87 @@ export function MagicCubeExperience() {
     [activeMove, state],
   );
   const isAnimating = state.queue.length > 0;
-  const controlsLocked = isAnimating || isSceneInteracting;
+  const introLocked = introPhase !== "ready";
+  const motionPaused = shouldPauseAmbientMotion({
+    celebrationActive,
+    helpOpen,
+    introReady: !introLocked,
+    pageVisible,
+    queueActive: isAnimating,
+    reducedMotion: introReducedMotion,
+    sceneInteracting: isSceneInteracting,
+    successOpen,
+  });
+  const controlsLocked = introLocked || isAnimating || isSceneInteracting;
+  const handleCursorIntentChange = useCallback((intent: CursorIntent) => {
+    const normalized = normalizeCursorIntent(intent);
+    setCursorIntent((current) =>
+      current === normalized ? current : normalized,
+    );
+  }, []);
+  const handleLocaleChange = useCallback(
+    (nextLocale: Locale) => {
+      setCursorIntent(IDLE_CURSOR_INTENT);
+      setLocale(nextLocale);
+    },
+    [setLocale],
+  );
   const handleSceneError = useCallback(
-    () => setAnnouncement({ kind: "error" }),
-    [],
+    () => {
+      skipIntro();
+      setAnnouncement({ kind: "error" });
+    },
+    [skipIntro],
   );
 
   useEffect(() => {
     if (!celebrationActive) {
+      celebrationElapsedRef.current = 0;
       return;
     }
 
-    const timer = window.setTimeout(
-      () => setCelebrationActive(false),
-      CELEBRATION_DURATION_MS,
+    if (!pageVisible) {
+      return;
+    }
+
+    const startedAt = performance.now();
+    const remaining = Math.max(
+      0,
+      CELEBRATION_DURATION_MS - celebrationElapsedRef.current,
     );
-    return () => window.clearTimeout(timer);
-  }, [celebrationActive]);
+    const timer = window.setTimeout(() => {
+      celebrationElapsedRef.current = CELEBRATION_DURATION_MS;
+      setCelebrationActive(false);
+    }, remaining);
+
+    return () => {
+      window.clearTimeout(timer);
+      celebrationElapsedRef.current = Math.min(
+        CELEBRATION_DURATION_MS,
+        celebrationElapsedRef.current +
+          Math.max(0, performance.now() - startedAt),
+      );
+    };
+  }, [celebrationActive, pageVisible]);
+
+  useEffect(() => {
+    if (!customCursorMounted) {
+      document.body.removeAttribute("data-cube-custom-cursor");
+      return;
+    }
+
+    document.body.setAttribute("data-cube-custom-cursor", "true");
+    return () => {
+      document.body.removeAttribute("data-cube-custom-cursor");
+    };
+  }, [customCursorMounted]);
 
   const queueMove = (move: CubeMove) => {
     // A gesture owns its release while onInteractionLockChange is true. Queue
     // length plus the synchronous claim prevent two requests in one event from
     // entering before React publishes the queued state.
     if (
+      !introLocked &&
       state.queue.length === 0 &&
       !moveRequestClaimedRef.current
     ) {
@@ -178,8 +298,25 @@ export function MagicCubeExperience() {
     <main
       aria-labelledby="experience-title"
       className={styles.experience}
+      data-custom-cursor={customCursorMounted ? "true" : undefined}
+      data-intro-phase={introPhase}
+      data-motion-paused={String(motionPaused)}
+      data-page-visible={String(pageVisible)}
       id="cubo"
+      style={
+        {
+          "--cube-shadow-start-opacity": SHADOW_START.shadowOpacity,
+          "--cube-shadow-start-scale": SHADOW_START.shadowScale,
+          "--cube-shadow-final-opacity": SHADOW_FINAL.shadowOpacity,
+          "--cube-shadow-final-scale": SHADOW_FINAL.shadowScale,
+        } as CSSProperties
+      }
     >
+      <PackageIntro
+        onPackageOpened={markPackageOpened}
+        phase={introPhase}
+        reducedMotion={introReducedMotion}
+      />
       <aside
         aria-hidden="true"
         className={styles.cobaltSpine}
@@ -225,7 +362,7 @@ export function MagicCubeExperience() {
         <ExperienceHeader
           dictionary={dictionary}
           locale={locale}
-          onLocaleChange={setLocale}
+          onLocaleChange={handleLocaleChange}
           purchaseHref={purchaseHref}
         />
 
@@ -245,15 +382,24 @@ export function MagicCubeExperience() {
             id="cube-stage"
             tabIndex={-1}
           >
+            <div
+              aria-hidden="true"
+              className={styles.groundShadow}
+              data-testid="cube-ground-shadow"
+            />
             <div className={styles.cubeFrame}>
               <CubeCanvas
                 cube={state.cube}
+                introPhase={introPhase}
                 isCelebrating={celebrationActive}
                 locale={locale}
+                onCursorIntentChange={handleCursorIntentChange}
                 onInteractionLockChange={setSceneInteracting}
+                onDropComplete={markDropComplete}
                 onMoveComplete={confirmMove}
                 onMoveRequest={queueMove}
                 onSceneError={handleSceneError}
+                onSceneReady={markSceneReady}
                 purchaseHref={purchaseHref}
                 queue={state.queue}
               />
@@ -272,7 +418,7 @@ export function MagicCubeExperience() {
 
           <LiveTelemetry
             dictionary={dictionary}
-            pauseMotion={isSceneInteracting || isAnimating || successOpen}
+            motionPaused={motionPaused}
             snapshot={telemetry}
           />
 
@@ -309,6 +455,11 @@ export function MagicCubeExperience() {
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}
         triggerRef={helpTriggerRef}
+      />
+      <AdaptiveCursor
+        intent={cursorIntent}
+        onMounted={setCustomCursorMounted}
+        paused={introLocked}
       />
     </main>
   );
@@ -422,11 +573,16 @@ function PlanDrawing({
 
         <g className={styles.planRegistration}>
           <g
-            data-testid="plan-copy-clear-registration"
-            transform="translate(321 0)"
+            className={styles.planRegistrationMotion}
+            data-testid="plan-registration-motion"
           >
-            <path d="M110 82h36M128 64v36" />
-            <circle cx="128" cy="82" r="8" />
+            <g
+              data-testid="plan-copy-clear-registration"
+              transform="translate(321 0)"
+            >
+              <path d="M110 82h36M128 64v36" />
+              <circle cx="128" cy="82" r="8" />
+            </g>
           </g>
           <path d="M954 414h36M972 396v36" />
           <circle cx="972" cy="414" r="8" />

@@ -3,6 +3,11 @@
   --font-display: var(--font-archivo-black), Arial, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --motion-micro: 160ms;
+  --motion-state: 260ms;
+  --motion-editorial: 420ms;
+  --motion-ambient-short: 4.8s;
+  --motion-ambient-long: 8.4s;
   color-scheme: light;
 }
 
@@ -112,7 +117,7 @@ a {
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 140ms var(--ease-out);
+  transition: transform var(--motion-micro) var(--ease-out);
 }
 
 .scene-fallback__actions a {
@@ -162,5 +167,12 @@ a {
   .scene-fallback__actions button,
   .scene-fallback__actions a {
     transition-duration: 1ms;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  body[data-cube-custom-cursor="true"],
+  body[data-cube-custom-cursor="true"] * {
+    cursor: none;
   }
 }

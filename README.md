@@ -3,6 +3,8 @@
 Landing comercial bilingüe (español/portugués) con un cubo 3×3 realmente
 jugable. La experiencia permite desordenar, girar capas, deshacer, reiniciar y
 resolver una mezcla válida antes de abrir una compra localizada por WhatsApp.
+Una entrada cinematográfica de aproximadamente dos segundos abre el empaque y
+deja caer el cubo real sobre la superficie de juego, sin autorrotación posterior.
 
 ## Requisitos
 
@@ -26,8 +28,14 @@ npm run start
 
 ## Controles
 
-- **Mouse o toque sobre una pieza:** arrastrá para girar su capa.
-- **Mouse o toque sobre el fondo:** arrastrá para observar el cubo completo.
+- **Mouse izquierdo sobre una pieza:** arrastrá para girar su capa. La pieza y
+  la capa iniciales conservan el gesto hasta soltar, aunque el puntero cruce
+  otras piezas.
+- **Mouse izquierdo sobre el fondo:** no altera el cubo ni la vista.
+- **Mouse derecho en cualquier punto del escenario:** arrastrá para rotar la
+  vista completa. El menú contextual se bloquea solo dentro del escenario 3D.
+- **Toque:** arrastrar desde una pieza gira su capa; arrastrar desde el fondo
+  rota la vista.
 - **Desordenar cubo:** genera una secuencia válida de 20 movimientos.
 - **Deshacer / Reiniciar:** revierte el último giro o vuelve al estado resuelto.
 - **Capas:** abre controles HTML para las nueve capas; funcionan con teclado y
@@ -45,6 +53,12 @@ una vista previa, una explicación localizada, reintento y el enlace de compra.
 - Three.js con React Three Fiber para las 26 piezas independientes.
 - Motor de estado puro para movimientos, mezcla, deshacer y detección de
   resolución.
+- Entrada finita en HTML/CSS y caída del grupo 3D real; al asentarse, el cubo
+  queda quieto hasta la próxima interacción.
+- Sombra elíptica HTML anclada al escenario: no forma parte del cubo ni de la
+  cámara, por lo que permanece fija al rotar la vista o mover una capa.
+- Canvas con render bajo demanda y sin autorrotación ni bucles Three.js en
+  reposo.
 - Escena 3D cargada dinámicamente; el título, la propuesta, los controles y la
   compra permanecen en HTML semántico.
 - Diccionarios locales ES/PT, sin servicio externo de traducción.
@@ -60,8 +74,15 @@ El enlace comercial abre WhatsApp al número configurado en
 - Una sola jerarquía principal y controles con nombres accesibles.
 - Alternativa completa por teclado para cada capa.
 - Objetivos táctiles principales de al menos 44×44 CSS px.
-- Respuesta a `prefers-reduced-motion`, `prefers-contrast`,
-  `prefers-color-scheme` y `prefers-reduced-transparency`.
+- Composición blanca única con contraste reforzado mediante
+  `prefers-contrast` y `prefers-reduced-transparency`.
+- Respuesta a `prefers-reduced-motion`: omite solapas, caída, cursor
+  personalizado y bucles ambientales sin impedir los giros solicitados.
+- Cursor contextual solo en escritorio con puntero fino; comunica botones,
+  capa disponible, arrastre de capa, órbita y bloqueo sin sustituir al cursor
+  nativo en touch.
+- Movimiento ambiental sutil que se pausa durante la entrada, gestos, giros,
+  celebración, ayuda, pestaña oculta o movimiento reducido.
 - Compra móvil compatible con áreas seguras y telemetría expandible.
 - Foco visible, anuncios de estado y recuperación ante fallos de WebGL.
 

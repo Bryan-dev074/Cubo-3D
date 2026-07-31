@@ -10,7 +10,13 @@ import {
   type RootState,
   type ThreeEvent,
 } from "@react-three/fiber";
-import { MathUtils, Vector2, Vector3, type Group } from "three";
+import {
+  MathUtils,
+  Vector2,
+  Vector3,
+  type Group,
+  type Object3D,
+} from "three";
 
 import type { CubiePointerHandlers } from "@/components/cube/Cubie";
 import type {
@@ -24,12 +30,27 @@ import type {
   CubeMove,
   CubieState,
 } from "@/lib/cube/types";
+import {
+  DISABLED_CURSOR_INTENT,
+  IDLE_CURSOR_INTENT,
+  LAYER_READY_CURSOR_INTENT,
+  cursorIntentForMove,
+  normalizeCursorIntent,
+  type CursorIntent,
+} from "@/lib/motion/cursor-intent";
 
 const COMMIT_DISTANCE_PX = 34;
 const COMMIT_VELOCITY_PX_PER_SECOND = 460;
 const VELOCITY_SAMPLE_MAX_AGE_MS = 120;
 const MAX_PREVIEW_ANGLE = Math.PI * 0.14;
 const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>();
+
+export function isLayerGesturePointer(
+  event: ThreeEvent<PointerEvent>,
+): boolean {
+  const native = event.nativeEvent;
+  return native.pointerType !== "mouse" || native.button === 0;
+}
 
 export function shouldCommitLayerGesture(distance: number, velocity: number): boolean {
   return distance >= COMMIT_DISTANCE_PX || velocity >= COMMIT_VELOCITY_PX_PER_SECOND;
@@ -40,6 +61,7 @@ interface UseLayerGestureOptions {
   readonly disabled: boolean;
   readonly invalidate: RootState["invalidate"];
   readonly onActiveChange: (active: boolean) => void;
+  readonly onCursorIntentChange?: (intent: CursorIntent) => void;
   readonly onMoveRequest: (move: CubeMove) => void;
   readonly onOrbitLockChange: (locked: boolean) => void;
   readonly pivotRefs: MutableRefObject<CubiePivotMap>;
@@ -76,6 +98,7 @@ export function useLayerGesture({
   disabled,
   invalidate,
   onActiveChange,
+  onCursorIntentChange,
   onMoveRequest,
   onOrbitLockChange,
   pivotRefs,
@@ -87,7 +110,20 @@ export function useLayerGesture({
 }> {
   const { camera, size } = useThree();
   const gestureRef = useRef<ActiveGesture | null>(null);
+  const disabledRef = useRef(disabled);
+  const cursorListenerRef = useRef(onCursorIntentChange);
+  const lastCursorIntentRef = useRef<CursorIntent | null>(null);
   const [isGestureActive, setGestureActive] = useState(false);
+
+  const emitCursorIntent = useCallback((intent: CursorIntent) => {
+    const normalized = normalizeCursorIntent(intent);
+    if (lastCursorIntentRef.current === normalized) {
+      return;
+    }
+
+    lastCursorIntentRef.current = normalized;
+    cursorListenerRef.current?.(normalized);
+  }, []);
 
   const setActive = useCallback(
     (active: boolean) => {
@@ -111,16 +147,38 @@ export function useLayerGesture({
       }
       onOrbitLockChange(false);
       setActive(false);
+      emitCursorIntent(
+        disabledRef.current
+          ? DISABLED_CURSOR_INTENT
+          : IDLE_CURSOR_INTENT,
+      );
       invalidate();
     },
-    [invalidate, onOrbitLockChange, previewRef, setActive],
+    [emitCursorIntent, invalidate, onOrbitLockChange, previewRef, setActive],
   );
 
   useEffect(() => {
+    cursorListenerRef.current = onCursorIntentChange;
+    const currentIntent = lastCursorIntentRef.current;
+    if (currentIntent) {
+      onCursorIntentChange?.(currentIntent);
+    }
+  }, [onCursorIntentChange]);
+
+  useEffect(() => {
+    disabledRef.current = disabled;
+
     if (disabled && gestureRef.current) {
       clearGesture();
+      return;
     }
-  }, [clearGesture, disabled]);
+
+    if (!gestureRef.current) {
+      emitCursorIntent(
+        disabled ? DISABLED_CURSOR_INTENT : IDLE_CURSOR_INTENT,
+      );
+    }
+  }, [clearGesture, disabled, emitCursorIntent]);
 
   useEffect(
     () => () => {
@@ -133,14 +191,23 @@ export function useLayerGesture({
         onOrbitLockChange(false);
         onActiveChange(false);
       }
+      emitCursorIntent(
+        disabledRef.current
+          ? DISABLED_CURSOR_INTENT
+          : IDLE_CURSOR_INTENT,
+      );
     },
-    [onActiveChange, onOrbitLockChange, previewRef],
+    [emitCursorIntent, onActiveChange, onOrbitLockChange, previewRef],
   );
 
   const handlersFor = useCallback(
     (cubie: CubieState): CubiePointerHandlers => ({
       onPointerDown(event) {
-        if (disabled || gestureRef.current) {
+        if (
+          disabled ||
+          gestureRef.current ||
+          !isLayerGesturePointer(event)
+        ) {
           return;
         }
 
@@ -192,6 +259,7 @@ export function useLayerGesture({
           angularVelocity: 0,
           selectedIds: new Set([cubie.id]),
         };
+        emitCursorIntent(LAYER_READY_CURSOR_INTENT);
         setActive(true);
         invalidate();
       },
@@ -220,6 +288,7 @@ export function useLayerGesture({
         gesture.move = move;
 
         if (move) {
+          emitCursorIntent(cursorIntentForMove(move));
           const angle =
             Math.sign(move.turns) *
             MathUtils.clamp(drag.length() / 145, 0, MAX_PREVIEW_ANGLE);
@@ -238,6 +307,7 @@ export function useLayerGesture({
             selectedIds: new Set(selectLayerCubieIds(cube, move)),
           };
         } else {
+          emitCursorIntent(LAYER_READY_CURSOR_INTENT);
           gesture.lastAngle = 0;
           previewRef.current = {
             move: null,
@@ -248,6 +318,27 @@ export function useLayerGesture({
         }
 
         invalidate();
+      },
+
+      onPointerOut(event) {
+        if (
+          gestureRef.current ||
+          eventStillIntersectsCubie(event, cubie.id)
+        ) {
+          return;
+        }
+
+        emitCursorIntent(
+          disabled ? DISABLED_CURSOR_INTENT : IDLE_CURSOR_INTENT,
+        );
+      },
+
+      onPointerOver() {
+        if (!gestureRef.current) {
+          emitCursorIntent(
+            disabled ? DISABLED_CURSOR_INTENT : LAYER_READY_CURSOR_INTENT,
+          );
+        }
       },
 
       onPointerUp(event) {
@@ -296,6 +387,7 @@ export function useLayerGesture({
       clearGesture,
       cube,
       disabled,
+      emitCursorIntent,
       invalidate,
       onMoveRequest,
       onOrbitLockChange,
@@ -381,6 +473,27 @@ function localAxisToWorld(root: Group, axis: Axis): Vector3 {
         ? new Vector3(0, 1, 0)
         : new Vector3(0, 0, 1);
   return local.transformDirection(root.matrixWorld).normalize();
+}
+
+function eventStillIntersectsCubie(
+  event: ThreeEvent<PointerEvent>,
+  cubieId: string,
+): boolean {
+  return event.intersections.some(({ object }) =>
+    objectBelongsToCubie(object, cubieId),
+  );
+}
+
+function objectBelongsToCubie(object: Object3D, cubieId: string): boolean {
+  let current: Object3D | null = object;
+  while (current) {
+    if (current.userData.cubieId === cubieId) {
+      return true;
+    }
+    current = current.parent;
+  }
+
+  return false;
 }
 
 interface PointerCaptureTarget extends EventTarget {

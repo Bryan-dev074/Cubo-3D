@@ -1,5 +1,6 @@
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -11,31 +12,76 @@ import { resolve } from "node:path";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MagicCubeExperience } from "@/components/experience/MagicCubeExperience";
+import {
+  MagicCubeExperience,
+  shouldPauseAmbientMotion,
+  type AmbientMotionConditions,
+} from "@/components/experience/MagicCubeExperience";
 import { inverseMove } from "@/lib/cube/moves";
 import type { CubeMove } from "@/lib/cube/types";
 import type { QueuedMove } from "@/lib/game/reducer";
+import type { CursorIntent } from "@/lib/motion/cursor-intent";
+import type { IntroPhase } from "@/lib/motion/intro-sequence";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+
+vi.mock("@/components/experience/AdaptiveCursor", () => ({
+  AdaptiveCursor: ({
+    intent,
+    onMounted,
+    paused,
+  }: {
+    readonly intent: CursorIntent;
+    readonly onMounted?: (mounted: boolean) => void;
+    readonly paused: boolean;
+  }) => (
+    <div
+      data-axis={intent.axis}
+      data-direction={intent.direction}
+      data-mode={intent.mode}
+      data-paused={String(paused)}
+      data-testid="adaptive-cursor-probe"
+    >
+      <button type="button" onClick={() => onMounted?.(true)}>
+        Montar cursor personalizado
+      </button>
+      <button type="button" onClick={() => onMounted?.(false)}>
+        Desmontar cursor personalizado
+      </button>
+    </div>
+  ),
+}));
 
 vi.mock("@/components/cube/CubeCanvas", () => ({
   CubeCanvas: ({
+    introPhase,
     isCelebrating = false,
     locale,
+    onCursorIntentChange,
+    onDropComplete,
     onInteractionLockChange,
     onMoveComplete,
     onMoveRequest,
     onSceneError,
+    onSceneReady,
     queue,
   }: {
+    readonly introPhase?: IntroPhase;
     readonly isCelebrating?: boolean;
     readonly locale: "es" | "pt";
+    readonly onCursorIntentChange?: (intent: CursorIntent) => void;
+    readonly onDropComplete?: () => void;
     readonly onInteractionLockChange?: (locked: boolean) => void;
     readonly onMoveComplete: () => void;
     readonly onMoveRequest: (move: CubeMove) => void;
     readonly onSceneError?: (reason: "error" | "webgl") => void;
+    readonly onSceneReady?: () => void;
     readonly queue: readonly QueuedMove[];
   }) => (
-    <div data-locale={locale} data-testid="cube-canvas-probe">
+    <div
+      data-intro-phase={introPhase}
+      data-locale={locale}
+      data-testid="cube-canvas-probe"
+    >
       <span data-testid="visual-queue-length">{queue.length}</span>
       <span data-testid="visual-queue-json">{JSON.stringify(queue)}</span>
       <button
@@ -86,16 +132,52 @@ vi.mock("@/components/cube/CubeCanvas", () => ({
       <button type="button" onClick={() => onSceneError?.("error")}>
         Fallar escena
       </button>
+      <button type="button" onClick={onSceneReady}>
+        Marcar escena lista
+      </button>
+      <button type="button" onClick={onDropComplete}>
+        Completar caída
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onCursorIntentChange?.({
+            axis: "z",
+            direction: "negative",
+            mode: "layer-drag",
+          })
+        }
+      >
+        Emitir cursor de capa
+      </button>
+      <button
+        type="button"
+        onClick={() => onCursorIntentChange?.({ mode: "disabled" })}
+      >
+        Emitir cursor bloqueado
+      </button>
     </div>
   ),
 }));
 
 const LOCALE_STORAGE_KEY = "cubo3d-locale";
 
+const RESTING_MOTION: AmbientMotionConditions = {
+  celebrationActive: false,
+  helpOpen: false,
+  introReady: true,
+  pageVisible: true,
+  queueActive: false,
+  reducedMotion: false,
+  sceneInteracting: false,
+  successOpen: false,
+};
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  delete (document as { visibilityState?: string }).visibilityState;
 });
 
 beforeEach(() => {
@@ -105,6 +187,270 @@ beforeEach(() => {
 });
 
 describe("MagicCubeExperience locale and commerce", () => {
+  it.each([
+    ["intro", { introReady: false }],
+    ["scene interaction", { sceneInteracting: true }],
+    ["queued move", { queueActive: true }],
+    ["celebration", { celebrationActive: true }],
+    ["help", { helpOpen: true }],
+    ["success", { successOpen: true }],
+    ["hidden page", { pageVisible: false }],
+    ["reduced motion", { reducedMotion: true }],
+  ] satisfies readonly (readonly [
+    string,
+    Partial<AmbientMotionConditions>,
+  ])[])("pauses independently for %s and resumes at rest", (_label, blocker) => {
+    expect(shouldPauseAmbientMotion(RESTING_MOTION)).toBe(false);
+    expect(
+      shouldPauseAmbientMotion({ ...RESTING_MOTION, ...blocker }),
+    ).toBe(true);
+  });
+
+  it("enables native cursor suppression only after the adaptive cursor reports mounted", async () => {
+    const user = userEvent.setup();
+    const { container, unmount } = render(<MagicCubeExperience />);
+    const experience = container.querySelector("main");
+
+    expect(experience).not.toHaveAttribute("data-custom-cursor");
+    expect(document.body).not.toHaveAttribute("data-cube-custom-cursor");
+    await user.click(
+      screen.getByRole("button", { name: "Montar cursor personalizado" }),
+    );
+    expect(experience).toHaveAttribute("data-custom-cursor", "true");
+    expect(document.body).toHaveAttribute("data-cube-custom-cursor", "true");
+
+    await user.click(
+      screen.getByRole("button", { name: "Desmontar cursor personalizado" }),
+    );
+    expect(experience).not.toHaveAttribute("data-custom-cursor");
+    expect(document.body).not.toHaveAttribute("data-cube-custom-cursor");
+
+    await user.click(
+      screen.getByRole("button", { name: "Montar cursor personalizado" }),
+    );
+    expect(document.body).toHaveAttribute("data-cube-custom-cursor", "true");
+    unmount();
+    expect(document.body).not.toHaveAttribute("data-cube-custom-cursor");
+  });
+
+  it("pauses the cursor only for the intro and not for an ordinary cube lock", async () => {
+    const user = userEvent.setup();
+    render(<MagicCubeExperience />);
+    const cursor = screen.getByTestId("adaptive-cursor-probe");
+
+    expect(cursor).toHaveAttribute("data-paused", "true");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(cursor).toHaveAttribute("data-paused", "false");
+
+    await user.click(screen.getByRole("button", { name: "Iniciar gesto" }));
+    expect(cursor).toHaveAttribute("data-paused", "false");
+  });
+
+  it("normalizes cube cursor intent and resets it safely when locale changes", async () => {
+    const user = userEvent.setup();
+    renderReadyExperience();
+    const cursor = screen.getByTestId("adaptive-cursor-probe");
+
+    await user.click(
+      screen.getByRole("button", { name: "Emitir cursor de capa" }),
+    );
+    expect(cursor).toHaveAttribute("data-mode", "layer-drag");
+    expect(cursor).toHaveAttribute("data-axis", "z");
+    expect(cursor).toHaveAttribute("data-direction", "negative");
+
+    await user.click(screen.getByRole("button", { name: "PT" }));
+    expect(cursor).toHaveAttribute("data-mode", "idle");
+    expect(cursor).not.toHaveAttribute("data-axis");
+    expect(cursor).not.toHaveAttribute("data-direction");
+  });
+
+  it("mounts the decorative package intro before the real carton", () => {
+    const { container } = render(<MagicCubeExperience />);
+    const experience = container.querySelector("main");
+    const intro = screen.getByTestId("package-intro");
+
+    expect(experience).toHaveAttribute("data-intro-phase", "opening");
+    expect(experience?.firstElementChild).toBe(intro);
+    expect(screen.getByTestId("cube-canvas-probe")).toBeInTheDocument();
+  });
+
+  it("skips the intro when the WebGL scene reports an error", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<MagicCubeExperience />);
+
+    expect(container.querySelector("main")).toHaveAttribute(
+      "data-intro-phase",
+      "opening",
+    );
+    await user.click(screen.getByRole("button", { name: "Fallar escena" }));
+
+    expect(container.querySelector("main")).toHaveAttribute(
+      "data-intro-phase",
+      "ready",
+    );
+    expect(screen.queryByTestId("package-intro")).not.toBeInTheDocument();
+  });
+
+  it("blocks every gameplay path through drop while keeping language, help and purchase available", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<MagicCubeExperience />);
+
+    await user.click(screen.getByRole("button", { name: "Marcar escena lista" }));
+    firePackageAnimationEnd();
+
+    expect(container.querySelector("main")).toHaveAttribute(
+      "data-intro-phase",
+      "drop",
+    );
+    expect(screen.getByRole("button", { name: "Desordenar cubo" })).toBeDisabled();
+
+    const primaryActions = screen.getByTestId("primary-dock-actions");
+    expect(
+      within(primaryActions).getByRole("button", { name: "Desordenar" }),
+    ).toBeDisabled();
+    expect(
+      within(primaryActions).getByRole("button", { name: "Reiniciar" }),
+    ).toBeDisabled();
+    expect(
+      within(primaryActions).getByRole("button", { name: "Ayuda" }),
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "PT" })).toBeEnabled();
+    for (const purchase of screen.getAllByRole("link", { name: "Comprar cubo" })) {
+      expect(purchase).toHaveAttribute("href", buildWhatsAppUrl("es"));
+      expect(purchase).not.toHaveAttribute("aria-disabled", "true");
+    }
+
+    await user.click(screen.getByRole("button", { name: "Más controles" }));
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeDisabled();
+    const layerToggle = screen.getByRole("button", {
+      name: "Mostrar controles por capa",
+    });
+    expect(layerToggle).toBeEnabled();
+    await user.click(layerToggle);
+    for (const layerMove of within(
+      screen.getByRole("group", { name: "Giros por capa" }),
+    ).getAllByRole("button")) {
+      expect(layerMove).toBeDisabled();
+    }
+
+    await user.click(screen.getByRole("button", { name: "Simular giro" }));
+    expect(screen.getByTestId("visual-queue-length")).toHaveTextContent("0");
+
+    await user.click(screen.getByRole("button", { name: "Completar caída" }));
+    expect(container.querySelector("main")).toHaveAttribute(
+      "data-intro-phase",
+      "ready",
+    );
+    expect(screen.getByRole("button", { name: "Desordenar cubo" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Simular giro" }));
+    expect(screen.getByTestId("visual-queue-length")).toHaveTextContent("1");
+  });
+
+  it("publishes the current page visibility for coordinated CSS motion", () => {
+    let visibilityState: DocumentVisibilityState = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibilityState,
+    });
+    const { container } = render(<MagicCubeExperience />);
+    const experience = container.querySelector("main");
+
+    expect(experience).toHaveAttribute("data-page-visible", "true");
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
+
+    visibilityState = "hidden";
+    fireEvent(document, new Event("visibilitychange"));
+    expect(experience).toHaveAttribute("data-page-visible", "false");
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
+
+    visibilityState = "visible";
+    fireEvent(document, new Event("visibilitychange"));
+    expect(experience).toHaveAttribute("data-page-visible", "true");
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
+  });
+
+  it("publishes one ambient pause signal through intro, scene interaction and resume", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<MagicCubeExperience />);
+    const experience = container.querySelector("main");
+    const telemetry = screen.getByTestId("live-telemetry");
+
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
+    expect(telemetry).toHaveAttribute("data-motion-paused", "true");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
+    expect(telemetry).toHaveAttribute("data-motion-paused", "false");
+
+    await user.click(screen.getByRole("button", { name: "Iniciar gesto" }));
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
+    expect(telemetry).toHaveAttribute("data-motion-paused", "true");
+
+    await user.click(screen.getByRole("button", { name: "Terminar gesto" }));
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
+    expect(telemetry).toHaveAttribute("data-motion-paused", "false");
+  });
+
+  it("pauses and resumes the ambient system while help is open", async () => {
+    const user = userEvent.setup();
+    const { container } = renderReadyExperience();
+    const experience = container.querySelector("main");
+
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
+    await user.click(screen.getByRole("button", { name: "Ayuda" }));
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
+
+    await user.click(screen.getByRole("button", { name: "Cerrar ayuda" }));
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
+  });
+
+  it("keeps ambient motion paused for reduced motion after the intro is skipped and resumes when the preference clears", async () => {
+    let reduced = true;
+    const listeners = new Set<(event: MediaQueryListEvent) => void>();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches:
+          query === "(prefers-reduced-motion: reduce)" ? reduced : false,
+        media: query,
+        addEventListener: (
+          type: string,
+          listener: (event: MediaQueryListEvent) => void,
+        ) => {
+          if (query === "(prefers-reduced-motion: reduce)" && type === "change") {
+            listeners.add(listener);
+          }
+        },
+        removeEventListener: (
+          type: string,
+          listener: (event: MediaQueryListEvent) => void,
+        ) => {
+          if (query === "(prefers-reduced-motion: reduce)" && type === "change") {
+            listeners.delete(listener);
+          }
+        },
+      }) as unknown as MediaQueryList),
+    );
+    const { container } = render(<MagicCubeExperience />);
+    const experience = container.querySelector("main");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(experience).toHaveAttribute("data-intro-phase", "ready");
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
+
+    reduced = false;
+    listeners.forEach((listener) =>
+      listener({ matches: false } as MediaQueryListEvent),
+    );
+
+    await waitFor(() =>
+      expect(experience).toHaveAttribute("data-motion-paused", "false"),
+    );
+  });
+
   it("offers a localized skip link to the interactive cube stage", () => {
     render(<MagicCubeExperience />);
 
@@ -174,8 +520,30 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(
       within(plan).getByTestId("plan-copy-clear-registration"),
     ).toHaveAttribute("transform", "translate(321 0)");
+    expect(
+      within(plan).getByTestId("plan-registration-motion"),
+    ).toContainElement(
+      within(plan).getByTestId("plan-copy-clear-registration"),
+    );
     expect(stage).not.toContainElement(plan);
     expect(plan.parentElement).toHaveAttribute("data-testid", "workspace");
+  });
+
+  it("renders one decorative fixed ground shadow beside the cube frame", () => {
+    render(<MagicCubeExperience />);
+
+    const shadow = screen.getByTestId("cube-ground-shadow");
+    const stage = screen.getByRole("region", {
+      name: "Cubo Mágico 3D interactivo",
+    });
+
+    expect(shadow).toHaveAttribute("aria-hidden", "true");
+    expect(stage).toContainElement(shadow);
+    expect(shadow.parentElement).toBe(stage);
+    expect(stage.querySelectorAll('[data-testid="cube-ground-shadow"]')).toHaveLength(1);
+    expect(shadow.compareDocumentPosition(stage.querySelector("[class*='cubeFrame']")!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it("keeps three primary dock actions visible and relegates undo and layers to an accessible overlay", async () => {
@@ -209,9 +577,14 @@ describe("MagicCubeExperience locale and commerce", () => {
     const challenge = screen.getByRole("button", {
       name: "Desordenar cubo",
     });
-    const hint = screen.getByText("Arrastrá para rotar el cubo");
+    const hint = screen
+      .getByText("Izquierdo: capas · Derecho: rotar")
+      .closest("p");
 
     expect(hint).toHaveAttribute("id", "cube-drag-hint");
+    expect(hint).toHaveTextContent(
+      "Con el dedo: pieza = capa · fondo = rotar",
+    );
     expect(challenge.nextElementSibling).toBe(hint);
   });
 
@@ -252,7 +625,10 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(screen.getByTestId("editorial-spine")).toHaveTextContent(
       "A CAIXA ABERTA",
     );
-    expect(screen.getByText("Arraste para girar o cubo")).toBeVisible();
+    expect(screen.getByText("Esquerdo: camadas · Direito: girar")).toBeVisible();
+    expect(
+      screen.getByText("Com o dedo: peça = camada · fundo = girar"),
+    ).toBeVisible();
     expect(document.documentElement.lang).toBe("pt");
     for (const purchase of screen.getAllByRole("link", { name: "Comprar cubo" })) {
       expect(purchase).toHaveAttribute("href", buildWhatsAppUrl("pt"));
@@ -261,7 +637,7 @@ describe("MagicCubeExperience locale and commerce", () => {
 
   it("persists a manual language choice without remounting the canvas or resetting game state", async () => {
     const user = userEvent.setup();
-    render(<MagicCubeExperience />);
+    renderReadyExperience();
     const canvasBefore = screen.getByTestId("cube-canvas-probe");
 
     await user.click(screen.getByRole("button", { name: "Simular giro" }));
@@ -280,7 +656,7 @@ describe("MagicCubeExperience locale and commerce", () => {
 
   it("honors the canvas interaction lock while every purchase action stays enabled", async () => {
     const user = userEvent.setup();
-    render(<MagicCubeExperience />);
+    renderReadyExperience();
 
     await user.click(screen.getByRole("button", { name: "Iniciar gesto" }));
     await openDockUtilities(user);
@@ -297,15 +673,18 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(screen.getByRole("button", { name: "Desordenar cubo" })).toBeEnabled();
   });
 
-  it("pauses idle telemetry motion while a queued move owns the real active cues", async () => {
+  it("pauses root ambient motion while a queued move owns the real active cues", async () => {
     const user = userEvent.setup();
-    const { container } = render(<MagicCubeExperience />);
+    const { container } = renderReadyExperience();
     const telemetry = screen.getByTestId("live-telemetry");
+    const experience = container.querySelector("main");
 
     expect(telemetry).toHaveAttribute("data-motion-paused", "false");
+    expect(experience).toHaveAttribute("data-motion-paused", "false");
     await user.click(screen.getByRole("button", { name: "Simular giro" }));
 
     expect(telemetry).toHaveAttribute("data-motion-paused", "true");
+    expect(experience).toHaveAttribute("data-motion-paused", "true");
     expect(container.querySelectorAll('[data-piece-active="true"]')).toHaveLength(9);
     expect(screen.getByTestId("telemetry-turn-direction")).toHaveAttribute(
       "data-direction",
@@ -315,7 +694,7 @@ describe("MagicCubeExperience locale and commerce", () => {
 
   it("accepts only one move when two scene requests arrive in the same event", async () => {
     const user = userEvent.setup();
-    render(<MagicCubeExperience />);
+    renderReadyExperience();
 
     await user.click(screen.getByRole("button", { name: "Simular doble giro" }));
 
@@ -326,7 +705,7 @@ describe("MagicCubeExperience locale and commerce", () => {
     "closes success before undo and does not retrigger when that solved state returns",
     async () => {
       const user = userEvent.setup();
-      render(<MagicCubeExperience />);
+      renderReadyExperience();
       const solutionMoves = await solveChallenge(user);
       const lastSolutionMove = solutionMoves.at(-1);
 
@@ -359,7 +738,7 @@ describe("MagicCubeExperience locale and commerce", () => {
     "closes success before an HTML face turn and keeps the celebration guard after undo resolves it",
     async () => {
       const user = userEvent.setup();
-      render(<MagicCubeExperience />);
+      renderReadyExperience();
       await solveChallenge(user);
 
       expect(
@@ -395,7 +774,7 @@ describe("MagicCubeExperience locale and commerce", () => {
     "unlocks the real canvas contract after the finite celebration and closes success on its accepted gesture",
     async () => {
       const user = userEvent.setup();
-      render(<MagicCubeExperience />);
+      renderReadyExperience();
       await solveChallenge(user);
       const canvasGesture = screen.getByRole("button", {
         name: "Simular gesto canvas real",
@@ -409,19 +788,56 @@ describe("MagicCubeExperience locale and commerce", () => {
         () => expect(canvasGesture).toBeEnabled(),
         { timeout: 1_200 },
       );
+      const experience = document.querySelector("main");
+      expect(experience).toHaveAttribute("data-motion-paused", "true");
+      await user.click(
+        screen.getByRole("button", { name: "Cerrar felicitación" }),
+      );
+      expect(experience).toHaveAttribute("data-motion-paused", "false");
       await user.click(canvasGesture);
 
       expect(
         screen.queryByRole("heading", { name: "Lo resolviste." }),
       ).not.toBeInTheDocument();
       expect(screen.getByTestId("visual-queue-length")).toHaveTextContent("1");
+      expect(experience).toHaveAttribute("data-motion-paused", "true");
     },
     8_000,
   );
 
+  it(
+    "counts celebration duration only while the page is visible and resumes the remaining time",
+    async () => {
+      let visibilityState: DocumentVisibilityState = "visible";
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => visibilityState,
+      });
+      const user = userEvent.setup();
+      renderReadyExperience();
+      await solveChallenge(user);
+      const canvasGesture = screen.getByRole("button", {
+        name: "Simular gesto canvas real",
+      });
+
+      expect(canvasGesture).toBeDisabled();
+      visibilityState = "hidden";
+      fireEvent(document, new Event("visibilitychange"));
+      await new Promise((resolve) => window.setTimeout(resolve, 900));
+      expect(canvasGesture).toBeDisabled();
+
+      visibilityState = "visible";
+      fireEvent(document, new Event("visibilitychange"));
+      await waitFor(() => expect(canvasGesture).toBeEnabled(), {
+        timeout: 1_200,
+      });
+    },
+    12_000,
+  );
+
   it("uses one polite announcer for confirmed moves, scramble completion, reset and scene errors", async () => {
     const user = userEvent.setup();
-    render(<MagicCubeExperience />);
+    renderReadyExperience();
     const announcer = screen.getByTestId("experience-announcer");
 
     expect(announcer).toHaveAttribute("aria-live", "polite");
@@ -502,6 +918,54 @@ describe("commercial CSS contract", () => {
     expect(heading).toMatch(/letter-spacing:\s*-0\.04em;/);
   });
 
+  it("defines the approved motion tokens and restrained ambient limits", () => {
+    const globalCss = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    );
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    for (const token of [
+      "--ease-out: cubic-bezier(0.23, 1, 0.32, 1)",
+      "--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)",
+      "--motion-micro: 160ms",
+      "--motion-state: 260ms",
+      "--motion-editorial: 420ms",
+      "--motion-ambient-short: 4.8s",
+      "--motion-ambient-long: 8.4s",
+    ]) {
+      expect(globalCss).toContain(token);
+    }
+
+    expect(css).toMatch(
+      /@keyframes spine-technical-breathe[\s\S]*?opacity:\s*0\.48;[\s\S]*?opacity:\s*0\.64;/,
+    );
+    expect(css).toMatch(
+      /\.planDrawing\s*\{[^}]*--plan-opacity-low:\s*0\.48;[^}]*--plan-opacity-high:\s*0\.56;/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 900px\)[\s\S]*?\.planDrawing\s*\{[^}]*--plan-opacity-low:\s*0\.16;[^}]*--plan-opacity-high:\s*0\.18;/,
+    );
+    expect(css).toMatch(
+      /@keyframes plan-registration-drift[\s\S]*?translate\(3px, -3px\) rotate\(3deg\)/,
+    );
+    expect(css).toMatch(
+      /\.pieceMatrix::after\s*\{[^}]*animation:\s*telemetry-group-sweep var\(--motion-ambient-short\)/,
+    );
+    expect(css).toMatch(
+      /@keyframes status-breathe[\s\S]*?opacity:\s*0\.82;[\s\S]*?opacity:\s*1;[\s\S]*?scale\(1\.16\)/,
+    );
+    expect(css).toMatch(
+      /@keyframes purchase-sheen[\s\S]*?76%[\s\S]*?94%/,
+    );
+    expect(css).toMatch(
+      /\.dockUtilitiesPanel\s*\{[^}]*animation:\s*dock-utilities-enter 220ms var\(--ease-out\) both;/,
+    );
+  });
+
   it("uses the reference column split and collapses the cobalt spine without inherited padding", () => {
     const css = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),
@@ -575,6 +1039,34 @@ describe("commercial CSS contract", () => {
     expect(reducedLight).toMatch(/40%\s*\{[^}]*opacity:\s*0\.18;/);
     expect(reducedLight).not.toContain("transform:");
   });
+
+  it("reveals the real interface through a transparent package wrapper", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const intro = css.match(/\.packageIntro\s*\{([^}]*)\}/)?.[1];
+    const paper = css.match(/\.packageIntro::before\s*\{([\s\S]*?)\n\}/)?.[1];
+    const reveal = css.match(
+      /\.packageIntro\[data-phase="reveal"\]::before,[\s\S]*?\{([^}]*)\}/,
+    )?.[1];
+
+    expect(intro).toMatch(/background:\s*transparent;/);
+    expect(paper).toMatch(/content:\s*"";/);
+    expect(paper).toMatch(/background:\s*var\(--paper\);/);
+    expect(reveal).toMatch(/opacity:\s*0;/);
+    expect(css).toMatch(
+      /\.packageIntro\[data-phase="reveal"\],[\s\S]*?\.packageIntro\[data-phase="drop"\]\s*\{[^}]*pointer-events:\s*none;/,
+    );
+    expect(css).toMatch(
+      /\.packageIntro\[data-phase="opening"\]::before,[\s\S]{0,140}package-intro-reduced\s+180ms/,
+    );
+    const reducedKeyframes = css.match(
+      /@keyframes package-intro-reduced\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    expect(reducedKeyframes).toContain("opacity:");
+    expect(reducedKeyframes).not.toContain("transform:");
+  });
 });
 
 function setBrowserLanguages(languages: readonly string[]) {
@@ -615,6 +1107,20 @@ async function requestMove(
   move: CubeMove,
 ) {
   await user.click(screen.getByTestId(moveRequestTestId(move)));
+}
+
+function renderReadyExperience() {
+  const view = render(<MagicCubeExperience />);
+  fireEvent.keyDown(window, { key: "Escape" });
+  return view;
+}
+
+function firePackageAnimationEnd() {
+  const event = new Event("animationend", { bubbles: true });
+  Object.defineProperty(event, "animationName", {
+    value: "package-intro-reveal",
+  });
+  fireEvent(screen.getByTestId("package-intro-timeline"), event);
 }
 
 async function openDockUtilities(

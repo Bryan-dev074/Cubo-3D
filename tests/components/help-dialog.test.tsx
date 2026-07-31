@@ -23,9 +23,14 @@ describe("HelpDialog", () => {
     expect(screen.getByRole("button", { name: "Cerrar ayuda" })).toHaveFocus();
     expect(
       screen.getByText(
-        "Arrastrá una pieza para girar su capa. Arrastrá el fondo para explorar.",
+        "Arrastrá una pieza con el botón izquierdo para girar su capa. Mantené el botón derecho y arrastrá en cualquier punto del escenario para rotar la vista. En móvil, arrastrá una pieza para girar su capa o el fondo para rotar la vista.",
       ),
     ).toBeVisible();
+
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Cerrar ayuda" })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "Cerrar ayuda" })).toHaveFocus();
 
     await user.keyboard("{Escape}");
 
@@ -41,6 +46,11 @@ describe("HelpDialog", () => {
 
     await user.click(trigger);
     expect(screen.getByRole("dialog", { name: "Como jogar" })).toBeVisible();
+    expect(
+      screen.getByText(
+        "Arraste uma peça com o botão esquerdo para girar a camada. Segure o botão direito e arraste em qualquer ponto da cena para girar a vista. No celular, arraste uma peça para girar a camada ou o fundo para girar a vista.",
+      ),
+    ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Fechar ajuda" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

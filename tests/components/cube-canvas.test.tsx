@@ -6,6 +6,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CubeCanvas, detectWebGL } from "@/components/cube/CubeCanvas";
 import { createSolvedCube } from "@/lib/cube/state";
+import type { IntroPhase } from "@/lib/motion/intro-sequence";
+import {
+  cursorIntentForMove,
+  type CursorIntent,
+} from "@/lib/motion/cursor-intent";
 
 const dynamicMockState = vi.hoisted(() => ({ loaded: true }));
 
@@ -14,12 +19,42 @@ vi.mock("next/dynamic", () => ({
     _loader: unknown,
     options: { readonly loading?: () => ReactNode },
   ) =>
-    function TestDynamicScene() {
+    function TestDynamicScene({
+      introPhase,
+      onCursorIntentChange,
+      onDropComplete,
+      onSceneReady,
+    }: {
+      readonly introPhase?: IntroPhase;
+      readonly onCursorIntentChange?: (intent: CursorIntent) => void;
+      readonly onDropComplete?: () => void;
+      readonly onSceneReady?: () => void;
+    }) {
       if (!dynamicMockState.loaded) {
         const Loading = options.loading;
         return Loading ? <Loading /> : null;
       }
-      return <div data-testid="dynamic-cube-scene">Escena WebGL</div>;
+      return (
+        <div data-intro-phase={introPhase} data-testid="dynamic-cube-scene">
+          Escena WebGL
+          <button type="button" onClick={onSceneReady}>
+            Escena lista
+          </button>
+          <button type="button" onClick={onDropComplete}>
+            Caída completa
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onCursorIntentChange?.(
+                cursorIntentForMove({ axis: "y", layer: 0, turns: 1 }),
+              )
+            }
+          >
+            Cursor de escena
+          </button>
+        </div>
+      );
     },
 }));
 
@@ -65,12 +100,14 @@ describe("CubeCanvas", () => {
 
   it("checks injected WebGL support before mounting the client-only scene", () => {
     const webGLDetector = vi.fn(() => false);
+    const onSceneError = vi.fn();
 
     render(
       <CubeCanvas
         cube={createSolvedCube()}
         onMoveComplete={vi.fn()}
         onMoveRequest={vi.fn()}
+        onSceneError={onSceneError}
         purchaseHref={PURCHASE_HREF}
         queue={[]}
         webGLDetector={webGLDetector}
@@ -81,6 +118,63 @@ describe("CubeCanvas", () => {
     expect(screen.getByRole("heading", { name: "Tu navegador no puede mostrar el cubo 3D" }))
       .toBeVisible();
     expect(screen.queryByTestId("dynamic-cube-scene")).not.toBeInTheDocument();
+    expect(onSceneError).toHaveBeenCalledOnce();
+    expect(onSceneError).toHaveBeenCalledWith("webgl");
+  });
+
+  it("forwards the intro handshake through the dynamic scene boundary", async () => {
+    const user = userEvent.setup();
+    const onDropComplete = vi.fn();
+    const onSceneReady = vi.fn();
+
+    render(
+      <CubeCanvas
+        cube={createSolvedCube()}
+        introPhase="drop"
+        onDropComplete={onDropComplete}
+        onMoveComplete={vi.fn()}
+        onMoveRequest={vi.fn()}
+        onSceneReady={onSceneReady}
+        purchaseHref={PURCHASE_HREF}
+        queue={[]}
+        webGLDetector={() => true}
+      />,
+    );
+
+    expect(screen.getByTestId("dynamic-cube-scene")).toHaveAttribute(
+      "data-intro-phase",
+      "drop",
+    );
+    await user.click(screen.getByRole("button", { name: "Escena lista" }));
+    await user.click(screen.getByRole("button", { name: "Caída completa" }));
+
+    expect(onSceneReady).toHaveBeenCalledOnce();
+    expect(onDropComplete).toHaveBeenCalledOnce();
+  });
+
+  it("forwards normalized cursor intent through the dynamic scene boundary", async () => {
+    const user = userEvent.setup();
+    const onCursorIntentChange = vi.fn();
+
+    render(
+      <CubeCanvas
+        cube={createSolvedCube()}
+        onCursorIntentChange={onCursorIntentChange}
+        onMoveComplete={vi.fn()}
+        onMoveRequest={vi.fn()}
+        purchaseHref={PURCHASE_HREF}
+        queue={[]}
+        webGLDetector={() => true}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cursor de escena" }));
+    expect(onCursorIntentChange).toHaveBeenCalledOnce();
+    expect(onCursorIntentChange).toHaveBeenCalledWith({
+      axis: "y",
+      direction: "positive",
+      mode: "layer-drag",
+    });
   });
 
   it("retries WebGL detection, preserves the purchase CTA and mounts the recovered scene", async () => {

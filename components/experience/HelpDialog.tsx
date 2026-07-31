@@ -21,6 +21,15 @@ interface HelpDialogProps {
   readonly triggerRef: RefObject<HTMLButtonElement | null>;
 }
 
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "a[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
 export function HelpDialog({
   backgroundRef,
   dictionary,
@@ -29,6 +38,7 @@ export function HelpDialog({
   triggerRef,
 }: HelpDialogProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
 
   const close = useCallback(() => {
     onClose();
@@ -49,6 +59,38 @@ export function HelpDialog({
       if (event.key === "Escape") {
         event.preventDefault();
         close();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((element) => element.tabIndex >= 0);
+      const first = focusable.at(0);
+      const last = focusable.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        return;
+      }
+
+      const focusIsOutside = !dialog.contains(document.activeElement);
+      if (event.shiftKey && (document.activeElement === first || focusIsOutside)) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last || focusIsOutside)
+      ) {
+        event.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -68,6 +110,7 @@ export function HelpDialog({
   return createPortal(
     <div className={styles.dialogBackdrop} onMouseDown={close}>
       <section
+        ref={dialogRef}
         aria-labelledby="help-dialog-title"
         aria-modal="true"
         className={styles.helpDialog}

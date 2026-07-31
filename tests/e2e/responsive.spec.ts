@@ -14,6 +14,7 @@ import {
   monitorBrowser,
   openExperience,
   setDeterministicBrowserState,
+  sha256,
   waitForWebGLScene,
 } from "@/tests/e2e/helpers";
 
@@ -29,6 +30,18 @@ const VISUAL_ARTIFACT_DIRECTORY = resolve(
 const DESKTOP_COLLISION_VIEWPORTS = [
   { name: "desktop-1600", width: 1600, height: 1000 },
   { name: "desktop-1440", width: 1440, height: 900 },
+] as const;
+const GROUND_SHADOW_VIEWPORTS = [
+  { name: "desktop-1440", width: 1440, height: 900 },
+  { name: "tablet-768", width: 768, height: 1024 },
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "mobile-320", width: 320, height: 700 },
+] as const;
+const CINEMATIC_VIEWPORTS = [
+  { name: "desktop-1600", width: 1600, height: 1000 },
+  { name: "desktop-1440", width: 1440, height: 900 },
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "mobile-320", width: 320, height: 700 },
 ] as const;
 
 for (const viewport of DESKTOP_COLLISION_VIEWPORTS) {
@@ -81,6 +94,72 @@ for (const viewport of DESKTOP_COLLISION_VIEWPORTS) {
     await context.close();
   });
 }
+
+for (const viewport of GROUND_SHADOW_VIEWPORTS) {
+  test(`${viewport.name} keeps the fixed ground shadow contained and layered`, async ({
+    browser,
+  }) => {
+    const mobile = viewport.width <= 390;
+    const context = await browser.newContext({
+      baseURL: "http://127.0.0.1:4173",
+      colorScheme: "light",
+      hasTouch: mobile,
+      isMobile: mobile,
+      reducedMotion: mobile ? "no-preference" : "reduce",
+      viewport,
+    });
+    const page = await context.newPage();
+    const diagnostics = monitorBrowser(page);
+    await setDeterministicBrowserState(page);
+    await openExperience(page);
+    await waitForWebGLScene(page);
+
+    await expectGroundShadowLayout(page);
+    if (mobile) {
+      await expectMobileInputEnvironment(page);
+    }
+
+    await diagnostics.assertClean();
+    await context.close();
+  });
+}
+
+test("mobile-390 keeps the fixed ground shadow unchanged during a real orbit", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    colorScheme: "light",
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: "no-preference",
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await openExperience(page);
+  const canvas = await waitForWebGLScene(page);
+  await expect(canvas).toHaveAttribute("data-engine", /three\.js/i);
+  await expectGroundShadowLayout(page);
+  await expectMobileInputEnvironment(page);
+
+  const shadow = page.getByTestId("cube-ground-shadow");
+  const before = await shadow.boundingBox();
+  const beforeStyle = await readGroundShadowStyle(shadow);
+  await movePointerOutsideCanvas(page);
+  const beforeCanvas = sha256(await canvas.screenshot());
+
+  await rightDragCanvas(page, canvas);
+  await movePointerOutsideCanvas(page);
+
+  expect(sha256(await canvas.screenshot())).not.toBe(beforeCanvas);
+  expect(await shadow.boundingBox()).toEqual(before);
+  expect(await readGroundShadowStyle(shadow)).toEqual(beforeStyle);
+
+  await diagnostics.assertClean();
+  await context.close();
+});
 
 test("desktop preserves the approved editorial shell proportions in dark system mode", async ({
   browser,
@@ -200,6 +279,79 @@ test("wide coarse touch keeps the utility dock operable", async ({
   await context.close();
 });
 
+test("mobile landscape keeps each primary interaction region viewport-safe", async ({
+  browser,
+}) => {
+  const viewport = { width: 844, height: 390 } as const;
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    colorScheme: "light",
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: "no-preference",
+    viewport,
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await openExperience(page);
+  await waitForWebGLScene(page);
+  await expectMobileInputEnvironment(page);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    ),
+  ).toBe(0);
+
+  const purchaseCta = page
+    .getByRole("link", { name: "Comprar cubo" })
+    .first();
+  const scrambleCta = page.getByRole("button", {
+    name: "Desordenar cubo",
+  });
+  const cubeScene = page.locator(".cube-scene");
+  const controlDock = page.getByRole("region", {
+    name: "Controles del cubo",
+  });
+  const simultaneous = {
+    controlDock: await requiredBox(controlDock, "control dock"),
+    cubeScene: await requiredBox(cubeScene, "cube scene"),
+    purchaseCta: await requiredBox(purchaseCta, "purchase CTA"),
+    scrambleCta: await requiredBox(scrambleCta, "scramble CTA"),
+  };
+  expect(boxesOverlap(simultaneous.controlDock, simultaneous.purchaseCta)).toBe(
+    false,
+  );
+  expect(boxesOverlap(simultaneous.controlDock, simultaneous.scrambleCta)).toBe(
+    false,
+  );
+  expect(boxesOverlap(simultaneous.controlDock, simultaneous.cubeScene)).toBe(
+    false,
+  );
+
+  const regions = [
+    [purchaseCta, "purchase CTA"],
+    [scrambleCta, "scramble CTA"],
+    [cubeScene, "cube scene"],
+    [controlDock, "control dock"],
+  ] as const;
+  for (const [region, label] of regions) {
+    await region.scrollIntoViewIfNeeded();
+    const box = await requiredBox(region, label);
+    expect(box.x, `${label} left edge`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `${label} right edge`).toBeLessThanOrEqual(
+      viewport.width + 1,
+    );
+    expect(box.y, `${label} top edge`).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height, `${label} bottom edge`).toBeLessThanOrEqual(
+      viewport.height + 1,
+    );
+  }
+
+  await diagnostics.assertClean();
+  await context.close();
+});
+
 for (const viewport of MOBILE_VIEWPORTS) {
   test(`${viewport.name} keeps the hero, cube entry, touch targets and safe areas intact`, async ({
     browser,
@@ -207,7 +359,9 @@ for (const viewport of MOBILE_VIEWPORTS) {
     const context = await browser.newContext({
       baseURL: "http://127.0.0.1:4173",
       colorScheme: "light",
-      reducedMotion: "reduce",
+      hasTouch: true,
+      isMobile: true,
+      reducedMotion: "no-preference",
       viewport,
     });
     const page = await context.newPage();
@@ -215,6 +369,7 @@ for (const viewport of MOBILE_VIEWPORTS) {
     await setDeterministicBrowserState(page);
     await openExperience(page);
     await waitForWebGLScene(page);
+    await expectMobileInputEnvironment(page);
 
     expect(
       await page.evaluate(
@@ -229,7 +384,7 @@ for (const viewport of MOBILE_VIEWPORTS) {
         "Un clásico reinventado en 3D. Girá, desafiá tu mente y volvé a ordenar los colores.",
       ),
       page.getByRole("button", { name: "Desordenar cubo" }),
-      page.getByText("Arrastrá para rotar el cubo"),
+      page.getByText("Con el dedo: pieza = capa · fondo = rotar"),
     ];
     for (const element of heroElements) {
       const box = await element.boundingBox();
@@ -294,6 +449,88 @@ async function requiredBox(
   return box!;
 }
 
+async function expectGroundShadowLayout(page: Page): Promise<void> {
+  const stage = page.locator("#cube-stage");
+  const shadow = page.getByTestId("cube-ground-shadow");
+  await expect(shadow).toHaveCount(1);
+
+  const [stageBox, shadowBox, styles] = await Promise.all([
+    stage.boundingBox(),
+    shadow.boundingBox(),
+    readGroundShadowStyle(shadow),
+  ]);
+  expect(stageBox).not.toBeNull();
+  expect(shadowBox).not.toBeNull();
+
+  const edgeTolerance = 32;
+  expect(shadowBox!.x).toBeGreaterThanOrEqual(stageBox!.x - edgeTolerance);
+  expect(shadowBox!.y).toBeGreaterThanOrEqual(stageBox!.y - edgeTolerance);
+  expect(shadowBox!.x + shadowBox!.width).toBeLessThanOrEqual(
+    stageBox!.x + stageBox!.width + edgeTolerance,
+  );
+  expect(shadowBox!.y + shadowBox!.height).toBeLessThanOrEqual(
+    stageBox!.y + stageBox!.height + edgeTolerance,
+  );
+  expect(shadowBox!.width).toBeGreaterThan(stageBox!.width * 0.35);
+  expect(shadowBox!.width).toBeLessThanOrEqual(stageBox!.width + edgeTolerance);
+  expect(shadowBox!.height).toBeGreaterThan(30);
+  const centerX =
+    (shadowBox!.x - stageBox!.x + shadowBox!.width / 2) / stageBox!.width;
+  const centerY =
+    (shadowBox!.y - stageBox!.y + shadowBox!.height / 2) / stageBox!.height;
+  expect(centerX).toBeGreaterThanOrEqual(0.45);
+  expect(centerX).toBeLessThanOrEqual(0.62);
+  expect(centerY).toBeGreaterThanOrEqual(0.6);
+  expect(centerY).toBeLessThanOrEqual(0.74);
+
+  expect(styles).toMatchObject({
+    opacity: "1",
+    pointerEvents: "none",
+    position: "absolute",
+    zIndex: "1",
+  });
+  expect(styles.backgroundImage).toContain("radial-gradient");
+  expect(styles.transform).not.toBe("none");
+}
+
+async function readGroundShadowStyle(shadow: Locator) {
+  return shadow.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      backgroundImage: styles.backgroundImage,
+      opacity: styles.opacity,
+      pointerEvents: styles.pointerEvents,
+      position: styles.position,
+      transform: styles.transform,
+      zIndex: styles.zIndex,
+    };
+  });
+}
+
+async function rightDragCanvas(page: Page, canvas: Locator): Promise<void> {
+  const box = await requiredBox(canvas, "WebGL canvas");
+  const startX = box.x + box.width * 0.15;
+  const startY = box.y + box.height * 0.5;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(startX + 96, startY - 22, { steps: 8 });
+  await page.mouse.up({ button: "right" });
+}
+
+async function waitForAnimationFrames(page: Page, count: number): Promise<void> {
+  await page.evaluate(async (frameCount) => {
+    for (let frame = 0; frame < frameCount; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+  }, count);
+}
+
+async function movePointerOutsideCanvas(page: Page): Promise<void> {
+  await page.mouse.move(0, 0);
+  await waitForAnimationFrames(page, 2);
+}
+
 async function expectVisibleTargetsAtLeast44(page: Page): Promise<void> {
   const targets = page.locator("main button, main a, main summary");
   let measured = 0;
@@ -354,6 +591,9 @@ for (const colorScheme of ["light", "dark"] as const) {
       await openExperience(page);
       await waitForWebGLScene(page);
       await page.waitForTimeout(180);
+      if (viewport.width <= 390) {
+        await expectMobileInputEnvironment(page);
+      }
 
       await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
       await page.screenshot({
@@ -375,6 +615,44 @@ for (const colorScheme of ["light", "dark"] as const) {
   }
 }
 
+for (const viewport of CINEMATIC_VIEWPORTS) {
+  test(`captures the final cinematic composition at ${viewport.name}`, async ({
+    browser,
+  }) => {
+    const mobile = viewport.width <= 390;
+    const context = await browser.newContext({
+      baseURL: "http://127.0.0.1:4173",
+      colorScheme: "light",
+      hasTouch: mobile,
+      isMobile: mobile,
+      reducedMotion: mobile ? "no-preference" : "reduce",
+      viewport,
+    });
+    const page = await context.newPage();
+    const diagnostics = monitorBrowser(page);
+    await setDeterministicBrowserState(page);
+    await openExperience(page);
+    await waitForWebGLScene(page);
+
+    await expectFinalViewportComposition(page, viewport);
+    if (mobile) {
+      await expectMobileInputEnvironment(page);
+    }
+
+    await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
+    await page.screenshot({
+      animations: "disabled",
+      path: resolve(
+        VISUAL_ARTIFACT_DIRECTORY,
+        `cinematic-${viewport.name}.png`,
+      ),
+    });
+
+    await diagnostics.assertClean();
+    await context.close();
+  });
+}
+
 test("desktop keeps the complete live instrument open", async ({ page }) => {
   const diagnostics = monitorBrowser(page);
   await setDeterministicBrowserState(page);
@@ -394,12 +672,73 @@ async function createVisualPage(
   viewport: { readonly width: number; readonly height: number },
   colorScheme: "light" | "dark",
 ) {
+  const mobile = viewport.width <= 390;
   const context = await browser.newContext({
     baseURL: "http://127.0.0.1:4173",
     colorScheme,
-    reducedMotion: "reduce",
+    hasTouch: mobile,
+    isMobile: mobile,
+    reducedMotion: mobile ? "no-preference" : "reduce",
     viewport,
   });
   const page = await context.newPage();
   return { context, page };
+}
+
+async function expectFinalViewportComposition(
+  page: Page,
+  viewport: { readonly width: number; readonly height: number },
+): Promise<void> {
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    ),
+  ).toBe(0);
+
+  const elements = [
+    [page.getByRole("heading", { level: 1 }), "primary heading"],
+    [page.getByRole("button", { name: "Desordenar cubo" }), "scramble CTA"],
+    [
+      page.getByRole("link", { name: "Comprar cubo" }).first(),
+      "purchase CTA",
+    ],
+    [page.locator(".cube-scene"), "cube scene"],
+    [
+      page.getByRole("region", { name: "Controles del cubo" }),
+      "control dock",
+    ],
+  ] as const;
+
+  for (const [locator, label] of elements) {
+    const box = await requiredBox(locator, label);
+    expect(box.x, `${label} left edge`).toBeGreaterThanOrEqual(0);
+    expect(box.y, `${label} top edge`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `${label} right edge`).toBeLessThanOrEqual(
+      viewport.width + 1,
+    );
+    expect(box.y + box.height, `${label} bottom edge`).toBeLessThanOrEqual(
+      viewport.height + 1,
+    );
+  }
+
+  await expectGroundShadowLayout(page);
+}
+
+async function expectMobileInputEnvironment(page: Page): Promise<void> {
+  expect(
+    await page.evaluate(() => ({
+      hoverNone: window.matchMedia("(hover: none)").matches,
+      pointerCoarse: window.matchMedia("(pointer: coarse)").matches,
+    })),
+  ).toEqual({ hoverNone: true, pointerCoarse: true });
+  await expect(
+    page.getByText("Con el dedo: pieza = capa · fondo = rotar"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Izquierdo: capas · Derecho: rotar"),
+  ).toBeHidden();
+  await expect(page.getByTestId("adaptive-cursor")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveAttribute(
+    "data-cube-custom-cursor",
+  );
 }

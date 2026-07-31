@@ -11,6 +11,8 @@
   --graphite: #20262a;
   --graphite-soft: #596269;
   --smoke: #d5dce0;
+  --package-fold-light: #e7ebed;
+  --mask-opaque: #000000;
   --line: rgba(32, 38, 42, 0.22);
   --cobalt: #0f4fd4;
   --cobalt-surface: #0f4fd4;
@@ -23,6 +25,239 @@
   overflow: clip;
   color: var(--graphite);
   background: var(--paper);
+}
+
+.packageIntro {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  perspective: 1200px;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.packageIntro::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: var(--paper);
+  content: "";
+}
+
+.packageIntro[data-phase="reveal"],
+.packageIntro[data-phase="drop"] {
+  pointer-events: none;
+}
+
+.packageIntroTimeline {
+  position: relative;
+  z-index: 1;
+  width: min(52vw, 40rem);
+  aspect-ratio: 1.42;
+  border: 1px solid var(--graphite);
+  background: var(--paper-raised);
+  box-shadow: 0 1.5rem 3rem rgba(32, 38, 42, 0.14);
+  transform-style: preserve-3d;
+}
+
+.packageIntro[data-phase="opening"]::before,
+.packageIntro[data-phase="opening"] .packageIntroTimeline {
+  animation: package-intro-reveal 1350ms cubic-bezier(0.22, 0.78, 0.2, 1)
+    forwards;
+}
+
+.packageIntro[data-phase="reveal"]::before,
+.packageIntro[data-phase="drop"]::before,
+.packageIntro[data-phase="reveal"] .packageIntroTimeline,
+.packageIntro[data-phase="drop"] .packageIntroTimeline {
+  opacity: 0;
+}
+
+.packageIntroSpine {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: grid;
+  width: 16%;
+  place-items: center;
+  border-right: 1px solid var(--graphite);
+  color: #fff;
+  background: var(--cobalt-surface);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  letter-spacing: 0.06em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.packageIntroRegistration {
+  position: absolute;
+  top: 12%;
+  right: 9%;
+  width: 1.45rem;
+  aspect-ratio: 1;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+}
+
+.packageIntroRegistration::before,
+.packageIntroRegistration::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2rem;
+  height: 1px;
+  background: var(--graphite);
+  content: "";
+}
+
+.packageIntroRegistration::before {
+  transform: translate(-50%, -50%);
+}
+
+.packageIntroRegistration::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.packageFlap {
+  position: absolute;
+  border: 1px solid var(--graphite);
+  background: linear-gradient(
+    135deg,
+    var(--paper-raised) 0%,
+    var(--package-fold-light) 100%
+  );
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.packageFlap[data-flap="top"],
+.packageFlap[data-flap="bottom"] {
+  right: 0;
+  left: 16%;
+  height: 50%;
+}
+
+.packageFlap[data-flap="left"],
+.packageFlap[data-flap="right"] {
+  top: 0;
+  bottom: 0;
+  width: 42%;
+}
+
+.packageFlap[data-flap="top"] {
+  top: 0;
+  transform-origin: top center;
+}
+
+.packageFlap[data-flap="right"] {
+  right: 0;
+  transform-origin: right center;
+}
+
+.packageFlap[data-flap="bottom"] {
+  bottom: 0;
+  transform-origin: bottom center;
+}
+
+.packageFlap[data-flap="left"] {
+  left: 16%;
+  transform-origin: left center;
+}
+
+.packageIntro[data-phase="opening"] .packageFlap[data-flap="top"] {
+  animation: package-flap-top 620ms cubic-bezier(0.22, 0.78, 0.2, 1) 260ms
+    forwards;
+}
+
+.packageIntro[data-phase="opening"] .packageFlap[data-flap="right"] {
+  animation: package-flap-right 620ms cubic-bezier(0.22, 0.78, 0.2, 1) 310ms
+    forwards;
+}
+
+.packageIntro[data-phase="opening"] .packageFlap[data-flap="bottom"] {
+  animation: package-flap-bottom 620ms cubic-bezier(0.22, 0.78, 0.2, 1) 360ms
+    forwards;
+}
+
+.packageIntro[data-phase="opening"] .packageFlap[data-flap="left"] {
+  animation: package-flap-left 620ms cubic-bezier(0.22, 0.78, 0.2, 1) 410ms
+    forwards;
+}
+
+.packageIntro[data-phase="reveal"] .packageFlap[data-flap="top"],
+.packageIntro[data-phase="drop"] .packageFlap[data-flap="top"] {
+  transform: rotateX(-118deg);
+}
+
+.packageIntro[data-phase="reveal"] .packageFlap[data-flap="right"],
+.packageIntro[data-phase="drop"] .packageFlap[data-flap="right"] {
+  transform: rotateY(118deg);
+}
+
+.packageIntro[data-phase="reveal"] .packageFlap[data-flap="bottom"],
+.packageIntro[data-phase="drop"] .packageFlap[data-flap="bottom"] {
+  transform: rotateX(118deg);
+}
+
+.packageIntro[data-phase="reveal"] .packageFlap[data-flap="left"],
+.packageIntro[data-phase="drop"] .packageFlap[data-flap="left"] {
+  transform: rotateY(-118deg);
+}
+
+.packageSeal {
+  position: absolute;
+  top: 50%;
+  left: 58%;
+  display: grid;
+  width: clamp(5rem, 11vw, 8rem);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+  color: #fff;
+  background: var(--cobalt-surface);
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 1.3vw, 1.15rem);
+  letter-spacing: 0.05em;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes package-intro-reveal {
+  0%,
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes package-flap-top {
+  to {
+    transform: rotateX(-118deg);
+  }
+}
+
+@keyframes package-flap-right {
+  to {
+    transform: rotateY(118deg);
+  }
+}
+
+@keyframes package-flap-bottom {
+  to {
+    transform: rotateX(118deg);
+  }
+}
+
+@keyframes package-flap-left {
+  to {
+    transform: rotateY(-118deg);
+  }
 }
 
 .skipLink {
@@ -76,6 +311,9 @@
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-left: 0;
   border-radius: 0 2rem 2rem 0;
+  opacity: 0.48;
+  animation: spine-technical-breathe var(--motion-ambient-long)
+    var(--ease-in-out) infinite;
   content: "";
 }
 
@@ -85,6 +323,7 @@
 
 .cobaltSpine::after {
   bottom: 10%;
+  animation-delay: -4.2s;
 }
 
 .spineIntro,
@@ -218,8 +457,8 @@
   font-weight: 700;
   cursor: pointer;
   transition:
-    opacity 140ms var(--ease-out),
-    transform 140ms var(--ease-out);
+    opacity var(--motion-micro) var(--ease-out),
+    transform var(--motion-micro) var(--ease-out);
   touch-action: manipulation;
 }
 
@@ -246,6 +485,29 @@
   color: #fff;
   background: var(--cobalt-surface);
   text-decoration: none;
+}
+
+.purchaseButton {
+  position: relative;
+  overflow: hidden;
+}
+
+.purchaseButton::after {
+  position: absolute;
+  inset: -45% auto -45% -22%;
+  width: 28%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.34),
+    transparent
+  );
+  opacity: 0;
+  transform: translateX(-180%) skewX(-18deg);
+  animation: purchase-sheen var(--motion-ambient-long) var(--ease-in-out)
+    infinite;
+  pointer-events: none;
+  content: "";
 }
 
 .workspace {
@@ -331,6 +593,65 @@
   scroll-margin-top: 6rem;
 }
 
+.groundShadow {
+  --cube-shadow-opacity: var(--cube-shadow-start-opacity);
+  --cube-shadow-scale: var(--cube-shadow-start-scale);
+
+  position: absolute;
+  z-index: 1;
+  top: 66%;
+  left: 58%;
+  width: clamp(15rem, 34vw, 34rem);
+  aspect-ratio: 3.1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(29, 37, 43, 0.34) 0%,
+    rgba(29, 37, 43, 0.18) 38%,
+    rgba(29, 37, 43, 0) 74%
+  );
+  filter: blur(0.38rem);
+  opacity: var(--cube-shadow-opacity);
+  transform: translate(-50%, -50%) rotate(-4deg) scale(var(--cube-shadow-scale));
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.experience[data-intro-phase="drop"] .groundShadow {
+  animation: cube-shadow-drop 650ms linear both;
+}
+
+.experience[data-intro-phase="ready"] .groundShadow {
+  opacity: var(--cube-shadow-final-opacity);
+  transform: translate(-50%, -50%) rotate(-4deg)
+    scale(var(--cube-shadow-final-scale));
+}
+
+@keyframes cube-shadow-drop {
+  0%,
+  28% {
+    opacity: var(--cube-shadow-start-opacity);
+    transform: translate(-50%, -50%) rotate(-4deg)
+      scale(var(--cube-shadow-start-scale));
+  }
+
+  50% {
+    opacity: 0.439;
+    transform: translate(-50%, -50%) rotate(-4deg) scale(0.834);
+  }
+
+  65% {
+    opacity: 0.793;
+    transform: translate(-50%, -50%) rotate(-4deg) scale(0.939);
+  }
+
+  82%,
+  100% {
+    opacity: var(--cube-shadow-final-opacity);
+    transform: translate(-50%, -50%) rotate(-4deg)
+      scale(var(--cube-shadow-final-scale));
+  }
+}
+
 .cubeFrame {
   position: absolute;
   z-index: 2;
@@ -381,6 +702,9 @@
 }
 
 .planDrawing {
+  --plan-opacity-low: 0.48;
+  --plan-opacity-high: 0.56;
+
   position: absolute;
   z-index: 0;
   top: 33.6%;
@@ -388,8 +712,11 @@
   width: 83.5%;
   height: 57.5%;
   overflow: visible;
+  opacity: var(--plan-opacity-low);
   transform: scaleX(1.1);
   transform-origin: center;
+  animation: plan-drawing-breathe var(--motion-ambient-long)
+    var(--ease-in-out) infinite;
   pointer-events: none;
 }
 
@@ -408,6 +735,13 @@
   stroke-linejoin: round;
   stroke-width: 1.15;
   vector-effect: non-scaling-stroke;
+}
+
+.planRegistrationMotion {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: plan-registration-drift var(--motion-ambient-long)
+    var(--ease-in-out) -1.8s infinite;
 }
 
 .planCutLines {
@@ -462,6 +796,10 @@
   border: 1px solid currentColor;
   border-radius: 0.5rem 0.5rem 0.35rem 0.35rem;
   content: "";
+}
+
+.touchDragHint {
+  display: none;
 }
 
 .telemetry {
@@ -561,6 +899,10 @@
   border: 1px solid currentColor;
   border-radius: 50%;
   background: var(--cobalt);
+  opacity: 0.82;
+  transform: scale(1);
+  transform-origin: center;
+  animation: status-breathe 6.4s var(--ease-in-out) -0.8s infinite;
 }
 
 .pieceMatrix {
@@ -585,7 +927,7 @@
   background: rgba(15, 79, 212, 0.16);
   opacity: 0;
   transform: translateY(0);
-  animation: telemetry-group-sweep 4.8s linear infinite;
+  animation: telemetry-group-sweep var(--motion-ambient-short) linear infinite;
   pointer-events: none;
   content: "";
 }
@@ -623,7 +965,7 @@
 .layerPlanes path {
   fill: var(--cobalt);
   opacity: 0;
-  transition: opacity 180ms var(--ease-out);
+  transition: opacity var(--motion-state) var(--ease-out);
 }
 
 .layerPlanes path[data-layer-active="true"] {
@@ -667,7 +1009,7 @@
   z-index: 2;
   inset: 0;
   transform: rotate(0deg);
-  transition: transform 220ms var(--ease-out);
+  transition: transform var(--motion-state) var(--ease-out);
 }
 
 .turnDialArrow i {
@@ -715,9 +1057,13 @@
   background: var(--smoke);
 }
 
-.telemetry[data-motion-paused="true"] *,
-.telemetry[data-motion-paused="true"] *::before,
-.telemetry[data-motion-paused="true"] *::after {
+.experience[data-motion-paused="true"] .pieceMatrix::after,
+.experience[data-motion-paused="true"] .statusDot,
+.experience[data-motion-paused="true"] .planDrawing,
+.experience[data-motion-paused="true"] .planRegistrationMotion,
+.experience[data-motion-paused="true"] .cobaltSpine::before,
+.experience[data-motion-paused="true"] .cobaltSpine::after,
+.experience[data-motion-paused="true"] .purchaseButton::after {
   animation-play-state: paused !important;
 }
 
@@ -770,7 +1116,7 @@
   opacity: 0;
   transform: translateY(-50%);
   pointer-events: none;
-  transition: opacity 140ms var(--ease-out);
+  transition: opacity var(--motion-micro) var(--ease-out);
 }
 
 .controlDock:focus-within .dockUtilities,
@@ -800,6 +1146,8 @@
   border: 1px solid var(--line);
   background: var(--paper-raised);
   box-shadow: 0 1.1rem 3rem rgba(18, 27, 32, 0.18);
+  transform-origin: right bottom;
+  animation: dock-utilities-enter 220ms var(--ease-out) both;
 }
 
 .dockUtilitiesPanel > button,
@@ -824,7 +1172,7 @@
 }
 
 .controlDock :global(.face-controls__toggle svg) {
-  transition: transform 160ms var(--ease-out);
+  transition: transform var(--motion-micro) var(--ease-out);
 }
 
 .controlDock :global(.face-controls__toggle[aria-expanded="true"] svg) {
@@ -980,6 +1328,210 @@
   background: var(--cobalt-surface);
 }
 
+.adaptiveCursor {
+  --cursor-axis-angle: 0deg;
+  --cursor-direction-scale: 1;
+  position: fixed;
+  z-index: 2147483646;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  color: var(--cobalt);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.adaptiveCursor[data-visible="true"] {
+  opacity: 1;
+}
+
+.adaptiveCursor[data-axis="x"] {
+  --cursor-axis-angle: 0deg;
+}
+
+.adaptiveCursor[data-axis="y"] {
+  --cursor-axis-angle: 90deg;
+}
+
+.adaptiveCursor[data-axis="z"] {
+  --cursor-axis-angle: 45deg;
+}
+
+.adaptiveCursor[data-direction="negative"] {
+  --cursor-direction-scale: -1;
+}
+
+.cursorDot,
+.cursorRing,
+.cursorArc,
+.cursorOrbit,
+.cursorAxis {
+  position: absolute;
+  pointer-events: none;
+  transition:
+    opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cursorDot {
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.82);
+  transform: translate(-50%, -50%);
+}
+
+.cursorRing {
+  inset: 1px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 8deg,
+    currentColor 0 42deg,
+    transparent 42deg 87deg,
+    currentColor 87deg 181deg,
+    transparent 181deg 224deg,
+    currentColor 224deg 318deg,
+    transparent 318deg
+  );
+  opacity: 0.62;
+  transform: rotate(0deg) scale(1);
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 57%,
+    var(--mask-opaque) 60%
+  );
+  mask: radial-gradient(circle, transparent 57%, var(--mask-opaque) 60%);
+}
+
+.cursorArc {
+  inset: 2px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transform: rotate(var(--cursor-axis-angle))
+    scaleX(var(--cursor-direction-scale)) scale(0.72);
+}
+
+.cursorArc::after {
+  position: absolute;
+  top: -2.5px;
+  right: 1px;
+  width: 5px;
+  height: 5px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(28deg);
+}
+
+.cursorOrbit {
+  inset: -1px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transform: rotate(-24deg) scale(0.72, 0.42);
+}
+
+.cursorOrbit::before,
+.cursorOrbit::after {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.cursorOrbit::before {
+  left: -2px;
+}
+
+.cursorOrbit::after {
+  right: -2px;
+}
+
+.cursorAxis {
+  top: -9px;
+  left: 18px;
+  min-width: 12px;
+  color: currentColor;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  opacity: 0;
+  transform: translate(-2px, 2px);
+}
+
+.adaptiveCursor[data-mode="action"] .cursorDot {
+  transform: translate(-50%, -50%) scale(2.2);
+}
+
+.adaptiveCursor[data-mode="action"] .cursorRing {
+  opacity: 0.24;
+  transform: rotate(18deg) scale(0.58);
+}
+
+.adaptiveCursor[data-mode="layer-ready"] .cursorRing,
+.adaptiveCursor[data-mode="layer-drag"] .cursorRing {
+  opacity: 0.2;
+  transform: rotate(16deg) scale(0.9);
+}
+
+.adaptiveCursor[data-mode="layer-ready"] .cursorArc,
+.adaptiveCursor[data-mode="layer-drag"] .cursorArc {
+  opacity: 1;
+  transform: rotate(var(--cursor-axis-angle))
+    scaleX(var(--cursor-direction-scale)) scale(1);
+}
+
+.adaptiveCursor[data-mode="layer-drag"] .cursorDot {
+  transform: translate(-50%, -50%) scale(0.72);
+}
+
+.adaptiveCursor[data-mode="layer-drag"] .cursorAxis {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+.adaptiveCursor[data-mode="orbit"] .cursorDot {
+  transform: translate(-50%, -50%) scale(0.72);
+}
+
+.adaptiveCursor[data-mode="orbit"] .cursorRing {
+  opacity: 0.18;
+  transform: rotate(-18deg) scale(0.78);
+}
+
+.adaptiveCursor[data-mode="orbit"] .cursorOrbit {
+  opacity: 1;
+  transform: rotate(-24deg) scale(1, 0.58);
+}
+
+.adaptiveCursor[data-visible="true"][data-mode="disabled"] {
+  opacity: 0.3;
+}
+
+.adaptiveCursor[data-mode="disabled"] .cursorDot {
+  transform: translate(-50%, -50%) scale(0.68);
+}
+
+.adaptiveCursor[data-mode="disabled"] .cursorRing {
+  opacity: 0.5;
+  transform: rotate(22deg) scale(0.72);
+}
+
 .srOnly {
   position: absolute !important;
   width: 1px !important;
@@ -1003,6 +1555,100 @@
 .experience a:active,
 .helpDialog button:active {
   transform: scale(0.97);
+}
+
+@keyframes spine-technical-breathe {
+  0%,
+  28%,
+  72%,
+  100% {
+    opacity: 0.48;
+  }
+
+  42%,
+  58% {
+    opacity: 0.64;
+  }
+}
+
+@keyframes plan-drawing-breathe {
+  0%,
+  30%,
+  70%,
+  100% {
+    opacity: var(--plan-opacity-low);
+  }
+
+  43%,
+  57% {
+    opacity: var(--plan-opacity-high);
+  }
+}
+
+@keyframes plan-registration-drift {
+  0%,
+  24%,
+  70%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  38%,
+  52% {
+    transform: translate(3px, -3px) rotate(3deg);
+  }
+}
+
+@keyframes status-breathe {
+  0%,
+  30%,
+  70%,
+  100% {
+    opacity: 0.82;
+    transform: scale(1);
+  }
+
+  44%,
+  56% {
+    opacity: 1;
+    transform: scale(1.16);
+  }
+}
+
+@keyframes purchase-sheen {
+  0%,
+  75.99% {
+    opacity: 0;
+    transform: translateX(-180%) skewX(-18deg);
+  }
+
+  76% {
+    opacity: 0;
+    transform: translateX(-180%) skewX(-18deg);
+  }
+
+  84% {
+    opacity: 0.2;
+    transform: translateX(110%) skewX(-18deg);
+  }
+
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateX(480%) skewX(-18deg);
+  }
+}
+
+@keyframes dock-utilities-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes telemetry-group-sweep {
@@ -1098,7 +1744,22 @@
   }
 }
 
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .experience[data-custom-cursor="true"],
+  .experience[data-custom-cursor="true"] * {
+    cursor: none;
+  }
+}
+
 @media (hover: none), (pointer: coarse) {
+  .desktopDragHint {
+    display: none;
+  }
+
+  .touchDragHint {
+    display: inline;
+  }
+
   .dockUtilities {
     opacity: 1;
     pointer-events: auto;
@@ -1207,12 +1868,20 @@
     min-height: 19rem;
   }
 
+  .groundShadow {
+    top: 67%;
+    left: 56%;
+    width: clamp(14rem, 62vw, 28rem);
+  }
+
   .planDrawing {
+    --plan-opacity-low: 0.16;
+    --plan-opacity-high: 0.18;
+
     top: 14rem;
     left: -12%;
     width: 124%;
     height: 34rem;
-    opacity: 0.18;
   }
 
   .firstUseHint {
@@ -1375,6 +2044,52 @@
   }
 }
 
+@media (max-width: 900px) {
+  .packageIntroTimeline {
+    width: min(78vw, 32rem);
+  }
+}
+
+@media (max-width: 390px) {
+  .packageIntroTimeline {
+    width: min(84vw, 21rem);
+  }
+
+  .packageIntroSpine {
+    width: 18%;
+  }
+
+  .packageFlap[data-flap="top"],
+  .packageFlap[data-flap="bottom"] {
+    left: 18%;
+  }
+
+  .packageFlap[data-flap="left"] {
+    left: 18%;
+  }
+
+  .groundShadow {
+    top: 68%;
+    left: 50%;
+    width: min(84vw, 20rem);
+  }
+}
+
+@media (max-width: 320px) {
+  .packageIntroTimeline {
+    width: min(88vw, 18rem);
+  }
+
+  .packageIntroRegistration {
+    width: 1.15rem;
+  }
+
+  .groundShadow {
+    top: 69%;
+    width: 86vw;
+  }
+}
+
 @media (max-width: 340px) {
   .wordmark {
     flex: 0 0 auto;
@@ -1468,9 +2183,32 @@
     animation-duration: 180ms !important;
   }
 
+  .packageIntro[data-phase="opening"]::before,
+  .packageIntro[data-phase="opening"] .packageIntroTimeline {
+    animation: package-intro-reduced 180ms ease-out forwards !important;
+  }
+
+  .packageIntro[data-phase="opening"] .packageFlap {
+    animation: none !important;
+  }
+
   .layerPlanes path,
   .turnDialArrow {
     transition-duration: 1ms !important;
+  }
+
+  .groundShadow {
+    animation: none !important;
+  }
+
+  .pieceMatrix::after,
+  .statusDot,
+  .planDrawing,
+  .planRegistrationMotion,
+  .cobaltSpine::before,
+  .cobaltSpine::after,
+  .purchaseButton::after {
+    animation-name: none !important;
   }
 }
 
@@ -1493,4 +2231,23 @@
   to {
     opacity: 1;
   }
+}
+
+@keyframes package-intro-reduced {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.experience[data-page-visible="false"] .groundShadow,
+.experience[data-page-visible="false"] .packageIntro::before,
+.experience[data-page-visible="false"] .packageIntroTimeline,
+.experience[data-page-visible="false"] .packageFlap,
+.experience[data-page-visible="false"] .stage[data-celebrating="true"]
+  .cubeFrame::after {
+  animation-play-state: paused !important;
 }

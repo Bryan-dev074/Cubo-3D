@@ -40,6 +40,8 @@ interface UseMoveQueueOptions {
   readonly reducedMotion: boolean;
 }
 
+const MAX_MOVE_FRAME_DELTA = 1 / 30;
+
 export function selectLayerCubieIds(
   cube: readonly CubieState[],
   move: CubeMove,
@@ -82,7 +84,7 @@ export function advanceMoveAnimation(
     return { angle: target, angularVelocity: 0, done: true };
   }
 
-  const safeDelta = Math.max(0, delta);
+  const safeDelta = Math.min(MAX_MOVE_FRAME_DELTA, Math.max(0, delta));
   const direction = Math.sign(target - state.angle);
   const alignedVelocity =
     Math.sign(state.angularVelocity) === direction ? state.angularVelocity : 0;

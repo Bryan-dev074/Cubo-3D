@@ -87,7 +87,16 @@ export async function openExperience(page: Page): Promise<void> {
   await expect(
     page.getByRole("heading", { level: 1, name: "Cubo Mágico 3D" }),
   ).toBeVisible();
+  await waitForIntroReady(page);
   await page.waitForLoadState("networkidle");
+}
+
+export async function waitForIntroReady(page: Page): Promise<void> {
+  await expect(page.locator("main#cubo")).toHaveAttribute(
+    "data-intro-phase",
+    "ready",
+    { timeout: 10_000 },
+  );
 }
 
 export async function waitForWebGLScene(page: Page): Promise<Locator> {

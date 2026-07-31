@@ -101,4 +101,18 @@ describe("procedural cube scene contracts", () => {
       done: true,
     });
   });
+
+  it("caps a huge resumed-frame delta instead of finishing or jumping the turn", () => {
+    const target = Math.PI / 2;
+    const step = advanceMoveAnimation(
+      { angle: 0, angularVelocity: 0 },
+      target,
+      30,
+      false,
+    );
+
+    expect(step.done).toBe(false);
+    expect(step.angle).toBeGreaterThan(0);
+    expect(step.angle).toBeLessThan(target * 0.8);
+  });
 });
