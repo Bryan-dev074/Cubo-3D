@@ -100,6 +100,38 @@ describe("PackageIntro", () => {
     expect(onPackageOpened).toHaveBeenCalledOnce();
   });
 
+  it("accepts only CSS-module-qualified versions of the approved names", () => {
+    const onPackageOpened = vi.fn();
+    const first = render(
+      <PackageIntro
+        phase="opening"
+        reducedMotion={false}
+        onPackageOpened={onPackageOpened}
+      />,
+    );
+
+    fireTimelineAnimationEnd(
+      screen.getByTestId("package-intro-timeline"),
+      "experience-module__hash__intro-package-finish",
+    );
+    expect(onPackageOpened).toHaveBeenCalledOnce();
+    first.unmount();
+
+    const onReducedOpened = vi.fn();
+    render(
+      <PackageIntro
+        phase="opening"
+        reducedMotion
+        onPackageOpened={onReducedOpened}
+      />,
+    );
+    fireTimelineAnimationEnd(
+      screen.getByTestId("package-intro-timeline"),
+      "package-intro-reduced__experience-module__hash",
+    );
+    expect(onReducedOpened).toHaveBeenCalledOnce();
+  });
+
   it("lets Escape skip the finite sequence", () => {
     render(<IntroSequenceProbe />);
 

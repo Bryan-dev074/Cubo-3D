@@ -176,7 +176,9 @@ describe("production rendering contracts", () => {
       "utf8",
     );
 
-    expect(packageSource).toContain('event.animationName === "intro-package-finish"');
+    expect(packageSource).toContain("matchesPackageCompletionAnimation");
+    expect(packageSource).toContain("PACKAGE_COMPLETION_ANIMATIONS");
+    expect(packageSource).not.toContain("event.animationName ===");
     expect(packageSource).not.toContain('event.animationName === "package-intro-reveal"');
     expect(styles).toMatch(
       /animation:\s*intro-package-finish 1350ms linear forwards/,
@@ -184,19 +186,96 @@ describe("production rendering contracts", () => {
     expect(styles).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
     expect(styles).toContain("cubic-bezier(0.77, 0, 0.175, 1)");
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.header[\s\S]*?700ms/,
+      /data-intro-phase="opening"\] \.header[\s\S]*?400ms/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?780ms/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?360ms/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?830ms/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?410ms/,
     );
     expect(styles).toMatch(
       /data-intro-phase="sealed"\][\s\S]*?\.cubeFrame[\s\S]*?opacity:\s*0/,
     );
     expect(styles).toMatch(
       /data-intro-phase="opening"\][\s\S]*?\.plotterGlyph[\s\S]*?animation-play-state:\s*paused/,
+    );
+    const flapRule = styles.match(/\.packageFlap\s*\{([\s\S]*?)\n\}/)?.[1];
+    expect(flapRule).toContain("backface-visibility: visible");
+    expect(flapRule).not.toContain("backface-visibility: hidden");
+    expect(styles).toMatch(
+      /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
+    );
+    expect(styles).toMatch(
+      /\.packageFlap\[data-flap="left"\]::before,[\s\S]*?\.packageFlap\[data-flap="right"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateY\(180deg\)/,
+    );
+    expect(styles).toMatch(
+      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(2px\)/,
+    );
+  });
+
+  it("pauses every finite package and real-interface participant while hidden", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const hiddenPauseRule = styles.match(
+      /\.experience\[data-page-visible="false"\] \.groundShadow,[\s\S]*?animation-play-state:\s*paused\s*!important;\s*\}/,
+    )?.[0];
+
+    expect(hiddenPauseRule).toBeDefined();
+    for (const participant of [
+      ".packageIntro::before",
+      ".packageIntroTimeline",
+      ".packageIntroRegistration",
+      ".packageSeal",
+      ".packageRail",
+      ".packageHinge",
+      ".packageInnerFace",
+      ".packageAperture",
+      ".packageFlap",
+      ".cobaltSpine",
+      ".header",
+      ".registrationMark",
+      ".plotterLine",
+      ".promise",
+      ".scrambleButton",
+      ".firstUseHint",
+      ".stage",
+      ".planDrawing",
+      ".telemetry",
+      ".controlDock",
+    ]) {
+      expect(hiddenPauseRule).toContain(participant);
+    }
+  });
+
+  it("keeps opened flap backs visible and brings real interface signals forward", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+    const flapRule = styles.match(/\.packageFlap\s*\{([\s\S]*?)\n\}/)?.[1];
+
+    expect(flapRule).toContain("backface-visibility: visible");
+    expect(flapRule).not.toContain("backface-visibility: hidden");
+    expect(styles).toMatch(
+      /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
+    );
+    expect(styles).toMatch(
+      /\.packageFlap\[data-flap="left"\]::before,[\s\S]*?\.packageFlap\[data-flap="right"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateY\(180deg\)/,
+    );
+    expect(styles).toMatch(
+      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(2px\)/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?360ms/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?410ms/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.stage,[\s\S]*?380ms/,
     );
   });
 
@@ -334,7 +413,6 @@ describe("production rendering contracts", () => {
     for (const loop of [
       ".pieceMatrix::after",
       ".statusDot",
-      ".planDrawing",
       ".planRegistrationMotion",
       ".cobaltSpine::before",
       ".cobaltSpine::after",
@@ -344,6 +422,9 @@ describe("production rendering contracts", () => {
         `.experience[data-motion-paused="true"] ${loop}`,
       );
     }
+    expect(styles).toMatch(
+      /\.experience\[data-motion-paused="true"\]:not\(\[data-intro-phase="opening"\]\)\s+\.planDrawing/,
+    );
     expect(styles).not.toMatch(
       /\.experience\[data-motion-paused="true"\] \.(?:packageIntro|packageFlap|groundShadow|cubeFrame)/,
     );

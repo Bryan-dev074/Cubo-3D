@@ -40,7 +40,7 @@ describe("cube drop runtime framing", () => {
       viewportWidth: 390,
     },
     {
-      canvasHeight: 315,
+      canvasHeight: 336,
       canvasWidth: 320,
       name: "mobile 320",
       viewportWidth: 320,

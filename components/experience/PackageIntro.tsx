@@ -15,6 +15,21 @@ export interface PackageIntroProps {
 const FLAPS = ["top", "right", "bottom", "left"] as const;
 const RAILS = ["upper", "lower"] as const;
 const REGISTRATIONS = ["nw", "ne", "se", "sw"] as const;
+const PACKAGE_COMPLETION_ANIMATIONS = [
+  "intro-package-finish",
+  "package-intro-reduced",
+] as const;
+
+function matchesPackageCompletionAnimation(animationName: string): boolean {
+  return PACKAGE_COMPLETION_ANIMATIONS.some(
+    (approvedName) =>
+      animationName === approvedName ||
+      animationName.endsWith(`__${approvedName}`) ||
+      animationName.endsWith(`_${approvedName}`) ||
+      animationName.startsWith(`${approvedName}__`) ||
+      animationName.startsWith(`${approvedName}_`),
+  );
+}
 
 export function PackageIntro({
   onPackageOpened,
@@ -36,8 +51,7 @@ export function PackageIntro({
     const handleAnimationEnd = (event: AnimationEvent) => {
       if (
         event.target === timeline &&
-        (event.animationName === "intro-package-finish" ||
-          event.animationName === "package-intro-reduced") &&
+        matchesPackageCompletionAnimation(event.animationName) &&
         !completedRef.current
       ) {
         completedRef.current = true;

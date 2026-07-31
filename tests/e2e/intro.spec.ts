@@ -243,20 +243,50 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   expect(at160.seal.opacity).toBeGreaterThan(0.9);
   expect(at160.seal.transform).not.toBe("none");
 
+  const at450 = await readMechanicalCheckpoint(page, 450);
+  expect(
+    at450.interfaceSignals.some(
+      (signal) => signal.opacity >= 0.25 && signal.overlapArea >= 200,
+    ),
+  ).toBe(true);
+
+  await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
   const at650 = await readMechanicalCheckpoint(page, 650);
   expect(new Set(at650.flaps.map((flap) => flap.transform)).size).toBe(4);
   expect(at650.paperOpacity).toBeLessThan(1);
   expect(at650.innerFaceOpacity).toBeLessThan(1);
   expect(at650.apertureBackground).toBe("rgba(0, 0, 0, 0)");
-  expect(at650.interfaceMounted).toBe(true);
+  expect(
+    at650.interfaceSignals.some(
+      (signal) => signal.opacity >= 0.75 && signal.overlapArea >= 500,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-650.png"),
+  });
+
+  const at900 = await readMechanicalCheckpoint(page, 900);
+  expect(at900.flaps).toHaveLength(4);
+  expect(at900.flaps.every((flap) => flap.backfaceVisibility === "visible")).toBe(
+    true,
+  );
+  expect(at900.flaps.every((flap) => flap.opacity > 0.95)).toBe(true);
+  expect(at900.flaps.every((flap) => flap.area >= 1_000)).toBe(true);
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-900.png"),
+  });
 
   const at1100 = await readMechanicalCheckpoint(page, 1_100);
   expect(at1100.paperOpacity).toBeLessThanOrEqual(0.01);
   expect(at1100.innerFaceOpacity).toBeLessThanOrEqual(0.01);
   expect(at1100.flaps.every((flap) => flap.opacity < 1)).toBe(true);
+  expect(at1100.flaps.every((flap) => flap.opacity > 0.01)).toBe(true);
   expect(at1100.headerOpacity).toBeGreaterThan(0.95);
   expect(at1100.titleOpacity).toBeGreaterThan(0.9);
   expect(at1100.telemetryOpacity).toBeGreaterThan(0.8);
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-1100.png"),
+  });
 
   const at1350 = await readMechanicalCheckpoint(page, 1_350);
   expect(at1350.timelineOpacity).toBeLessThanOrEqual(0.01);
@@ -278,6 +308,133 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
     { timeout: 2_000 },
   );
   await expect(page.getByTestId("package-intro")).toHaveCount(0);
+  await diagnostics.assertClean();
+  await context.close();
+});
+
+test("accepts the production keyframe name before watchdog rescue", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    reducedMotion: "no-preference",
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("package-intro")).toHaveAttribute(
+    "data-phase",
+    "opening",
+  );
+  await expect(page.locator(".cube-scene canvas")).toHaveCount(1);
+
+  const animationName = await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+    const timeline = document.querySelector<HTMLElement>(
+      '[data-testid="package-intro-timeline"]',
+    );
+    if (!timeline) {
+      throw new Error("Package timeline was unavailable");
+    }
+    const name = getComputedStyle(timeline).animationName.split(",")[0]!.trim();
+    timeline.dispatchEvent(
+      new AnimationEvent("animationend", {
+        animationName: name,
+        bubbles: true,
+      }),
+    );
+    return name;
+  });
+
+  expect(animationName).toContain("intro-package-finish");
+  await expect.poll(
+    () => page.locator("main#cubo").getAttribute("data-intro-phase"),
+    { timeout: 500 },
+  ).not.toBe("opening");
+  await restoreVisiblePage(page);
+  await diagnostics.assertClean();
+  await context.close();
+});
+
+test("pauses and resumes every finite intro animation with page visibility", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    reducedMotion: "no-preference",
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("package-intro")).toHaveAttribute(
+    "data-phase",
+    "opening",
+  );
+
+  await page.evaluate(() => {
+    for (const animation of document
+      .getAnimations()
+      .filter(
+        (candidate) => candidate.effect?.getTiming().iterations === 1,
+      )) {
+      animation.currentTime = 0;
+    }
+  });
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator("main#cubo")).toHaveAttribute(
+    "data-page-visible",
+    "false",
+  );
+  const hiddenStart = await readFiniteIntroAnimations(page);
+  expect(hiddenStart.length).toBeGreaterThan(20);
+  const unpausedAnimations = hiddenStart.filter(
+    (animation) => animation.playState !== "paused",
+  );
+  expect(
+    unpausedAnimations,
+    `Finite animations still running while hidden: ${JSON.stringify(unpausedAnimations)}`,
+  ).toEqual([]);
+  await page.waitForTimeout(140);
+  const hiddenEnd = await readFiniteIntroAnimations(page);
+  expect(hiddenEnd).toHaveLength(hiddenStart.length);
+  hiddenEnd.forEach((animation, index) => {
+    expect(animation.currentTime).toBeCloseTo(
+      hiddenStart[index]!.currentTime,
+      1,
+    );
+  });
+
+  await restoreVisiblePage(page);
+  await expect(page.locator("main#cubo")).toHaveAttribute(
+    "data-page-visible",
+    "true",
+  );
+  await page.waitForTimeout(140);
+  const visibleEnd = await readFiniteIntroAnimations(page);
+  expect(visibleEnd).toHaveLength(hiddenStart.length);
+  visibleEnd.forEach((animation, index) => {
+    expect(
+      animation.currentTime,
+      `Finite animation did not resume: ${JSON.stringify({ after: animation, before: hiddenEnd[index] })}`,
+    ).toBeGreaterThan(
+      hiddenEnd[index]!.currentTime + 40,
+    );
+  });
+
   await diagnostics.assertClean();
   await context.close();
 });
@@ -381,7 +538,10 @@ async function readMechanicalCheckpoint(
         throw new Error("Mechanical checkpoint element was unavailable");
       }
       const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
       return {
+        area: rect.width * rect.height,
+        backfaceVisibility: style.backfaceVisibility,
         opacity: Number(style.opacity),
         transform: style.transform,
       };
@@ -396,9 +556,40 @@ async function readMechanicalCheckpoint(
       throw new Error("Mechanical package was unavailable for checkpoint");
     }
 
+    const aperture = document.querySelector<HTMLElement>(
+      '[data-testid="package-aperture"]',
+    );
+    if (!aperture) {
+      throw new Error("Package aperture was unavailable for checkpoint");
+    }
+    const apertureRect = aperture.getBoundingClientRect();
+    const interfaceSignals = [
+      ...document.querySelectorAll<HTMLElement>('[data-testid="plotter-line"]'),
+      document.querySelector<HTMLElement>("#cube-stage"),
+      document.querySelector<HTMLElement>("header"),
+    ]
+      .filter((element): element is HTMLElement => Boolean(element))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const overlapWidth = Math.max(
+          0,
+          Math.min(rect.right, apertureRect.right) -
+            Math.max(rect.left, apertureRect.left),
+        );
+        const overlapHeight = Math.max(
+          0,
+          Math.min(rect.bottom, apertureRect.bottom) -
+            Math.max(rect.top, apertureRect.top),
+        );
+        return {
+          opacity: Number(getComputedStyle(element).opacity),
+          overlapArea: overlapWidth * overlapHeight,
+        };
+      });
+
     return {
       apertureBackground: getComputedStyle(
-        document.querySelector('[data-testid="package-aperture"]')!,
+        aperture,
       ).backgroundColor,
       flaps: Array.from(
         document.querySelectorAll('[data-testid="package-intro-flap"]'),
@@ -412,11 +603,7 @@ async function readMechanicalCheckpoint(
           document.querySelector('[data-testid="package-inner-face"]')!,
         ).opacity,
       ),
-      interfaceMounted: Boolean(
-        document.querySelector("header") &&
-          document.querySelector('[data-testid="workspace"]') &&
-          document.querySelector('[data-testid="plotter-title"]'),
-      ),
+      interfaceSignals,
       paperOpacity: Number(getComputedStyle(intro, "::before").opacity),
       pointerEvents: getComputedStyle(intro).pointerEvents,
       registrations: Array.from(
@@ -438,6 +625,33 @@ async function readMechanicalCheckpoint(
       wrapperBackground: getComputedStyle(intro).backgroundColor,
     };
   });
+}
+
+async function readFiniteIntroAnimations(
+  page: import("@playwright/test").Page,
+) {
+  return page.evaluate(() =>
+    document
+      .getAnimations()
+      .filter((animation) => animation.effect?.getTiming().iterations === 1)
+      .map((animation) => {
+        const effect = animation.effect as KeyframeEffect;
+        const target = effect.target;
+        return {
+          animationName:
+            animation instanceof CSSAnimation ? animation.animationName : "",
+          currentTime: Number(animation.currentTime),
+          playState: animation.playState,
+          pseudoElement: effect.pseudoElement,
+          target:
+            target instanceof Element
+              ? target.getAttribute("data-testid") ??
+                Array.from(target.classList).join(".") ??
+                target.tagName
+              : "unknown",
+        };
+      }),
+  );
 }
 
 async function pauseAtDropMidpoint(

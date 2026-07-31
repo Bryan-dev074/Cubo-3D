@@ -267,8 +267,37 @@
     var(--paper-raised) 0%,
     var(--package-fold-light) 100%
   );
-  backface-visibility: hidden;
+  backface-visibility: visible;
   transform-style: preserve-3d;
+}
+
+.packageFlap::before {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(32, 38, 42, 0.78);
+  background:
+    linear-gradient(90deg, rgba(15, 79, 212, 0.5) 0 3px, transparent 3px),
+    repeating-linear-gradient(
+      135deg,
+      rgba(32, 38, 42, 0.08) 0 1px,
+      transparent 1px 14px
+    ),
+    linear-gradient(145deg, #e8effa, #cad7e9);
+  backface-visibility: hidden;
+  box-shadow:
+    inset 0 0 0 3px rgba(15, 79, 212, 0.1),
+    0 0.35rem 0.9rem rgba(32, 38, 42, 0.16);
+  content: "";
+}
+
+.packageFlap[data-flap="top"]::before,
+.packageFlap[data-flap="bottom"]::before {
+  transform: translateZ(-3px) rotateX(180deg);
+}
+
+.packageFlap[data-flap="left"]::before,
+.packageFlap[data-flap="right"]::before {
+  transform: translateZ(-3px) rotateY(180deg);
 }
 
 .packageFlapPrint {
@@ -278,6 +307,8 @@
   font-size: clamp(0.48rem, 0.64vw, 0.62rem);
   font-weight: 700;
   letter-spacing: 0.12em;
+  backface-visibility: hidden;
+  transform: translateZ(2px);
 }
 
 .packageFlap[data-flap="top"] .packageFlapPrint,
@@ -297,6 +328,8 @@
   position: absolute;
   inset: 0;
   border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 3px rgba(32, 38, 42, 0.3);
+  transform: translateZ(2px);
   pointer-events: none;
 }
 
@@ -580,58 +613,64 @@
 
 .experience[data-intro-phase="opening"] .cobaltSpine {
   animation: interface-spine-enter 420ms cubic-bezier(0.23, 1, 0.32, 1)
-    650ms both;
+    350ms both;
 }
 
 .experience[data-intro-phase="opening"] .header {
   animation: interface-header-enter 360ms cubic-bezier(0.23, 1, 0.32, 1)
-    700ms both;
+    400ms both;
 }
 
 .experience[data-intro-phase="opening"] .registrationMark {
-  animation: interface-mark-enter 300ms cubic-bezier(0.23, 1, 0.32, 1) 745ms
+  animation: interface-mark-enter 300ms cubic-bezier(0.23, 1, 0.32, 1) 390ms
     both;
   transform-origin: left center;
 }
 
 .experience[data-intro-phase="opening"] .plotterLine:nth-child(1) {
-  animation: interface-title-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) 780ms
+  animation: interface-title-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) 360ms
     both;
 }
 
 .experience[data-intro-phase="opening"] .plotterLine:nth-child(2) {
-  animation: interface-title-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) 830ms
+  animation: interface-title-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) 410ms
     both;
 }
 
 .experience[data-intro-phase="opening"] .promise {
   animation: interface-promise-enter 320ms cubic-bezier(0.23, 1, 0.32, 1)
-    890ms both;
+    520ms both;
 }
 
 .experience[data-intro-phase="opening"] .scrambleButton {
   animation: interface-promise-enter 320ms cubic-bezier(0.23, 1, 0.32, 1)
-    945ms both;
+    570ms both;
 }
 
 .experience[data-intro-phase="opening"] .firstUseHint {
-  animation: interface-hint-enter 280ms cubic-bezier(0.23, 1, 0.32, 1) 990ms
+  animation: interface-hint-enter 280ms cubic-bezier(0.23, 1, 0.32, 1) 620ms
     both;
 }
 
 .experience[data-intro-phase="opening"] .stage,
 .experience[data-intro-phase="opening"] .planDrawing {
-  animation: interface-stage-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) 740ms
+  animation: interface-stage-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) 380ms
     both;
+}
+
+.experience[data-intro-phase="opening"] .planCutLines,
+.experience[data-intro-phase="opening"] .planFoldLines,
+.experience[data-intro-phase="opening"] .planCubeMark {
+  stroke: rgba(15, 79, 212, 0.72);
 }
 
 .experience[data-intro-phase="opening"] .telemetry {
   animation: interface-telemetry-enter 380ms cubic-bezier(0.23, 1, 0.32, 1)
-    880ms both;
+    520ms both;
 }
 
 .experience[data-intro-phase="opening"] .controlDock {
-  animation: interface-dock-enter 340ms cubic-bezier(0.23, 1, 0.32, 1) 1010ms
+  animation: interface-dock-enter 340ms cubic-bezier(0.23, 1, 0.32, 1) 650ms
     both;
 }
 
@@ -1646,7 +1685,8 @@
 
 .experience[data-motion-paused="true"] .pieceMatrix::after,
 .experience[data-motion-paused="true"] .statusDot,
-.experience[data-motion-paused="true"] .planDrawing,
+.experience[data-motion-paused="true"]:not([data-intro-phase="opening"])
+  .planDrawing,
 .experience[data-motion-paused="true"] .planRegistrationMotion,
 .experience[data-motion-paused="true"] .cobaltSpine::before,
 .experience[data-motion-paused="true"] .cobaltSpine::after,
@@ -2837,7 +2877,24 @@
 .experience[data-page-visible="false"] .groundShadow,
 .experience[data-page-visible="false"] .packageIntro::before,
 .experience[data-page-visible="false"] .packageIntroTimeline,
+.experience[data-page-visible="false"] .packageIntroRegistration,
+.experience[data-page-visible="false"] .packageSeal,
+.experience[data-page-visible="false"] .packageRail,
+.experience[data-page-visible="false"] .packageHinge,
+.experience[data-page-visible="false"] .packageInnerFace,
+.experience[data-page-visible="false"] .packageAperture,
 .experience[data-page-visible="false"] .packageFlap,
+.experience[data-page-visible="false"] .cobaltSpine,
+.experience[data-page-visible="false"] .header,
+.experience[data-page-visible="false"] .registrationMark,
+.experience[data-page-visible="false"] .plotterLine,
+.experience[data-page-visible="false"] .promise,
+.experience[data-page-visible="false"] .scrambleButton,
+.experience[data-page-visible="false"] .firstUseHint,
+.experience[data-page-visible="false"] .stage,
+.experience[data-page-visible="false"] .planDrawing,
+.experience[data-page-visible="false"] .telemetry,
+.experience[data-page-visible="false"] .controlDock,
 .experience[data-page-visible="false"] .stage[data-celebrating="true"]
   .cubeFrame::after {
   animation-play-state: paused !important;
