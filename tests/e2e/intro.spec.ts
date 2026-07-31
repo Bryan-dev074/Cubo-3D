@@ -252,6 +252,10 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   expect(at160.seal.opacity).toBeGreaterThan(0.9);
   expect(at160.seal.transform).not.toBe("none");
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
+  await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-160.png"),
+  });
 
   const at450 = await readMechanicalCheckpoint(page, 450);
   expect(
@@ -259,7 +263,6 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
       (signal) => signal.opacity >= 0.25 && signal.overlapArea >= 200,
     ),
   ).toBe(true);
-  await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-450.png"),
   });

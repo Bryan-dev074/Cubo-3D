@@ -1139,8 +1139,11 @@
 
 .plotterTitle {
   --plotter-cycle: var(--ambient-plotter);
-  --plotter-first-cycle: 6.4s;
+  /* Start at 3.4 s: the title is solid, then reaches reverse erase at
+     9.8 s exactly 6.4 s after the experience becomes ready. */
+  --plotter-first-cycle: -3.4s;
 
+  position: relative;
   isolation: isolate;
 }
 
@@ -1167,62 +1170,113 @@
 .plotterGlyph {
   display: inline-block;
   white-space: pre;
-  animation: plotter-glyph-cycle var(--plotter-cycle) var(--ease-in-out)
-    calc(var(--plotter-first-cycle) + var(--glyph-delay)) infinite both;
+  animation: plotter-glyph-cycle var(--plotter-cycle) var(--glyph-timing)
+    var(--plotter-first-cycle) infinite both;
 }
 
 .plotterRegister {
   position: absolute;
   top: 0.13em;
-  right: -0.14em;
+  left: 0;
   width: 0.11em;
   height: 0.11em;
   background: var(--cobalt);
-  animation: plotter-register-cycle var(--plotter-cycle) var(--ease-in-out)
+  animation: plotter-register-cycle var(--plotter-cycle) linear
     var(--plotter-first-cycle) infinite both;
 }
 
 @keyframes plotter-glyph-cycle {
-  0%,
-  14% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  36% {
+  from {
     opacity: 0;
     transform: translateY(0.08em);
   }
 
-  58% {
-    opacity: 0;
-    transform: translateY(-0.08em);
-  }
-
-  82%,
-  100% {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 @keyframes plotter-register-cycle {
-  0%,
-  14%,
-  100% {
+  0% {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate(0, 0);
   }
 
-  36%,
-  58% {
+  0.462963% {
+    opacity: 1;
+    transform: translate(0.68em, 0);
+  }
+
+  0.925926% {
+    opacity: 1;
+    transform: translate(1.2em, 0);
+  }
+
+  1.388889% {
+    opacity: 1;
+    transform: translate(1.78em, 0);
+  }
+
+  1.842593% {
     opacity: 0;
-    transform: translateX(0.22em);
+    transform: translate(2.32em, 0);
   }
 
-  82% {
+  1.851852% {
+    opacity: 0;
+    transform: translate(0, 0.94em);
+  }
+
+  1.861111% {
     opacity: 1;
-    transform: translateX(-0.1em);
+    transform: translate(0, 0.94em);
+  }
+
+  2.314815% {
+    opacity: 1;
+    transform: translate(0.78em, 0.94em);
+  }
+
+  2.777778% {
+    opacity: 1;
+    transform: translate(1.42em, 0.94em);
+  }
+
+  3.240741% {
+    opacity: 1;
+    transform: translate(2em, 0.94em);
+  }
+
+  3.703704% {
+    opacity: 1;
+    transform: translate(2.25em, 0.94em);
+  }
+
+  4.166667% {
+    opacity: 1;
+    transform: translate(2.8em, 0.94em);
+  }
+
+  4.62963% {
+    opacity: 0;
+    transform: translate(3.35em, 0.94em);
+  }
+
+  5.092593% {
+    opacity: 1;
+    transform: translate(3.75em, 0.94em);
+  }
+
+  5.555556% {
+    opacity: 1;
+    transform: translate(4.35em, 0.94em);
+  }
+
+  7.037037%,
+  100% {
+    opacity: 0;
+    transform: translate(4.95em, 0.94em);
   }
 }
 
@@ -3085,6 +3139,10 @@
   }
 
   .plotterBase {
+    opacity: 0;
+  }
+
+  .plotterRegister {
     opacity: 0;
   }
 }

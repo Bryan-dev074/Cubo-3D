@@ -18,5 +18,27 @@ describe("PlotterTitle", () => {
     expect(screen.getAllByTestId("plotter-line")).toHaveLength(2);
     expect(screen.getAllByTestId("plotter-base")).toHaveLength(2);
     expect(screen.getAllByTestId("plotter-glyph")).toHaveLength(13);
+    expect(screen.getAllByTestId("plotter-register")).toHaveLength(1);
+    expect(screen.getByTestId("plotter-register")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    const glyphs = screen.getAllByTestId("plotter-glyph");
+    expect(glyphs[0]).toHaveAttribute("data-write-start", "0");
+    expect(glyphs[0]).toHaveAttribute("data-write-end", "160");
+    expect(glyphs[0]).toHaveAttribute("data-erase-start", "10136");
+    expect(glyphs[0]).toHaveAttribute("data-erase-end", "10160");
+    expect(glyphs.at(-1)).toHaveAttribute("data-write-start", "600");
+    expect(glyphs.at(-1)).toHaveAttribute("data-write-end", "760");
+    expect(glyphs.at(-1)).toHaveAttribute("data-erase-start", "9800");
+    expect(glyphs.at(-1)).toHaveAttribute("data-erase-end", "9824");
+
+    for (const [index, glyph] of glyphs.entries()) {
+      expect(glyph).toHaveAttribute("data-glyph-index", String(index));
+      expect(glyph.style.getPropertyValue("--glyph-timing")).toMatch(
+        /^linear\(/,
+      );
+    }
   });
 });

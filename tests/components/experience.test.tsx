@@ -501,7 +501,9 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(titleSource).toContain("<h1");
     expect(titleSource).not.toMatch(/setTimeout|requestAnimationFrame/);
     expect(css).toContain("--plotter-cycle: var(--ambient-plotter)");
-    expect(css).toContain("--plotter-first-cycle: 6.4s");
+    expect(css).toContain("--plotter-first-cycle: -3.4s");
+    expect(css).toContain("animation: plotter-glyph-cycle");
+    expect(css).toContain("var(--glyph-timing)");
     expect(css).toMatch(
       /\.experience\[data-motion-paused="true"\] \.plotterGlyph,[\s\S]*?\.experience\[data-motion-paused="true"\] \.plotterRegister/,
     );

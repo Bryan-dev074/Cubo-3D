@@ -84,6 +84,8 @@ for (const viewport of DESKTOP_COLLISION_VIEWPORTS) {
       dock: await requiredBox(regions.dock, "dock"),
     } as const;
 
+    await expectPlotterTitleExactlyTwoLines(page, viewport);
+
     expect(boxesOverlap(boxes.heading, boxes.stage)).toBe(false);
     expect(boxesOverlap(boxes.hero, boxes.stage)).toBe(false);
     expect(boxesOverlap(boxes.heading, boxes.canvas)).toBe(false);
@@ -175,6 +177,9 @@ for (const viewport of AMBIENT_VIEWPORTS) {
           `task-4-${viewport.name}-ambient.png`,
         ),
       });
+      if (viewport.name === "desktop") {
+        await captureTask5MotionStates(page, cubeFrame);
+      }
       await diagnostics.assertClean();
     } finally {
       await releaseAndCloseWebGLContext(page, context);
@@ -347,6 +352,33 @@ test("reduced motion leaves the plotter solid and disables every ambient name", 
       "animation-name",
       "none",
     );
+    const runningInfiniteAnimations = await page.evaluate(() =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.effect?.getTiming().iterations === Infinity &&
+            animation.playState === "running",
+        )
+        .map((animation) => {
+          const effect = animation.effect as KeyframeEffect;
+          const target = effect.target;
+          return {
+            animationName:
+              animation instanceof CSSAnimation ? animation.animationName : "",
+            target:
+              target instanceof Element
+                ? target.getAttribute("data-testid") ??
+                  Array.from(target.classList).join(".") ??
+                  target.tagName
+                : "unknown",
+          };
+        }),
+    );
+    expect(
+      runningInfiniteAnimations,
+      `Reduced motion left infinite ambient animations running: ${JSON.stringify(runningInfiniteAnimations)}`,
+    ).toEqual([]);
   } finally {
     await releaseAndCloseWebGLContext(page, context);
   }
@@ -547,6 +579,9 @@ test("mobile landscape keeps each primary interaction region viewport-safe", asy
       () => document.documentElement.scrollWidth - window.innerWidth,
     ),
   ).toBe(0);
+  await expectPlotterTitleExactlyTwoLines(page, viewport);
+  await expectCubeSeparatedFromDockAndTelemetry(page);
+  await expectVisibleTargetsAtLeast44(page);
 
   const purchaseCta = page
     .getByRole("link", { name: "Comprar cubo" })
@@ -624,6 +659,8 @@ for (const viewport of MOBILE_VIEWPORTS) {
       ),
     ).toBe(0);
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expectPlotterTitleExactlyTwoLines(page, viewport);
+    await expectCubeSeparatedFromDockAndTelemetry(page);
 
     const heroElements = [
       page.getByRole("heading", { level: 1 }),
@@ -694,6 +731,319 @@ async function requiredBox(
   const box = await locator.boundingBox();
   expect(box, `${label} must have a rendered box`).not.toBeNull();
   return box!;
+}
+
+async function captureTask5MotionStates(
+  page: Page,
+  cubeFrame: Locator,
+): Promise<void> {
+  const samplePlotterAt = (cyclePhase: number) => page.evaluate(async (phase) => {
+    const requireCssAnimation = (
+      element: HTMLElement,
+      nameSuffix: string,
+    ) => {
+      const animation = element
+        .getAnimations()
+        .find(
+          (candidate): candidate is CSSAnimation =>
+            candidate instanceof CSSAnimation &&
+            candidate.animationName.endsWith(nameSuffix),
+        );
+      if (!animation) {
+        throw new Error(
+          `Missing ${nameSuffix} animation on ${element.className}`,
+        );
+      }
+      return animation;
+    };
+    const glyphs = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid="plotter-glyph"]'),
+    );
+    const registers = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '[data-testid="plotter-register"]',
+      ),
+    );
+    if (glyphs.length === 0) {
+      throw new Error("Plotter glyphs were unavailable for capture");
+    }
+    if (registers.length !== 1) {
+      throw new Error(`Expected one plotter register, found ${registers.length}`);
+    }
+    for (const glyph of glyphs) {
+      const animation = requireCssAnimation(glyph, "plotter-glyph-cycle");
+      const delay = Number(animation.effect?.getTiming().delay ?? 0);
+      animation.pause();
+      animation.currentTime = phase + delay;
+    }
+    for (const register of registers) {
+      const animation = requireCssAnimation(
+        register,
+        "plotter-register-cycle",
+      );
+      const delay = Number(animation.effect?.getTiming().delay ?? 0);
+      animation.pause();
+      animation.currentTime = phase + delay;
+    }
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
+    return {
+      glyphOpacities: glyphs.map((glyph) =>
+        Number(getComputedStyle(glyph).opacity),
+      ),
+      registerOpacities: registers.map((register) =>
+        Number(getComputedStyle(register).opacity),
+      ),
+      timings: glyphs.map((glyph) => ({
+        eraseEnd: Number(glyph.dataset.eraseEnd),
+        eraseStart: Number(glyph.dataset.eraseStart),
+        writeEnd: Number(glyph.dataset.writeEnd),
+        writeStart: Number(glyph.dataset.writeStart),
+      })),
+    };
+  }, cyclePhase);
+
+  const expectDescendingInk = (
+    opacities: readonly number[],
+    label: string,
+  ) => {
+    for (let index = 1; index < opacities.length; index += 1) {
+      expect(
+        opacities[index]!,
+        `${label}: glyph ${index} must not precede glyph ${index - 1}: ${JSON.stringify(opacities)}`,
+      ).toBeLessThanOrEqual(opacities[index - 1]! + 0.02);
+    }
+  };
+
+  const titleFrame = await samplePlotterAt(420);
+  expect(
+    titleFrame.glyphOpacities.some(
+      (opacity) => opacity > 0.05 && opacity < 0.95,
+    ),
+    `Expected a partial-ink plotter frame, received ${JSON.stringify(titleFrame)}`,
+  ).toBe(true);
+  expect(
+    titleFrame.glyphOpacities.some((opacity) => opacity >= 0.95),
+    `Expected already-written solid glyphs, received ${JSON.stringify(titleFrame)}`,
+  ).toBe(true);
+  expect(
+    titleFrame.glyphOpacities.some((opacity) => opacity <= 0.05),
+    `Expected base-only pending glyphs, received ${JSON.stringify(titleFrame)}`,
+  ).toBe(true);
+  expect(
+    titleFrame.registerOpacities.filter((opacity) => opacity > 0.2),
+    `Only the register for the actively written line may be visible: ${JSON.stringify(titleFrame)}`,
+  ).toHaveLength(1);
+  expectDescendingInk(titleFrame.glyphOpacities, "forward plotter write");
+  expect(titleFrame.timings.at(-1)?.writeEnd).toBe(760);
+  expect(titleFrame.timings[0]?.eraseEnd).toBe(10_160);
+  expect(
+    titleFrame.timings.every(
+      ({ eraseStart, writeEnd }) => eraseStart - writeEnd > 10_800 * 0.8,
+    ),
+    `Every glyph must remain solid for more than 80% of the cycle: ${JSON.stringify(titleFrame.timings)}`,
+  ).toBe(true);
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "task-5-title-mid-write.png"),
+  });
+
+  const fullyWritten = await samplePlotterAt(760);
+  expect(fullyWritten.glyphOpacities.every((opacity) => opacity >= 0.98)).toBe(
+    true,
+  );
+  expect(fullyWritten.registerOpacities[0]).toBeLessThanOrEqual(0.05);
+
+  const heldSolid = await samplePlotterAt(9_000);
+  expect(heldSolid.glyphOpacities.every((opacity) => opacity >= 0.98)).toBe(
+    true,
+  );
+
+  const reverseErase = await samplePlotterAt(9_920);
+  expect(reverseErase.glyphOpacities[0]).toBeGreaterThanOrEqual(0.98);
+  expect(reverseErase.glyphOpacities.at(-1)).toBeLessThanOrEqual(0.02);
+  expectDescendingInk(reverseErase.glyphOpacities, "reverse plotter erase");
+
+  const baseOnly = await samplePlotterAt(10_400);
+  expect(baseOnly.glyphOpacities.every((opacity) => opacity <= 0.02)).toBe(
+    true,
+  );
+  expect(baseOnly.registerOpacities[0]).toBeLessThanOrEqual(0.05);
+
+  await expect(cubeFrame).toHaveCSS("animation-name", /cube-microfloat$/);
+  await expect(cubeFrame).toHaveCSS("animation-play-state", "running");
+  await page.evaluate(() => {
+    for (const titlePart of document.querySelectorAll<HTMLElement>(
+      '[data-testid="plotter-glyph"], [data-testid="plotter-register"]',
+    )) {
+      for (const animation of titlePart.getAnimations()) {
+        animation.currentTime = 0;
+        animation.play();
+      }
+    }
+    const frame = document.querySelector<HTMLElement>(
+      '[data-testid="cube-frame"]',
+    );
+    const animation = frame?.getAnimations().find(
+      (candidate): candidate is CSSAnimation =>
+        candidate instanceof CSSAnimation &&
+        candidate.animationName.endsWith("cube-microfloat"),
+    );
+    if (!animation) {
+      throw new Error("Cube microfloat animation was unavailable");
+    }
+    animation.currentTime = 0;
+  });
+
+  await page.locator("#cube-stage").hover();
+  await expect(cubeFrame).toHaveCSS("animation-play-state", "paused");
+  const pausedTransform = await cubeFrame.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  expect(pausedTransform).not.toBe("none");
+  await page.waitForTimeout(240);
+  await expect(cubeFrame).toHaveCSS("transform", pausedTransform);
+  await page.screenshot({
+    path: resolve(
+      VISUAL_ARTIFACT_DIRECTORY,
+      "task-5-hover-paused-microfloat.png",
+    ),
+  });
+  await page.mouse.move(0, 0);
+  await waitForAnimationFrames(page, 2);
+  await expect(cubeFrame).toHaveCSS("animation-play-state", "running");
+}
+
+async function expectPlotterTitleExactlyTwoLines(
+  page: Page,
+  viewport: { readonly width: number; readonly height: number },
+): Promise<void> {
+  const title = page.getByTestId("plotter-title");
+  const lines = title.getByTestId("plotter-line");
+  await expect(title).toBeVisible();
+  await expect(lines).toHaveCount(2);
+
+  const layout = await title.evaluate((heading) => {
+    const toRect = (rect: DOMRect) => ({
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+    });
+    const headingRect = heading.getBoundingClientRect();
+    const headingStyle = getComputedStyle(heading);
+    const renderedLines = Array.from(
+      heading.querySelectorAll<HTMLElement>('[data-testid="plotter-line"]'),
+      (line) => {
+        const base = line.querySelector<HTMLElement>(
+          '[data-testid="plotter-base"]',
+        );
+        if (!base) {
+          throw new Error("Plotter line is missing its stable text base");
+        }
+        const textRange = document.createRange();
+        textRange.selectNodeContents(base);
+        const lineStyle = getComputedStyle(line);
+        return {
+          box: toRect(line.getBoundingClientRect()),
+          overflowX: lineStyle.overflowX,
+          overflowY: lineStyle.overflowY,
+          text: base.textContent?.trim() ?? "",
+          textRects: Array.from(textRange.getClientRects(), toRect).filter(
+            (rect) => rect.right > rect.left && rect.bottom > rect.top,
+          ),
+        };
+      },
+    );
+    return {
+      heading: toRect(headingRect),
+      headingOverflowX: headingStyle.overflowX,
+      headingOverflowY: headingStyle.overflowY,
+      lines: renderedLines,
+    };
+  });
+
+  expect(layout.lines).toHaveLength(2);
+  expect(layout.lines.every((line) => line.text.length > 0)).toBe(true);
+  expect(layout.lines[1]!.box.top).toBeGreaterThan(layout.lines[0]!.box.top);
+
+  const tolerance = 1;
+  expect(layout.heading.left).toBeGreaterThanOrEqual(-tolerance);
+  expect(layout.heading.top).toBeGreaterThanOrEqual(-tolerance);
+  expect(layout.heading.right).toBeLessThanOrEqual(viewport.width + tolerance);
+  expect(layout.heading.bottom).toBeLessThanOrEqual(
+    viewport.height + tolerance,
+  );
+  expect([layout.headingOverflowX, layout.headingOverflowY]).not.toContain(
+    "hidden",
+  );
+  expect([layout.headingOverflowX, layout.headingOverflowY]).not.toContain(
+    "clip",
+  );
+  for (const [index, line] of layout.lines.entries()) {
+    expect(
+      line.textRects,
+      `Plotter line ${index + 1} wrapped into additional visual lines`,
+    ).toHaveLength(1);
+    expect([line.overflowX, line.overflowY]).not.toContain("hidden");
+    expect([line.overflowX, line.overflowY]).not.toContain("clip");
+    expect(
+      line.box.left,
+      `plotter line ${index + 1} left edge`,
+    ).toBeGreaterThanOrEqual(layout.heading.left - tolerance);
+    expect(
+      line.box.top,
+      `plotter line ${index + 1} top edge`,
+    ).toBeGreaterThanOrEqual(layout.heading.top - tolerance);
+    expect(
+      line.box.right,
+      `plotter line ${index + 1} right edge`,
+    ).toBeLessThanOrEqual(layout.heading.right + tolerance);
+    expect(
+      line.box.bottom,
+      `plotter line ${index + 1} bottom edge`,
+    ).toBeLessThanOrEqual(layout.heading.bottom + tolerance);
+    for (const rect of line.textRects) {
+      expect(rect.left, `plotter line ${index + 1} viewport left`).toBeGreaterThanOrEqual(
+        -tolerance,
+      );
+      expect(rect.top, `plotter line ${index + 1} viewport top`).toBeGreaterThanOrEqual(
+        -tolerance,
+      );
+      expect(rect.right, `plotter line ${index + 1} viewport right`).toBeLessThanOrEqual(
+        viewport.width + tolerance,
+      );
+      expect(rect.bottom, `plotter line ${index + 1} viewport bottom`).toBeLessThanOrEqual(
+        viewport.height + tolerance,
+      );
+    }
+  }
+}
+
+async function expectCubeSeparatedFromDockAndTelemetry(
+  page: Page,
+): Promise<void> {
+  const regions = {
+    cubeFrame: await requiredBox(page.getByTestId("cube-frame"), "cube frame"),
+    cubeScene: await requiredBox(page.locator(".cube-scene"), "cube scene"),
+    dock: await requiredBox(
+      page.getByRole("region", { name: "Controles del cubo" }),
+      "control dock",
+    ),
+    telemetry: await requiredBox(
+      page.getByTestId("live-telemetry"),
+      "live telemetry",
+    ),
+  } as const;
+
+  for (const cubeRegion of ["cubeFrame", "cubeScene"] as const) {
+    for (const interfaceRegion of ["dock", "telemetry"] as const) {
+      expect(
+        boxesOverlap(regions[cubeRegion], regions[interfaceRegion]),
+        `${cubeRegion} must remain separate from ${interfaceRegion}`,
+      ).toBe(false);
+    }
+  }
 }
 
 async function expectGroundShadowLayout(page: Page): Promise<void> {

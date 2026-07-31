@@ -101,6 +101,10 @@ test("pauses and resumes the CSS ambient director for help and orbit interaction
   const plotterGlyph = page.getByTestId("plotter-glyph").first();
 
   await expect(root).toHaveAttribute("data-motion-paused", "false");
+  await expect(plotterGlyph).toHaveCSS(
+    "animation-name",
+    /plotter-glyph-cycle$/,
+  );
   await expect(plotterGlyph).toHaveCSS("animation-play-state", "running");
 
   await page.getByRole("button", { name: "Ayuda" }).click();
@@ -380,6 +384,8 @@ test("locks the original layer through an L-shaped drag and keeps its cubie owne
   });
 
   const cursor = page.getByTestId("adaptive-cursor");
+  const experience = page.locator("main#cubo");
+  const plotterGlyph = page.getByTestId("plotter-glyph").first();
   await expect(cursor).toHaveCount(1);
   await expect(page.locator("main#cubo")).toHaveAttribute(
     "data-custom-cursor",
@@ -439,9 +445,12 @@ test("locks the original layer through an L-shaped drag and keeps its cubie owne
   // then crosses a foreign surface but must retain that original layer.
   await page.mouse.move(centerX, centerY);
   await expect(cursor).toHaveAttribute("data-mode", "layer-ready");
+  await expect(experience).toHaveAttribute("data-motion-paused", "false");
   await page.mouse.down({ button: "left" });
   await page.mouse.move(baselineX, baselineY, { steps: 4 });
   await expect(cursor).toHaveAttribute("data-mode", "layer-drag");
+  await expect(experience).toHaveAttribute("data-motion-paused", "true");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "paused");
   const initialAxis = await cursor.getAttribute("data-axis");
   const initialDirection = await cursor.getAttribute("data-direction");
   expect(initialAxis).toMatch(/^[xyz]$/);
@@ -450,13 +459,28 @@ test("locks the original layer through an L-shaped drag and keeps its cubie owne
   await page.mouse.move(lShapeX, lShapeY, { steps: 6 });
   await expect(cursor).toHaveAttribute("data-mode", "layer-drag");
   await expect(cursor).toHaveAttribute("data-axis", initialAxis!);
+  await expect(cursor).toHaveAttribute("data-direction", initialDirection!);
+  await expect(experience).toHaveAttribute("data-motion-paused", "true");
+  await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
+  await page.screenshot({
+    path: resolve(
+      VISUAL_ARTIFACT_DIRECTORY,
+      "task-5-l-shaped-held-before-release.png",
+    ),
+  });
   await page.mouse.up({ button: "left" });
+  await expect(experience).toHaveAttribute("data-motion-paused", "true");
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("1", {
     timeout: 15_000,
   });
   await expect(page.getByTestId("telemetry-last-move")).toHaveText(
     baselineMove,
   );
+  await expect(
+    page.getByRole("button", { name: "Desordenar cubo" }),
+  ).toBeEnabled();
+  await expect(experience).toHaveAttribute("data-motion-paused", "false");
+  await expect(plotterGlyph).toHaveCSS("animation-play-state", "running");
 
   await page.getByRole("button", { name: "Reiniciar" }).click();
   await expect(page.getByTestId("telemetry-move-count")).toHaveText("0");
@@ -735,6 +759,7 @@ async function installWebGLDrawCallCounter(page: Page): Promise<void> {
 }
 
 async function forceNormalMotionPreference(page: Page): Promise<void> {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = (query: string) => {
