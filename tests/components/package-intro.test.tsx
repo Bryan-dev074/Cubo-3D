@@ -298,8 +298,13 @@ describe("PackageIntro", () => {
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
   });
 
-  it("ends reveal immediately when the late scene reports its mounted root", () => {
+  it("gives a late scene an abbreviated drop and ends at 2000 ms of visible time", () => {
     const clock = installFrameClock();
+    let visibility = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibility,
+    });
     render(<IntroSequenceProbe />);
 
     act(() => {
@@ -310,11 +315,24 @@ describe("PackageIntro", () => {
     });
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("reveal");
 
+    visibility = "hidden";
+    fireEvent(document, new Event("visibilitychange"));
+    clock.setNow(5_000);
+    visibility = "visible";
+    fireEvent(document, new Event("visibilitychange"));
+    act(() => clock.frame(5_350));
+
     fireEvent.click(screen.getByRole("button", { name: "Escena montada" }));
+    expect(screen.getByTestId("intro-phase")).toHaveTextContent("drop");
+
+    act(() => clock.frame(5_649));
+    expect(screen.getByTestId("intro-phase")).toHaveTextContent("drop");
+
+    act(() => clock.frame(5_650));
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
   });
 
-  it("keeps one watchdog in StrictMode and removes it with its visibility listener", () => {
+  it("keeps the phase and global watchdogs in StrictMode and removes their listeners", () => {
     const clock = installFrameClock();
     const removeEventListener = vi.spyOn(document, "removeEventListener");
     const { unmount } = render(
@@ -323,13 +341,13 @@ describe("PackageIntro", () => {
       </StrictMode>,
     );
 
-    expect(clock.pending()).toBe(1);
+    expect(clock.pending()).toBe(2);
     unmount();
     expect(clock.cancel).toHaveBeenCalled();
-    expect(removeEventListener).toHaveBeenCalledWith(
-      "visibilitychange",
-      expect.any(Function),
-    );
+    expect(removeEventListener).toHaveBeenCalledTimes(2);
+    for (const call of removeEventListener.mock.calls) {
+      expect(call).toEqual(["visibilitychange", expect.any(Function)]);
+    }
   });
 });
 

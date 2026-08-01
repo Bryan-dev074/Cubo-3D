@@ -46,7 +46,7 @@ const VIEWPORTS = [
   { name: "desktop-1440", width: 1440, height: 900 },
   { name: "tablet-900", width: 900, height: 900 },
   { name: "mobile-390", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-320", width: 320, height: 568 },
 ] as const;
 
 for (const viewport of VIEWPORTS) {

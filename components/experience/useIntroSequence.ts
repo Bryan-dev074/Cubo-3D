@@ -12,6 +12,7 @@ import {
   INTRO_DROP_MS,
   INTRO_PACKAGE_MS,
   INTRO_REDUCED_MS,
+  INTRO_TOTAL_MS,
   introReducer,
 } from "@/lib/motion/intro-sequence";
 
@@ -131,6 +132,11 @@ export function useIntroSequence() {
     dispatch({ type: "start" });
   }, []);
 
+  useVisiblePhaseWatchdog(
+    state.phase !== "sealed" && state.phase !== "ready",
+    INTRO_TOTAL_MS,
+    skip,
+  );
   useVisiblePhaseWatchdog(
     state.phase === "opening",
     reducedMotion ? INTRO_REDUCED_MS : INTRO_PACKAGE_MS,

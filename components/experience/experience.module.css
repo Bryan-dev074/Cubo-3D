@@ -1740,7 +1740,7 @@
 
 .plotterBase {
   color: var(--graphite-soft);
-  opacity: 0.46;
+  opacity: 0.72;
 }
 
 .plotterInk {
@@ -3850,6 +3850,48 @@
 
   .dockActions button {
     font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 340px) and (max-height: 600px) {
+  .header {
+    min-height: 3.3rem;
+    padding-block: 0.25rem;
+  }
+
+  .heroCopy {
+    padding-top: 0.45rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .registrationMark {
+    margin-bottom: 0.35rem;
+  }
+
+  .heroCopy h1 {
+    font-size: 2rem;
+    line-height: 0.86;
+  }
+
+  .promise {
+    margin-top: 0.35rem;
+    font-size: 0.76rem;
+    line-height: 1.28;
+  }
+
+  .scrambleButton {
+    min-height: 2.75rem;
+    margin-top: 0.4rem;
+    padding-block: 0.65rem;
+  }
+
+  .firstUseHint {
+    margin-top: 0.35rem;
+  }
+
+  .stage {
+    height: calc(42dvh + 1px);
+    min-height: calc(42dvh + 1px);
   }
 }
 
