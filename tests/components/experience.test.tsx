@@ -533,6 +533,22 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(within(spine).getByTestId("spine-diagram")).toBeInTheDocument();
   });
 
+  it("addresses every visible spine object for one top-to-bottom print cycle", () => {
+    render(<MagicCubeExperience />);
+    const spine = screen.getByTestId("editorial-spine");
+
+    expect(within(spine).getAllByTestId("spine-glyph")).toHaveLength(6);
+    expect(within(spine).getAllByTestId("spine-footer-line")).toHaveLength(3);
+    expect(within(spine).getAllByTestId("spine-rule")).toHaveLength(2);
+    expect(within(spine).getByTestId("spine-inspection-beam")).toBeInTheDocument();
+    expect(
+      within(spine)
+        .getAllByTestId("spine-diagram-layer")
+        .map((layer) => layer.getAttribute("data-layer")),
+    ).toEqual(["base", "risers", "faces"]);
+    expect(spine.querySelectorAll('[data-spine-motion="true"]')).toHaveLength(18);
+  });
+
   it("renders the localized packaging plan as a workspace backdrop", () => {
     render(<MagicCubeExperience />);
 
@@ -975,9 +991,6 @@ describe("commercial CSS contract", () => {
     }
 
     expect(css).toMatch(
-      /@keyframes spine-technical-breathe[\s\S]*?opacity:\s*0\.48;[\s\S]*?opacity:\s*0\.64;/,
-    );
-    expect(css).toMatch(
       /\.planDrawing\s*\{[^}]*--plan-opacity-low:\s*0\.48;[^}]*--plan-opacity-high:\s*0\.56;/,
     );
     expect(css).toMatch(
@@ -1056,7 +1069,6 @@ describe("commercial CSS contract", () => {
       "--ambient-plotter: 10.8s",
       "--ambient-plan: 8.4s",
       "--ambient-registration: 6.4s",
-      "--ambient-spine: 7.2s",
       "--ambient-matrix: 4.8s",
       "--ambient-status: 3.2s",
       "--ambient-dock: 6.4s",
@@ -1092,6 +1104,43 @@ describe("commercial CSS contract", () => {
     expect(shadowRule).not.toContain("cube-microfloat");
     expect(shadowKeyframes).toBeDefined();
     expect(shadowKeyframes).not.toContain("translateY(");
+  });
+
+  it("runs every spine group from one 6.4 second register director", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(css).toContain("--ambient-spine-register: 6.4s");
+    const spineKeyframes = [
+      "spine-beam-pass",
+      "spine-title-register",
+      "spine-tagline-register",
+      "spine-rule-print",
+      "spine-glyph-print",
+      "spine-footer-register",
+      "spine-diagram-draw",
+      "spine-arc-register",
+      "spine-mobile-rail",
+    ];
+    for (const name of spineKeyframes) {
+      expect(css).toContain(`@keyframes ${name}`);
+      const keyframesStart = css.indexOf(`@keyframes ${name}`);
+      const keyframesEnd = css.indexOf("@keyframes ", keyframesStart + 1);
+      const keyframes = css.slice(keyframesStart, keyframesEnd);
+      expect(keyframes).toMatch(/opacity:/);
+      expect(keyframes).toMatch(/transform:/);
+      expect(keyframes).not.toMatch(
+        /\b(?:stroke-dashoffset|filter|clip-path|mask|box-shadow|inset|top|right|bottom|left|width|height):/,
+      );
+    }
+    expect(css).toMatch(
+      /\[data-motion-paused="true"\][\s\S]*?\[data-spine-motion="true"\][\s\S]*?animation-play-state:\s*paused\s*!important/,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\[data-spine-motion="true"\][\s\S]*?animation-name:\s*none\s*!important/,
+    );
   });
 
   it("uses the reference column split and collapses the cobalt spine without inherited padding", () => {
@@ -1168,32 +1217,25 @@ describe("commercial CSS contract", () => {
     expect(reducedLight).not.toContain("transform:");
   });
 
-  it("reveals the real interface through a transparent package wrapper", () => {
+  it("turns the dimensional package into the live regions without a global early reveal", () => {
     const css = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),
       "utf8",
     );
-    const intro = css.match(/\.packageIntro\s*\{([^}]*)\}/)?.[1];
-    const paper = css.match(/\.packageIntro::before\s*\{([\s\S]*?)\n\}/)?.[1];
-    const reveal = css.match(
-      /\.packageIntro\[data-phase="reveal"\]::before,[\s\S]*?\{([^}]*)\}/,
-    )?.[1];
 
-    expect(intro).toMatch(/background:\s*transparent;/);
-    expect(paper).toMatch(/content:\s*"";/);
-    expect(paper).toMatch(/background:\s*var\(--paper\);/);
-    expect(reveal).toMatch(/opacity:\s*0;/);
-    expect(css).toMatch(
-      /\.packageIntro\[data-phase="reveal"\],[\s\S]*?\.packageIntro\[data-phase="drop"\]\s*\{[^}]*pointer-events:\s*none;/,
-    );
-    expect(css).toMatch(
-      /\.packageIntro\[data-phase="opening"\]::before,[\s\S]{0,140}package-intro-reduced\s+180ms/,
-    );
-    const reducedKeyframes = css.match(
-      /@keyframes package-intro-reduced\s*\{([\s\S]*?)\n\}/,
-    )?.[1];
-    expect(reducedKeyframes).toContain("opacity:");
-    expect(reducedKeyframes).not.toContain("transform:");
+    expect(css).toContain("animation: intro-package-finish 1350ms linear forwards");
+    for (const destination of ["header", "telemetry", "dock", "hero"]) {
+      expect(css).toContain(`[data-destination="${destination}"]`);
+    }
+    expect(css).toMatch(/\.packageGroundShadow\s*\{[^}]*translateX\(-50%\)/);
+    expect(css).toMatch(/@keyframes package-ground-settle[\s\S]*?scaleX\(/);
+    expect(css).toMatch(/@keyframes package-ground-settle[\s\S]*?opacity:/);
+    expect(css.match(/@keyframes package-ground-settle[\s\S]*?\n\}/)?.[0])
+      .not.toContain("translateY(");
+    expect(css).toMatch(/\.packageFlapFace\[data-face="inner"\]/);
+    expect(css).toContain('.packageSealHalf[data-side="start"]');
+    expect(css).toContain('.packageSealHalf[data-side="end"]');
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?package-intro-reduced 180ms/);
   });
 });
 

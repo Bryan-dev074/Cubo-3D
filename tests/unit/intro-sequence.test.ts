@@ -36,7 +36,7 @@ describe("introReducer", () => {
     expect(state).toMatchObject({ phase: "reveal", sceneReady: false });
   });
 
-  it("skips the drop when scene readiness arrives after the package opens", () => {
+  it("runs the drop only for an early scene and skips it for a late scene", () => {
     let early = introReducer(createIntroState(false), { type: "start" });
     early = introReducer(early, { type: "scene-ready" });
     expect(early).toMatchObject({ phase: "opening", sceneReady: true });

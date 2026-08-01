@@ -21,7 +21,7 @@ import {
 
 const MOBILE_VIEWPORTS = [
   { name: "mobile-390", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-320", width: 320, height: 568 },
 ] as const;
 const VISUAL_ARTIFACT_DIRECTORY = resolve(
   process.cwd(),
@@ -36,18 +36,18 @@ const GROUND_SHADOW_VIEWPORTS = [
   { name: "desktop-1440", width: 1440, height: 900 },
   { name: "tablet-768", width: 768, height: 1024 },
   { name: "mobile-390", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-320", width: 320, height: 568 },
 ] as const;
 const CINEMATIC_VIEWPORTS = [
   { name: "desktop-1600", width: 1600, height: 1000 },
   { name: "desktop-1440", width: 1440, height: 900 },
   { name: "mobile-390", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-320", width: 320, height: 568 },
 ] as const;
 const AMBIENT_VIEWPORTS = [
   { name: "desktop", width: 1440, height: 900 },
   { name: "mobile-390", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-320", width: 320, height: 568 },
   { name: "mobile-landscape", width: 844, height: 390 },
 ] as const;
 
@@ -325,6 +325,116 @@ test("mobile sustains at most one high contrast ambient pulse across later coinc
   }
 });
 
+test("the plotter fallback remains legible while it is the only visible title layer", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    reducedMotion: "no-preference",
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+
+  try {
+    const diagnostics = monitorBrowser(page);
+    await setDeterministicBrowserState(page);
+    await openExperience(page);
+
+    const fallback = await page.evaluate(() => {
+      const base = document.querySelector<HTMLElement>(
+        '[data-testid="plotter-base"]',
+      );
+      if (!base) {
+        throw new Error("Plotter fallback layer was unavailable");
+      }
+
+      for (const ink of document.querySelectorAll<HTMLElement>(
+        '[data-testid="plotter-glyph"], [data-testid="plotter-register"]',
+      )) {
+        ink.style.animation = "none";
+        ink.style.opacity = "0";
+      }
+
+      const readColor = (value: string) => {
+        const channels = value.match(/[\d.]+/g)?.map(Number) ?? [];
+        if (channels.length < 3) {
+          throw new Error(`Unsupported computed color: ${value}`);
+        }
+        return {
+          alpha: channels[3] ?? 1,
+          blue: channels[2]!,
+          green: channels[1]!,
+          red: channels[0]!,
+        };
+      };
+      const foreground = readColor(getComputedStyle(base).color);
+      let layerOpacity = foreground.alpha;
+      let backgroundElement: HTMLElement | null = base;
+      while (backgroundElement) {
+        layerOpacity *= Number(getComputedStyle(backgroundElement).opacity);
+        const candidate = readColor(
+          getComputedStyle(backgroundElement).backgroundColor,
+        );
+        if (candidate.alpha >= 0.999) {
+          break;
+        }
+        backgroundElement = backgroundElement.parentElement;
+      }
+      if (!backgroundElement) {
+        throw new Error("Plotter fallback had no opaque background");
+      }
+      const background = readColor(
+        getComputedStyle(backgroundElement).backgroundColor,
+      );
+      const composite = {
+        red: foreground.red * layerOpacity + background.red * (1 - layerOpacity),
+        green:
+          foreground.green * layerOpacity +
+          background.green * (1 - layerOpacity),
+        blue:
+          foreground.blue * layerOpacity +
+          background.blue * (1 - layerOpacity),
+      };
+      const linear = (channel: number) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      };
+      const luminance = (color: {
+        readonly blue: number;
+        readonly green: number;
+        readonly red: number;
+      }) =>
+        0.2126 * linear(color.red) +
+        0.7152 * linear(color.green) +
+        0.0722 * linear(color.blue);
+      const foregroundLuminance = luminance(composite);
+      const backgroundLuminance = luminance(background);
+      const contrast =
+        (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+        (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+      const visibleInkOpacity = Math.max(
+        ...Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[data-testid="plotter-glyph"], [data-testid="plotter-register"]',
+          ),
+          (element) => Number(getComputedStyle(element).opacity),
+        ),
+      );
+
+      return { contrast, layerOpacity, visibleInkOpacity };
+    });
+
+    expect(fallback.visibleInkOpacity).toBe(0);
+    expect(fallback.layerOpacity).toBeGreaterThan(0);
+    expect(fallback.contrast).toBeGreaterThanOrEqual(3);
+    await diagnostics.assertClean();
+  } finally {
+    await releaseAndCloseWebGLContext(page, context);
+  }
+});
+
 test("reduced motion leaves the plotter solid and disables every ambient name", async ({
   browser,
 }) => {
@@ -425,12 +535,16 @@ test("mobile-390 keeps the fixed ground shadow unchanged during a real orbit", a
   const before = await shadow.boundingBox();
   const beforeStyle = await readGroundShadowStyle(shadow);
   await movePointerOutsideCanvas(page);
-  const beforeCanvas = sha256(await canvas.screenshot());
+  const beforeCanvas = sha256(
+    await canvas.screenshot({ animations: "disabled" }),
+  );
 
   await rightDragCanvas(page, canvas);
   await movePointerOutsideCanvas(page);
 
-  expect(sha256(await canvas.screenshot())).not.toBe(beforeCanvas);
+  expect(
+    sha256(await canvas.screenshot({ animations: "disabled" })),
+  ).not.toBe(beforeCanvas);
   expect(await shadow.boundingBox()).toEqual(before);
   expect(await readGroundShadowStyle(shadow)).toEqual(beforeStyle);
 
@@ -1170,7 +1284,7 @@ async function expectSafePurchaseClear(page: Page): Promise<void> {
 const SCREENSHOT_VIEWPORTS = [
   { name: "desktop", width: 1440, height: 900 },
   { name: "mobile-390", width: 390, height: 844 },
-  { name: "mobile-320", width: 320, height: 700 },
+  { name: "mobile-320", width: 320, height: 568 },
 ] as const;
 
 for (const colorScheme of ["light", "dark"] as const) {

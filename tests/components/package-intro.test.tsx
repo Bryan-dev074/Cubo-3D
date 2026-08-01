@@ -20,38 +20,39 @@ describe("PackageIntro", () => {
     delete (document as { visibilityState?: string }).visibilityState;
   });
 
-  it("renders the complete decorative mechanical package", () => {
-    const onPackageOpened = vi.fn();
+  it("renders a dimensional package whose panels name their live destinations", () => {
     render(
       <PackageIntro
         phase="opening"
         reducedMotion={false}
-        onPackageOpened={onPackageOpened}
+        onPackageOpened={vi.fn()}
       />,
     );
-    const intro = screen.getByTestId("package-intro");
-
-    expect(intro).toHaveAttribute("aria-hidden", "true");
-    expect(intro).toHaveAttribute("data-phase", "opening");
-    expect(screen.getByTestId("package-shell")).toBeInTheDocument();
-    expect(screen.getByTestId("package-inner-face")).toBeInTheDocument();
-    expect(screen.getByTestId("package-aperture")).toBeInTheDocument();
-    expect(screen.getByTestId("package-spine")).toBeInTheDocument();
-    expect(screen.getByTestId("package-serial")).toHaveTextContent(
-      "CM3D / 03",
-    );
-    expect(screen.getAllByTestId("package-registration")).toHaveLength(4);
+    expect(screen.getByTestId("package-intro")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("package-ground-shadow")).toBeInTheDocument();
+    expect(screen.getByTestId("package-origin")).toBeInTheDocument();
     expect(
       screen
-        .getAllByTestId("package-registration")
-        .map((mark) => mark.getAttribute("data-registration")),
-    ).toEqual(["nw", "ne", "se", "sw"]);
-    expect(screen.getAllByTestId("package-rail")).toHaveLength(2);
-    expect(screen.getAllByTestId("package-hinge")).toHaveLength(4);
-    expect(screen.getAllByTestId("package-intro-flap")).toHaveLength(4);
-    expect(screen.getAllByTestId("package-flap-print")).toHaveLength(4);
+        .getAllByTestId("package-backing-panel")
+        .map((panel) => panel.getAttribute("data-side")),
+    ).toEqual(["top", "right", "bottom", "left"]);
+    expect(screen.getAllByTestId("package-backing-surface")).toHaveLength(4);
+    expect(screen.getAllByTestId("package-intro-flap").map((panel) => [
+      panel.getAttribute("data-flap"),
+      panel.getAttribute("data-destination"),
+    ])).toEqual([
+      ["top", "header"],
+      ["right", "telemetry"],
+      ["bottom", "dock"],
+      ["left", "hero"],
+    ]);
+    expect(screen.getAllByTestId("package-flap-face")).toHaveLength(8);
+    expect(screen.getAllByTestId("package-flap-face").map((face) => face.getAttribute("data-face")))
+      .toEqual(["outer", "inner", "outer", "inner", "outer", "inner", "outer", "inner"]);
     expect(screen.getAllByTestId("package-flap-edge")).toHaveLength(4);
-    expect(screen.getByTestId("package-seal")).toBeInTheDocument();
+    expect(screen.getAllByTestId("package-hinge")).toHaveLength(4);
+    expect(screen.getAllByTestId("package-seal-half").map((half) => half.getAttribute("data-side")))
+      .toEqual(["start", "end"]);
   });
 
   it("accepts only the finish animation and completes once", () => {
@@ -303,8 +304,13 @@ describe("PackageIntro", () => {
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
   });
 
-  it("ends reveal immediately when the late scene reports its mounted root", () => {
+  it("settles a late scene immediately instead of showing a truncated drop", () => {
     const clock = installFrameClock();
+    let visibility = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibility,
+    });
     render(<IntroSequenceProbe />);
 
     act(() => {
@@ -315,11 +321,21 @@ describe("PackageIntro", () => {
     });
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("reveal");
 
+    visibility = "hidden";
+    fireEvent(document, new Event("visibilitychange"));
+    clock.setNow(5_000);
+    visibility = "visible";
+    fireEvent(document, new Event("visibilitychange"));
+    act(() => clock.frame(5_350));
+
     fireEvent.click(screen.getByRole("button", { name: "Escena montada" }));
+    expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
+
+    act(() => clock.frame(5_649));
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
   });
 
-  it("keeps one watchdog in StrictMode and removes it with its visibility listener", () => {
+  it("keeps the phase and global watchdogs in StrictMode and removes their listeners", () => {
     const clock = installFrameClock();
     const removeEventListener = vi.spyOn(document, "removeEventListener");
     const { unmount } = render(
@@ -328,13 +344,13 @@ describe("PackageIntro", () => {
       </StrictMode>,
     );
 
-    expect(clock.pending()).toBe(1);
+    expect(clock.pending()).toBe(2);
     unmount();
     expect(clock.cancel).toHaveBeenCalled();
-    expect(removeEventListener).toHaveBeenCalledWith(
-      "visibilitychange",
-      expect.any(Function),
-    );
+    expect(removeEventListener).toHaveBeenCalledTimes(2);
+    for (const call of removeEventListener.mock.calls) {
+      expect(call).toEqual(["visibilitychange", expect.any(Function)]);
+    }
   });
 });
 

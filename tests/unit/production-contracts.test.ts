@@ -175,6 +175,10 @@ describe("production rendering contracts", () => {
       resolve(process.cwd(), "components/experience/experience.module.css"),
       "utf8",
     );
+    const globalStyles = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    );
 
     expect(packageSource).toContain("matchesPackageCompletionAnimation");
     expect(packageSource).toContain("PACKAGE_COMPLETION_ANIMATIONS");
@@ -184,15 +188,33 @@ describe("production rendering contracts", () => {
       /animation:\s*intro-package-finish 1350ms linear forwards/,
     );
     expect(styles).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
-    expect(styles).toContain("cubic-bezier(0.77, 0, 0.175, 1)");
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.header[\s\S]*?400ms/,
+    expect(globalStyles).toMatch(
+      /--ease-in-out:\s*cubic-bezier\(0\.77,\s*0,\s*0\.175,\s*1\);/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?360ms/,
+      /\.packageIntro\[data-phase="opening"\] \.packageGroundShadow\s*\{[^}]*var\(--ease-in-out\)/,
+    );
+    for (const flap of ["top", "right", "bottom", "left"]) {
+      expect(styles).toMatch(
+        new RegExp(
+          `\\.packageIntro\\[data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\]\\s*\\{[^}]*var\\(--ease-in-out\\)`,
+        ),
+      );
+    }
+    expect(styles).toMatch(
+      /\.packageIntro\[data-phase="opening"\] \.packageIntroSpine\s*\{[^}]*var\(--ease-in-out\)/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?410ms/,
+      /\.packageIntro\[data-phase="opening"\] \.packageShell::before\s*\{[^}]*animation:\s*package-shell-depth-release 900ms var\(--ease-out\) forwards/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.header\s*\{[^}]*interface-header-enter 300ms[^}]*800ms both/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*850ms both/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*890ms both/,
     );
     expect(styles).toMatch(
       /data-intro-phase="sealed"\][\s\S]*?\.cubeFrame[\s\S]*?opacity:\s*0/,
@@ -203,14 +225,15 @@ describe("production rendering contracts", () => {
     const flapRule = styles.match(/\.packageFlap\s*\{([\s\S]*?)\n\}/)?.[1];
     expect(flapRule).toContain("backface-visibility: visible");
     expect(flapRule).not.toContain("backface-visibility: hidden");
+    expect(styles).not.toMatch(/\.packageFlap::(?:before|after)/);
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
+      /\.packageFlapFace\[data-face="inner"\]\s*\{[^}]*rotateY\(180deg\)/,
     );
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="left"\]::before,[\s\S]*?\.packageFlap\[data-flap="right"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateY\(180deg\)/,
+      /\.packageFlap\[data-flap="top"\] \.packageFlapFace\[data-face="inner"\],[\s\S]*?rotateX\(180deg\)/,
     );
     expect(styles).toMatch(
-      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(2px\)/,
+      /\.packageFlapEdge\s*\{[^}]*translateZ\(3px\)/,
     );
   });
 
@@ -225,7 +248,7 @@ describe("production rendering contracts", () => {
 
     expect(hiddenPauseRule).toBeDefined();
     for (const participant of [
-      ".packageIntro::before",
+      ".packageBackingPanel",
       ".packageIntroTimeline",
       ".packageIntroRegistration",
       ".packageSeal",
@@ -251,6 +274,57 @@ describe("production rendering contracts", () => {
     }
   });
 
+  it("keeps every large intro handoff on compositor-friendly properties", () => {
+    const packageSource = readFileSync(
+      resolve(process.cwd(), "components/experience/PackageIntro.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(packageSource).toContain('data-testid="package-backing-panel"');
+    expect(packageSource).toContain('data-testid="package-backing-surface"');
+    expect(styles).not.toContain("@keyframes package-backing-reveal");
+
+    for (const name of [
+      "package-backing-panel-open",
+      "package-aperture-reveal",
+      "interface-stage-enter",
+      "interface-plan-enter",
+    ]) {
+      const start = styles.indexOf(`@keyframes ${name}`);
+      expect(start, `${name} keyframes missing`).toBeGreaterThan(-1);
+      const next = styles.indexOf("@keyframes ", start + 1);
+      const keyframes = styles.slice(start, next === -1 ? undefined : next);
+      expect(keyframes).toMatch(/transform:/);
+      expect(keyframes).not.toMatch(
+        /\b(?:clip-path|filter|mask|box-shadow|inset|top|right|bottom|left|width|height):/,
+      );
+      if (name === "package-aperture-reveal") {
+        expect(keyframes).toContain("scaleX(0.04)");
+        expect(keyframes).not.toContain("scaleX(0)");
+      }
+    }
+
+    const packageShadowRule = styles.match(
+      /\.packageGroundShadow\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    const packageFlapRule = styles.match(
+      /\.packageFlap\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    const outerFaceRule = styles.match(
+      /\.packageFlapFace\[data-face="outer"\]\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    expect(packageShadowRule).toBeDefined();
+    expect(packageShadowRule).not.toContain("filter:");
+    expect(packageFlapRule).toBeDefined();
+    expect(packageFlapRule).not.toContain("filter:");
+    expect(packageFlapRule).not.toContain("will-change:");
+    expect(outerFaceRule).toContain("box-shadow:");
+  });
+
   it("keeps opened flap backs visible and brings real interface signals forward", () => {
     const styles = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),
@@ -261,51 +335,41 @@ describe("production rendering contracts", () => {
     expect(flapRule).toContain("backface-visibility: visible");
     expect(flapRule).not.toContain("backface-visibility: hidden");
     expect(flapRule).toContain("background: transparent");
+    expect(styles).not.toMatch(/\.packageFlap::(?:before|after)/);
     expect(styles).toMatch(
-      /\.packageFlap::after\s*\{[\s\S]*?backface-visibility:\s*hidden;[\s\S]*?translateZ\(1px\)/,
+      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(3px\)/,
     );
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*850ms both/,
     );
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="left"\]::before,[\s\S]*?\.packageFlap\[data-flap="right"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateY\(180deg\)/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*890ms both/,
     );
     expect(styles).toMatch(
-      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(2px\)/,
+      /data-intro-phase="opening"\] \.workspace\s*\{[^}]*interface-stage-enter 360ms[^}]*840ms both/,
     );
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?360ms/,
-    );
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?410ms/,
-    );
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.stage,[\s\S]*?380ms/,
-    );
-    for (const [flap, delay] of [
-      ["top", "120ms"],
-      ["right", "165ms"],
-      ["bottom", "210ms"],
-      ["left", "255ms"],
+    for (const [flap, destination] of [
+      ["top", "header"],
+      ["right", "telemetry"],
+      ["bottom", "dock"],
+      ["left", "hero"],
     ] as const) {
       expect(styles).toMatch(
         new RegExp(
-          `data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\][\\s\\S]*?${delay} forwards`,
+          `data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\]\\s*\\{[^}]*package-panel-${destination} 1230ms[^}]*0ms forwards[^}]*package-opened-flap-fade 170ms linear 930ms forwards`,
         ),
       );
     }
     expect(styles).toMatch(
       /data-phase="opening"\] \.packageIntroSpine\s*\{[\s\S]*?package-spine-release/,
     );
-    expect(styles).toContain(
-      "package-opened-flap-fade 240ms linear 980ms",
-    );
+    expect(styles).toContain("package-opened-flap-fade 170ms linear 930ms");
     expect(styles).toMatch(
       /data-phase="opening"\] \.packageFlap\[data-flap="left"\]\s*\{[\s\S]*?z-index:\s*8/,
     );
   });
 
-  it("starts the fixed HTML shadow cue with the drop and preserves its base transform", () => {
+  it("keeps the fixed HTML shadow on one contact and a final 72% plateau", () => {
     const experienceSource = readFileSync(
       resolve(process.cwd(), "components/experience/MagicCubeExperience.tsx"),
       "utf8",
@@ -328,7 +392,7 @@ describe("production rendering contracts", () => {
     expect(shadowRule).toBeDefined();
     expect(shadowRule).not.toContain("transition:");
     expect(experienceStyles).toMatch(
-      /\.experience\[data-intro-phase="drop"\] \.groundShadow\s*\{[^}]*animation:\s*cube-shadow-drop 650ms linear both;/,
+      /\.experience\[data-intro-phase="drop"\] \.groundShadow\s*\{[^}]*animation:\s*cube-shadow-drop 650ms var\(--ease-in-out\) both;/,
     );
     expect(experienceStyles).toContain(
       "translate(-50%, -50%) rotate(-4deg) scale(var(--cube-shadow-scale))",
@@ -344,16 +408,27 @@ describe("production rendering contracts", () => {
     expect(shadowKeyframes).toMatch(
       /0%\s*\{[^}]*--cube-shadow-start-opacity[^}]*--cube-shadow-start-scale/,
     );
-    expect(shadowKeyframes).toMatch(
-      /50%\s*\{[^}]*opacity:\s*0\.732;[^}]*scale\(0\.921\)/,
+    for (const stop of [72, 100]) {
+      expect(shadowKeyframes).toMatch(
+        new RegExp(
+          `${stop}%\\s*\\{[^}]*--cube-shadow-final-opacity[^}]*--cube-shadow-final-scale`,
+        ),
+      );
+    }
+    const shadowStops = Array.from(
+      shadowKeyframes?.matchAll(/(?:^|\n)\s*(\d+)%\s*\{/g) ?? [],
+      (match) => Number(match[1]),
     );
-    expect(shadowKeyframes).toMatch(
-      /65%\s*\{[^}]*opacity:\s*0\.967;[^}]*scale\(0\.99\)/,
-    );
-    expect(shadowKeyframes).toMatch(
-      /72%,\s*100%\s*\{[^}]*--cube-shadow-final-opacity[^}]*--cube-shadow-final-scale/,
-    );
+    expect(shadowStops).toEqual([0, 72, 100]);
+    expect(shadowStops).not.toContain(50);
+    expect(shadowStops).not.toContain(65);
+    expect(
+      shadowKeyframes?.match(
+        /translate\(-50%,\s*-50%\) rotate\(-4deg\)/g,
+      ),
+    ).toHaveLength(3);
     expect(shadowKeyframes).not.toMatch(/\b(?:top|left):/);
+    expect(shadowKeyframes).not.toContain("translateY(");
     expect(experienceStyles).toMatch(
       /\.experience\[data-page-visible="false"\][\s\S]*?animation-play-state:\s*paused\s*!important;/,
     );
@@ -603,7 +678,7 @@ describe("production rendering contracts", () => {
     expect(source.match(/await releaseWebGLContexts\(page\)/g)).toHaveLength(1);
     expect(
       source.match(/releaseAndCloseWebGLContext\(page, context\)/g),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(source).toMatch(
       /async function releaseAndCloseWebGLContext[\s\S]*?try\s*\{\s*await releaseWebGLContexts\(page\);\s*\}\s*finally\s*\{\s*await context\.close\(\);/,
     );

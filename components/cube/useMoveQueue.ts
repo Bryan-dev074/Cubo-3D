@@ -40,7 +40,10 @@ interface UseMoveQueueOptions {
   readonly reducedMotion: boolean;
 }
 
-const MAX_MOVE_FRAME_DELTA = 1 / 30;
+// Bound both elapsed time and visible travel: a resumed tab or low-refresh
+// device may take slightly longer, but never renders most of a turn at once.
+const MAX_MOVE_FRAME_DELTA = 1 / 10;
+const MAX_MOVE_ANGULAR_STEP = Math.PI / 4;
 
 export function selectLayerCubieIds(
   cube: readonly CubieState[],
@@ -91,11 +94,17 @@ export function advanceMoveAnimation(
   const angularVelocity = alignedVelocity * Math.exp(-18 * safeDelta);
   const easedAngle = MathUtils.damp(state.angle, target, 30, safeDelta);
   const carriedAngle = easedAngle + angularVelocity * safeDelta * 0.32;
-  const angle = MathUtils.clamp(
+  const uncappedAngle = MathUtils.clamp(
     carriedAngle,
     Math.min(state.angle, target),
     Math.max(state.angle, target),
   );
+  const angularStep = MathUtils.clamp(
+    uncappedAngle - state.angle,
+    -MAX_MOVE_ANGULAR_STEP,
+    MAX_MOVE_ANGULAR_STEP,
+  );
+  const angle = state.angle + angularStep;
 
   if (Math.abs(target - angle) < 0.0015) {
     return { angle: target, angularVelocity: 0, done: true };

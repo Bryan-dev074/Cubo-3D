@@ -25,7 +25,7 @@ La dirección se llama **La caja abierta**. Convierte un empaque premium despleg
 - No usar degradados morados, neón, glassmorphism, mallas decorativas, estrellas, precios, testimonios ni especificaciones inventadas.
 - Usar Archivo Black para el título y Archivo para cuerpo, controles y microcopy mediante `next/font`.
 
-El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, separaciones físicas, stickers geométricos redondeados, iluminación de estudio suave y reflejos controlados. Debe verse apoyado, no flotando. La sombra visual principal es una elipse HTML anclada al escenario detrás del canvas: no pertenece al grupo 3D ni a la cámara, permanece idéntica al rotar la vista o mover una capa y solo cambia opacidad y escala durante la caída inicial.
+El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, separaciones físicas, stickers geométricos redondeados, iluminación de estudio suave y reflejos controlados. Debe conservar una lectura visual apoyada sobre el plano; se permite únicamente una microflotación CSS de presentación de 1 a 2 px, sin autorrotación ni frames 3D permanentes. La sombra visual principal es una elipse HTML anclada al escenario detrás del canvas: no pertenece al grupo 3D ni a la cámara, permanece idéntica al rotar la vista o mover una capa y solo cambia opacidad y escala durante la caída inicial.
 
 ## Contenido obligatorio
 
@@ -35,7 +35,7 @@ El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, sep
 - Descripción: `Desordenalo, resolvelo y descubrí por qué este clásico se siente mejor en tus manos.`
 - Desafío: `Desordenar cubo`
 - Compra: `Comprar cubo`
-- Ayuda breve: `Izquierdo: capas · Derecho: rotar`
+- Ayuda breve: `Izquierdo: pieza = capas · fondo = rotar · Derecho: rotar`
 - Ayuda táctil: `Con el dedo: pieza = capa · fondo = rotar`
 - Éxito: `Lo resolviste.`
 - Éxito secundario: `Ahora llevá el desafío a tus manos.`
@@ -47,7 +47,7 @@ El cubo debe tener cuerpos de plástico grafito satinado, pequeños biseles, sep
 - Descripción: `Embaralhe, resolva e descubra por que este clássico fica ainda melhor nas suas mãos.`
 - Desafío: `Embaralhar cubo`
 - Compra: `Comprar cubo`
-- Ayuda breve: `Esquerdo: camadas · Direito: girar`
+- Ayuda breve: `Esquerdo: peça = camadas · fundo = girar · Direito: girar`
 - Ayuda táctil: `Com o dedo: peça = camada · fundo = girar`
 - Éxito: `Você conseguiu.`
 - Éxito secundario: `Agora leve o desafio para as suas mãos.`
@@ -89,7 +89,7 @@ Mensaje en portugués:
 ### Mouse
 
 - Arrastrar con el botón izquierdo desde una pieza elige y gira su capa según la cara tocada, la coordenada de la pieza y la proyección de los dos movimientos tangentes posibles.
-- Arrastrar con el botón izquierdo desde el fondo es inerte: no rota la vista, no selecciona una capa y no modifica el estado.
+- Arrastrar con el botón izquierdo desde un punto vacío del escenario rota la vista completa, sin seleccionar ni modificar ninguna capa.
 - Arrastrar con el botón derecho desde cualquier punto del escenario, incluso sobre una pieza, rota la vista completa con inercia moderada y nunca inicia una capa.
 - Desactivar el menú contextual únicamente dentro del escenario 3D.
 - Mantener zoom y paneo desactivados.
@@ -147,7 +147,7 @@ Incorpora una columna técnica inspirada en un instrumento industrial, pero usa 
 - `Estado`, con listo, desordenando, en juego y resuelto en ambos idiomas.
 - `Mezcla` / `Mistura`, con progreso real sobre 20 movimientos.
 
-La actividad constante debe ser mínima y significativa: respiración del estado al estar listo, ticks durante un giro, cambio de capa y pulso de piezas afectadas. Pausar al ocultar la pestaña y eliminar repetición bajo `prefers-reduced-motion`. Los indicadores visuales son `aria-hidden`; los mismos datos se exponen como texto sin convertir cada frame en un anuncio accesible.
+La actividad constante debe ser mínima y significativa: un único ciclo de registro de 6,4 s recorre de arriba abajo cada objeto visible de la franja cobalto, con descansos amplios, además de respiración del estado al estar listo, ticks durante un giro, cambio de capa y pulso de piezas afectadas. Sus bucles ambientales usan únicamente `transform` y `opacity`, se pausan al ocultar la pestaña o interactuar y se eliminan bajo `prefers-reduced-motion`. Los indicadores visuales son `aria-hidden`; los mismos datos se exponen como texto sin convertir cada frame en un anuncio accesible.
 
 En móvil, condensar la instrumentación en una banda horizontal con movimientos, estado y progreso. Los demás datos quedan en un control expandible.
 
@@ -187,7 +187,7 @@ En móvil, condensar la instrumentación en una banda horizontal con movimientos
 - Resolver la sombra de contacto principal con la elipse HTML anclada; no regenerar sombras WebGL al rotar la cámara.
 - Evitar bloom y profundidad de campo obligatorios.
 - Reservar el espacio del canvas, usar `frameloop="demand"` y solicitar frames únicamente durante la entrada, un giro, una órbita, una celebración o una transición 3D real.
-- Tras la intro, la órbita o un giro, volver a cero draw calls en reposo; el cubo no se autorrota ni flota continuamente.
+- Tras la intro, la órbita o un giro, volver a cero draw calls en reposo; el cubo no se autorrota. La microflotación permitida pertenece solo al contenedor CSS y nunca desplaza la sombra ni reactiva WebGL.
 - Mostrar inmediatamente un póster local.
 - Si WebGL falla, conservar título, explicación, reintento y CTA de WhatsApp.
 - Objetivos: LCP menor de 2.5 s, INP menor de 200 ms y CLS menor de 0.1.
@@ -198,7 +198,7 @@ En móvil, condensar la instrumentación en una banda horizontal con movimientos
 - Implementar el motor puro con TDD usando Vitest.
 - Probar la interfaz con Testing Library.
 - Verificar escritorio y vistas de 390×844 y 320×700 con Playwright.
-- Comprobar idiomas, WhatsApp, teclado, intro, órbita con botón derecho, fondo inerte con botón izquierdo, propiedad del gesto de capa, touch, cursor contextual, sombra fija, mezcla, deshacer, reinicio, fallback, movimiento reducido y ausencia de overflow.
+- Comprobar idiomas, WhatsApp, teclado, intro, órbita con botón derecho, órbita con botón izquierdo iniciada en fondo vacío, propiedad del gesto de capa, touch, cursor contextual, sombra fija, mezcla, deshacer, reinicio, fallback, movimiento reducido y ausencia de overflow.
 - Verificar que la sombra conserve caja y estilo al rotar, que el cursor no aparezca en touch ni movimiento reducido y que el canvas vuelva a cero draw calls después de entrada, giro y órbita.
 - Resolver automáticamente el origen público con `VERCEL_PROJECT_PRODUCTION_URL` y usar `VERCEL_URL` como respaldo; no exigir un dominio propio ni una variable manual para desplegar con la URL predeterminada de Vercel.
 - Permitir `NEXT_PUBLIC_SITE_URL` solo como override opcional para un dominio absoluto HTTP(S), sin credenciales ni barra final, y usar el origen resuelto en canonical, Open Graph, `robots.txt` y `sitemap.xml`.

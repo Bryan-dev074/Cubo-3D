@@ -21,6 +21,12 @@ test.use({
   viewport: { width: 1440, height: 900 },
 });
 
+test.afterEach(async ({ page }) => {
+  if (!page.isClosed()) {
+    await releaseWebGLContexts(page);
+  }
+});
+
 const VISUAL_ARTIFACT_DIRECTORY = resolve(
   process.cwd(),
   ".superpowers",
@@ -805,6 +811,16 @@ async function readWebGLDrawCalls(page: Page): Promise<number> {
       throw new Error("WebGL draw-call counter was not installed");
     }
     return counter.drawArrays + counter.drawElements;
+  });
+}
+
+async function releaseWebGLContexts(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    for (const canvas of document.querySelectorAll("canvas")) {
+      const context =
+        canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+      context?.getExtension("WEBGL_lose_context")?.loseContext();
+    }
   });
 }
 

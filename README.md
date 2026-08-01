@@ -10,12 +10,13 @@ deja caer el cubo real sobre la superficie de juego, sin autorrotación posterio
 
 - Node.js 20.9 o superior
 - npm
-- Chrome o Chromium para las pruebas de navegador
+- Chrome o Chromium y WebKit para las pruebas de navegador
 
 ## Preparación local
 
 ```bash
 npm ci
+npx playwright install chromium webkit
 npm run dev
 ```
 
@@ -110,10 +111,14 @@ de producción. Falla si el navegador no expone alguna métrica y exige:
 
 - LCP menor a 2500 ms
 - CLS menor a 0,1
-- duración máxima observada de interacción menor a 200 ms
+- respuesta máxima del hilo principal a una interacción menor a 200 ms
 
-Estos valores son puertas de laboratorio reproducibles; después de publicar,
-los datos de campo de visitantes reales en Vercel son la fuente de producción.
+El artefacto conserva además la duración completa de Event Timing y el retraso
+de presentación para diagnóstico. Ese valor no se usa como INP de hardware en
+el navegador headless porque SwiftShader puede demorar el frame presentado aun
+cuando el hilo principal ya terminó. Estos valores son puertas de laboratorio
+reproducibles; después de publicar, se debe confirmar el INP real con GPU y los
+datos de campo de visitantes en Vercel como fuente de producción.
 
 ## URL pública y metadatos
 

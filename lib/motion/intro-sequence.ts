@@ -17,6 +17,7 @@ export type IntroEvent =
 export const INTRO_PACKAGE_MS = 1_350;
 export const INTRO_REDUCED_MS = 180;
 export const INTRO_DROP_MS = 650;
+export const INTRO_TOTAL_MS = 2_000;
 
 export function createIntroState(reducedMotion: boolean): IntroState {
   return {
