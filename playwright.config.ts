@@ -24,18 +24,32 @@ export default defineConfig({
     },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
-    launchOptions: {
-      executablePath,
-      args: [
-        "--enable-webgl",
-        "--ignore-gpu-blocklist",
-      ],
-    },
   },
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /webkit-smoke\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          executablePath,
+          args: [
+            "--enable-webgl",
+            "--ignore-gpu-blocklist",
+          ],
+        },
+      },
+    },
+    {
+      name: "webkit-mobile-smoke",
+      testMatch: /webkit-smoke\.spec\.ts/,
+      use: {
+        ...devices["iPhone 13"],
+        browserName: "webkit",
+        contextOptions: {
+          reducedMotion: "no-preference",
+        },
+      },
     },
   ],
   webServer: {

@@ -10,12 +10,13 @@ deja caer el cubo real sobre la superficie de juego, sin autorrotación posterio
 
 - Node.js 20.9 o superior
 - npm
-- Chrome o Chromium para las pruebas de navegador
+- Chrome o Chromium y WebKit para las pruebas de navegador
 
 ## Preparación local
 
 ```bash
 npm ci
+npx playwright install chromium webkit
 npm run dev
 ```
 
