@@ -175,6 +175,10 @@ describe("production rendering contracts", () => {
       resolve(process.cwd(), "components/experience/experience.module.css"),
       "utf8",
     );
+    const globalStyles = readFileSync(
+      resolve(process.cwd(), "app/globals.css"),
+      "utf8",
+    );
 
     expect(packageSource).toContain("matchesPackageCompletionAnimation");
     expect(packageSource).toContain("PACKAGE_COMPLETION_ANIMATIONS");
@@ -184,15 +188,30 @@ describe("production rendering contracts", () => {
       /animation:\s*intro-package-finish 1350ms linear forwards/,
     );
     expect(styles).toContain("cubic-bezier(0.23, 1, 0.32, 1)");
-    expect(styles).toContain("cubic-bezier(0.77, 0, 0.175, 1)");
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.header[\s\S]*?400ms/,
+    expect(globalStyles).toMatch(
+      /--ease-in-out:\s*cubic-bezier\(0\.77,\s*0,\s*0\.175,\s*1\);/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?360ms/,
+      /\.packageIntro\[data-phase="opening"\] \.packageGroundShadow\s*\{[^}]*var\(--ease-in-out\)/,
+    );
+    for (const flap of ["top", "right", "bottom", "left"]) {
+      expect(styles).toMatch(
+        new RegExp(
+          `\\.packageIntro\\[data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\]\\s*\\{[^}]*var\\(--ease-in-out\\)`,
+        ),
+      );
+    }
+    expect(styles).toMatch(
+      /\.packageIntro\[data-phase="opening"\] \.packageIntroSpine\s*\{[^}]*var\(--ease-in-out\)/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?410ms/,
+      /data-intro-phase="opening"\] \.header\s*\{[^}]*interface-header-enter 300ms[^}]*900ms both/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*950ms both/,
+    );
+    expect(styles).toMatch(
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*990ms both/,
     );
     expect(styles).toMatch(
       /data-intro-phase="sealed"\][\s\S]*?\.cubeFrame[\s\S]*?opacity:\s*0/,
@@ -203,14 +222,15 @@ describe("production rendering contracts", () => {
     const flapRule = styles.match(/\.packageFlap\s*\{([\s\S]*?)\n\}/)?.[1];
     expect(flapRule).toContain("backface-visibility: visible");
     expect(flapRule).not.toContain("backface-visibility: hidden");
+    expect(styles).not.toMatch(/\.packageFlap::(?:before|after)/);
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
+      /\.packageFlapFace\[data-face="inner"\]\s*\{[^}]*rotateY\(180deg\)/,
     );
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="left"\]::before,[\s\S]*?\.packageFlap\[data-flap="right"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateY\(180deg\)/,
+      /\.packageFlap\[data-flap="top"\] \.packageFlapFace\[data-face="inner"\],[\s\S]*?rotateX\(180deg\)/,
     );
     expect(styles).toMatch(
-      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(2px\)/,
+      /\.packageFlapEdge\s*\{[^}]*translateZ\(3px\)/,
     );
   });
 
@@ -295,7 +315,7 @@ describe("production rendering contracts", () => {
     );
   });
 
-  it("starts the fixed HTML shadow cue with the drop and preserves its base transform", () => {
+  it("keeps the fixed HTML shadow on one contact and a final 72% plateau", () => {
     const experienceSource = readFileSync(
       resolve(process.cwd(), "components/experience/MagicCubeExperience.tsx"),
       "utf8",
@@ -334,16 +354,27 @@ describe("production rendering contracts", () => {
     expect(shadowKeyframes).toMatch(
       /0%\s*\{[^}]*--cube-shadow-start-opacity[^}]*--cube-shadow-start-scale/,
     );
-    expect(shadowKeyframes).toMatch(
-      /50%\s*\{[^}]*opacity:\s*0\.732;[^}]*scale\(0\.921\)/,
+    for (const stop of [72, 100]) {
+      expect(shadowKeyframes).toMatch(
+        new RegExp(
+          `${stop}%\\s*\\{[^}]*--cube-shadow-final-opacity[^}]*--cube-shadow-final-scale`,
+        ),
+      );
+    }
+    const shadowStops = Array.from(
+      shadowKeyframes?.matchAll(/(?:^|\n)\s*(\d+)%\s*\{/g) ?? [],
+      (match) => Number(match[1]),
     );
-    expect(shadowKeyframes).toMatch(
-      /65%\s*\{[^}]*opacity:\s*0\.967;[^}]*scale\(0\.99\)/,
-    );
-    expect(shadowKeyframes).toMatch(
-      /72%,\s*100%\s*\{[^}]*--cube-shadow-final-opacity[^}]*--cube-shadow-final-scale/,
-    );
+    expect(shadowStops).toEqual([0, 72, 100]);
+    expect(shadowStops).not.toContain(50);
+    expect(shadowStops).not.toContain(65);
+    expect(
+      shadowKeyframes?.match(
+        /translate\(-50%,\s*-50%\) rotate\(-4deg\)/g,
+      ),
+    ).toHaveLength(3);
     expect(shadowKeyframes).not.toMatch(/\b(?:top|left):/);
+    expect(shadowKeyframes).not.toContain("translateY(");
     expect(experienceStyles).toMatch(
       /\.experience\[data-page-visible="false"\][\s\S]*?animation-play-state:\s*paused\s*!important;/,
     );
