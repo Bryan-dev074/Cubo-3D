@@ -79,4 +79,58 @@ describe("cube drop runtime framing", () => {
       }
     },
   );
+
+  it.each([
+    {
+      canvasHeight: 701,
+      canvasWidth: 614,
+      maximumCanvasFraction: 0.12,
+      minimumSafetyMargin: 0,
+      name: "desktop",
+      viewportWidth: 1440,
+    },
+    {
+      canvasHeight: 405,
+      canvasWidth: 390,
+      maximumCanvasFraction: 0.09,
+      minimumSafetyMargin: 0.004,
+      name: "mobile",
+      viewportWidth: 390,
+    },
+  ])(
+    "keeps the $name progress-zero projected offset inside its framing budget",
+    ({
+      canvasHeight,
+      canvasWidth,
+      maximumCanvasFraction,
+      minimumSafetyMargin,
+      viewportWidth,
+    }) => {
+      const presentation = resolveCubePresentation(viewportWidth, "neutral");
+      const input: CubeDropFramingInput = {
+        aspect: canvasWidth / canvasHeight,
+        cameraPosition: presentation.cameraPosition,
+        cameraTarget: presentation.cameraTarget,
+        cubePosition: presentation.cubePosition,
+        cubeScale: presentation.cubeScale,
+        desiredProfile: presentation.dropProfile,
+      };
+      const profile = resolveFramedCubeDropProfile(input);
+      const projectedCenterY = (progress: number) => {
+        const ys = projectCubeDropCorners(input, profile, progress).map(
+          (corner) => corner.y,
+        );
+        return (Math.min(...ys) + Math.max(...ys)) / 2;
+      };
+      const projectedCanvasFraction =
+        Math.abs(projectedCenterY(0) - projectedCenterY(1)) / 2;
+
+      expect(projectedCanvasFraction).toBeLessThanOrEqual(
+        maximumCanvasFraction,
+      );
+      expect(
+        maximumCanvasFraction - projectedCanvasFraction,
+      ).toBeGreaterThanOrEqual(minimumSafetyMargin);
+    },
+  );
 });

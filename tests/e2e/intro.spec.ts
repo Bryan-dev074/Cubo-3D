@@ -727,18 +727,29 @@ async function resumeIntroAnimations(
     const openingAnimation = (animation: Animation) => {
       return animation.effect?.getTiming().iterations === 1;
     };
-    (window as ExactOpeningWindow).__cubo3dReleaseExactOpening?.();
+    const exactOpeningWindow = window as ExactOpeningWindow;
+    const heldExactOpening = Boolean(
+      exactOpeningWindow.__cubo3dReleaseExactOpening,
+    );
+    exactOpeningWindow.__cubo3dReleaseExactOpening?.();
     for (const animation of document
       .getAnimations()
       .filter(openingAnimation)) {
-      if (
-        "animationName" in animation &&
-        String(animation.animationName).includes("intro-package-finish") &&
-        Number(animation.currentTime) >= 1_350
-      ) {
-        animation.currentTime = 1_349;
-      }
       animation.play();
+    }
+    if (heldExactOpening) {
+      const timeline = document.querySelector<HTMLElement>(
+        '[data-testid="package-intro-timeline"]',
+      );
+      if (!timeline) {
+        throw new Error("Package timeline was unavailable for exact resume");
+      }
+      timeline.dispatchEvent(
+        new AnimationEvent("animationend", {
+          animationName: "intro-package-finish",
+          bubbles: true,
+        }),
+      );
     }
   });
 }

@@ -88,7 +88,7 @@ describe("sampleCubeDrop", () => {
       sampleCubeDrop(index / 256, MOBILE_CUBE_DROP_PROFILE),
     );
 
-    expect(start.offsetY).toBeCloseTo(0.62, 10);
+    expect(start.offsetY).toBeCloseTo(0.56, 10);
     expect(Math.min(...settle.map((sample) => sample.offsetY))).toBeGreaterThanOrEqual(
       -0.026,
     );

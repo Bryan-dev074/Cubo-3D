@@ -24,7 +24,7 @@ export const MOBILE_CUBE_DROP_PROFILE: CubeDropProfile = Object.freeze({
   contactAt: 0.72,
   motionScale: 1,
   settleDepth: 0.026,
-  startOffsetY: 0.62,
+  startOffsetY: 0.56,
 });
 
 function clamp01(value: number): number {
