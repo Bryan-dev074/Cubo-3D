@@ -490,7 +490,7 @@
 }
 
 .packageIntro[data-phase="opening"] .packageShell::before {
-  animation: package-shell-depth-release 900ms linear forwards;
+  animation: package-shell-depth-release 900ms var(--ease-out) forwards;
 }
 
 .packageIntro[data-phase="opening"] .packageOrigin {
@@ -1847,7 +1847,7 @@
 }
 
 .experience[data-intro-phase="drop"] .groundShadow {
-  animation: cube-shadow-drop 650ms linear both;
+  animation: cube-shadow-drop 650ms var(--ease-in-out) both;
 }
 
 .experience[data-intro-phase="ready"] .groundShadow {
@@ -1882,24 +1882,9 @@
   inset: 0;
 }
 
-.experience[data-intro-phase="drop"] .cubeFrame {
-  animation: cube-frame-drop 650ms var(--ease-in-out) both;
-}
-
 .experience[data-intro-phase="ready"] .cubeFrame {
   animation: cube-microfloat var(--ambient-cube) var(--ease-in-out) -3.2s
     infinite;
-}
-
-@keyframes cube-frame-drop {
-  0% {
-    transform: translateY(-12%);
-  }
-
-  72%,
-  100% {
-    transform: translateY(0);
-  }
 }
 
 .cubeFrame::after {
@@ -3525,9 +3510,6 @@
     width: 76%;
   }
 
-  .experience[data-intro-phase="drop"] .cubeFrame {
-    animation-name: cube-frame-drop-mobile;
-  }
 }
 
 @keyframes package-spine-release-mobile {
@@ -3566,17 +3548,6 @@
   .groundShadow {
     top: 69%;
     width: 86vw;
-  }
-}
-
-@keyframes cube-frame-drop-mobile {
-  0% {
-    transform: translateY(-9%);
-  }
-
-  72%,
-  100% {
-    transform: translateY(0);
   }
 }
 

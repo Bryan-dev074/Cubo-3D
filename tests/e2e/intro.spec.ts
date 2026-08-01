@@ -345,6 +345,7 @@ test("honors the mechanical checkpoints from package to live interface", async (
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at1350 = await readOpeningCheckpoint(page, 1_350);
+  expect(at1350.openingCompletionCurrentTime).toBe(1_350);
   expect(at1350.timelineOpacity).toBeLessThanOrEqual(0.01);
   expect(at1350.backingOpacity).toBeLessThanOrEqual(0.01);
   expect(at1350.shellBackingOpacity).toBeLessThanOrEqual(0.01);
@@ -386,15 +387,40 @@ test("honors the mechanical checkpoints from package to live interface", async (
     expect(checkpoint!.cubeRect.bottom).toBeLessThanOrEqual(
       checkpoint!.stageRect.bottom + 1,
     );
+    const marginEvidence = JSON.stringify({
+      canvas: checkpoint!.cubeRect.canvasMargins,
+      capture: checkpoint!.cubeRect.captureMargins,
+      elapsed: checkpoint!.dropElapsedMs,
+    });
+    expect(
+      checkpoint!.cubeRect.touchesCanvasEdge,
+      `Cube alpha touched its canvas edge: ${marginEvidence}`,
+    ).toBe(false);
+    expect(
+      checkpoint!.cubeRect.touchesCaptureEdge,
+      `Cube alpha touched its stage capture edge: ${marginEvidence}`,
+    ).toBe(false);
+    for (const margin of [
+      ...Object.values(checkpoint!.cubeRect.canvasMargins),
+      ...Object.values(checkpoint!.cubeRect.captureMargins),
+    ]) {
+      expect(margin).toBeGreaterThan(2);
+    }
   }
-  expect(at80!.cubeRect.centerY).toBeLessThan(at260!.cubeRect.centerY);
-  expect(at260!.cubeRect.centerY).toBeLessThan(at1760!.cubeRect.centerY);
-  expect(at1760!.cubeRect.centerY).toBeLessThan(atContact!.cubeRect.centerY);
-  expect(atSettle!.cubeRect.centerY).toBeGreaterThan(
-    atContact!.cubeRect.centerY,
+  expect(at80!.cubeRect.alphaCenterY).toBeLessThan(
+    at260!.cubeRect.alphaCenterY,
   );
-  expect(beforeReady!.cubeRect.centerY).toBeLessThan(
-    atSettle!.cubeRect.centerY,
+  expect(at260!.cubeRect.alphaCenterY).toBeLessThan(
+    at1760!.cubeRect.alphaCenterY,
+  );
+  expect(at1760!.cubeRect.alphaCenterY).toBeLessThan(
+    atContact!.cubeRect.alphaCenterY,
+  );
+  expect(atSettle!.cubeRect.alphaCenterY).toBeGreaterThan(
+    atContact!.cubeRect.alphaCenterY,
+  );
+  expect(beforeReady!.cubeRect.alphaCenterY).toBeLessThan(
+    atSettle!.cubeRect.alphaCenterY,
   );
   expect(Math.max(...at1760!.finiteCssCurrentTimes)).toBeLessThanOrEqual(
     at1760!.dropElapsedMs + 80,
@@ -410,14 +436,26 @@ test("honors the mechanical checkpoints from package to live interface", async (
   );
   const at2000 = await readDropCheckpoint(page);
   expect(at2000.phase).toBe("ready");
+  expect(at2000.cubeRect.touchesCanvasEdge).toBe(false);
+  expect(at2000.cubeRect.touchesCaptureEdge).toBe(false);
+  for (const margin of [
+    ...Object.values(at2000.cubeRect.canvasMargins),
+    ...Object.values(at2000.cubeRect.captureMargins),
+  ]) {
+    expect(margin).toBeGreaterThan(2);
+  }
   expect(at2000.dropElapsedMs).toBeGreaterThanOrEqual(620);
   expect(at2000.dropElapsedMs).toBeLessThan(760);
-  expect(Math.abs(at2000.cubeRect.centerY - atContact!.cubeRect.centerY)).toBeLessThan(
-    5,
-  );
-  expect(Math.abs(at2000.cubeRect.centerY - beforeReady!.cubeRect.centerY)).toBeLessThan(
-    5,
-  );
+  expect(
+    Math.abs(
+      at2000.cubeRect.alphaCenterY - atContact!.cubeRect.alphaCenterY,
+    ),
+  ).toBeLessThan(5);
+  expect(
+    Math.abs(
+      at2000.cubeRect.alphaCenterY - beforeReady!.cubeRect.alphaCenterY,
+    ),
+  ).toBeLessThan(5);
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-2000.png"),
   });
@@ -629,6 +667,9 @@ async function setOpeningAnimationTime(
     throw new Error("Opening animation time must stay within 0-1350ms");
   }
   return page.evaluate((requestedTimelineTime) => {
+    type ExactOpeningWindow = typeof window & {
+      __cubo3dReleaseExactOpening?: () => void;
+    };
     const intro = document.querySelector<HTMLElement>(
       '[data-testid="package-intro"]',
     );
@@ -642,12 +683,35 @@ async function setOpeningAnimationTime(
     const animations = document
       .getAnimations()
       .filter(openingAnimation);
-    const timelineTime = Math.min(requestedTimelineTime, 1_349);
+    if (requestedTimelineTime === 1_350) {
+      const timeline = intro.querySelector<HTMLElement>(
+        '[data-testid="package-intro-timeline"]',
+      );
+      if (!timeline) {
+        throw new Error("Package timeline was unavailable at 1350ms");
+      }
+      const exactOpeningWindow = window as ExactOpeningWindow;
+      exactOpeningWindow.__cubo3dReleaseExactOpening?.();
+      const holdOpeningPhase = (event: AnimationEvent) => {
+        if (event.animationName.includes("intro-package-finish")) {
+          event.stopImmediatePropagation();
+        }
+      };
+      timeline.addEventListener("animationend", holdOpeningPhase, {
+        capture: true,
+      });
+      exactOpeningWindow.__cubo3dReleaseExactOpening = () => {
+        timeline.removeEventListener("animationend", holdOpeningPhase, {
+          capture: true,
+        });
+        delete exactOpeningWindow.__cubo3dReleaseExactOpening;
+      };
+    }
     for (const animation of animations) {
       animation.pause();
       // All package animations share one opening clock. CSS delays retain the
       // approved stagger when every animation receives the same timeline time.
-      animation.currentTime = timelineTime;
+      animation.currentTime = requestedTimelineTime;
     }
     return animations.length;
   }, openingTimeMs);
@@ -657,12 +721,23 @@ async function resumeIntroAnimations(
   page: import("@playwright/test").Page,
 ): Promise<void> {
   await page.evaluate(() => {
+    type ExactOpeningWindow = typeof window & {
+      __cubo3dReleaseExactOpening?: () => void;
+    };
     const openingAnimation = (animation: Animation) => {
       return animation.effect?.getTiming().iterations === 1;
     };
+    (window as ExactOpeningWindow).__cubo3dReleaseExactOpening?.();
     for (const animation of document
       .getAnimations()
       .filter(openingAnimation)) {
+      if (
+        "animationName" in animation &&
+        String(animation.animationName).includes("intro-package-finish") &&
+        Number(animation.currentTime) >= 1_350
+      ) {
+        animation.currentTime = 1_349;
+      }
       animation.play();
     }
   });
@@ -692,6 +767,7 @@ async function readCheckpointState(
   const cubeRect = measureCube
     ? await readVisibleCubeRect(page)
     : {
+        alphaCenterY: 0,
         bottom: 0,
         centerX: 0,
         centerY: 0,
@@ -700,6 +776,10 @@ async function readCheckpointState(
         pixelCount: 0,
         right: 0,
         top: 0,
+        canvasMargins: { bottom: 0, left: 0, right: 0, top: 0 },
+        captureMargins: { bottom: 0, left: 0, right: 0, top: 0 },
+        touchesCanvasEdge: false,
+        touchesCaptureEdge: false,
         width: 0,
       };
   return page.evaluate((visibleCubeRect) => {
@@ -879,6 +959,15 @@ async function readCheckpointState(
         .getAnimations()
         .filter((animation) => animation.effect?.getTiming().iterations === 1)
         .map((animation) => Number(animation.currentTime)),
+      openingCompletionCurrentTime: (() => {
+        const completion = document.getAnimations().find((animation) => {
+          return (
+            "animationName" in animation &&
+            String(animation.animationName).includes("intro-package-finish")
+          );
+        });
+        return completion ? Number(completion.currentTime) : null;
+      })(),
       dropElapsedMs: (() => {
         const probe = (
           window as typeof window & {
@@ -943,9 +1032,13 @@ async function readCheckpointState(
 
 async function readVisibleCubeRect(page: import("@playwright/test").Page) {
   const canvas = page.locator(".cube-scene canvas");
-  const box = await canvas.boundingBox();
-  if (!box) {
-    throw new Error("Cube canvas had no screenshot bounds");
+  const stage = page.locator("#cube-stage");
+  const [canvasBox, captureBox] = await Promise.all([
+    canvas.boundingBox(),
+    stage.boundingBox(),
+  ]);
+  if (!canvasBox || !captureBox) {
+    throw new Error("Cube canvas or stage had no screenshot bounds");
   }
   await page.evaluate(() => {
     const canvasElement = document.querySelector(".cube-scene canvas");
@@ -975,7 +1068,7 @@ async function readVisibleCubeRect(page: import("@playwright/test").Page) {
   let pngBase64: string;
   try {
     pngBase64 = (await page.screenshot({
-      clip: box,
+      clip: captureBox,
       omitBackground: true,
     })).toString("base64");
   } finally {
@@ -988,7 +1081,7 @@ async function readVisibleCubeRect(page: import("@playwright/test").Page) {
   }
 
   return page.evaluate(
-    async ({ captureBox, png }) => {
+    async ({ canvasBounds, captureBounds, png }) => {
       const image = new Image();
       image.src = `data:image/png;base64,${png}`;
       await image.decode();
@@ -1011,9 +1104,12 @@ async function readVisibleCubeRect(page: import("@playwright/test").Page) {
       let top = scratch.height;
       let bottom = -1;
       let pixelCount = 0;
+      let alphaWeight = 0;
+      let weightedY = 0;
       for (let y = 0; y < scratch.height; y += 1) {
         for (let x = 0; x < scratch.width; x += 1) {
-          if (pixels[(y * scratch.width + x) * 4 + 3]! <= 8) {
+          const alpha = pixels[(y * scratch.width + x) * 4 + 3]!;
+          if (alpha <= 8) {
             continue;
           }
           left = Math.min(left, x);
@@ -1021,19 +1117,37 @@ async function readVisibleCubeRect(page: import("@playwright/test").Page) {
           top = Math.min(top, y);
           bottom = Math.max(bottom, y);
           pixelCount += 1;
+          alphaWeight += alpha;
+          weightedY += (y + 0.5) * alpha;
         }
       }
       if (pixelCount === 0) {
         throw new Error("Isolated cube capture had no visible alpha pixels");
       }
-      const scaleX = captureBox.width / scratch.width;
-      const scaleY = captureBox.height / scratch.height;
-      const cssLeft = captureBox.x + left * scaleX;
-      const cssRight = captureBox.x + (right + 1) * scaleX;
-      const cssTop = captureBox.y + top * scaleY;
-      const cssBottom = captureBox.y + (bottom + 1) * scaleY;
+      const scaleX = captureBounds.width / scratch.width;
+      const scaleY = captureBounds.height / scratch.height;
+      const cssLeft = captureBounds.x + left * scaleX;
+      const cssRight = captureBounds.x + (right + 1) * scaleX;
+      const cssTop = captureBounds.y + top * scaleY;
+      const cssBottom = captureBounds.y + (bottom + 1) * scaleY;
+      const canvasMargins = {
+        bottom: canvasBounds.y + canvasBounds.height - cssBottom,
+        left: cssLeft - canvasBounds.x,
+        right: canvasBounds.x + canvasBounds.width - cssRight,
+        top: cssTop - canvasBounds.y,
+      };
+      const captureMargins = {
+        bottom: captureBounds.y + captureBounds.height - cssBottom,
+        left: cssLeft - captureBounds.x,
+        right: captureBounds.x + captureBounds.width - cssRight,
+        top: cssTop - captureBounds.y,
+      };
       return {
+        alphaCenterY:
+          captureBounds.y + (weightedY / alphaWeight) * scaleY,
         bottom: cssBottom,
+        canvasMargins,
+        captureMargins,
         centerX: (cssLeft + cssRight) / 2,
         centerY: (cssTop + cssBottom) / 2,
         height: cssBottom - cssTop,
@@ -1041,10 +1155,18 @@ async function readVisibleCubeRect(page: import("@playwright/test").Page) {
         pixelCount,
         right: cssRight,
         top: cssTop,
+        touchesCanvasEdge: Object.values(canvasMargins).some(
+          (margin) => margin <= 0.5,
+        ),
+        touchesCaptureEdge:
+          left === 0 ||
+          right === scratch.width - 1 ||
+          top === 0 ||
+          bottom === scratch.height - 1,
         width: cssRight - cssLeft,
       };
     },
-    { captureBox: box, png: pngBase64 },
+    { canvasBounds: canvasBox, captureBounds: captureBox, png: pngBase64 },
   );
 }
 

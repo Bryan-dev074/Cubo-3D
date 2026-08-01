@@ -205,6 +205,9 @@ describe("production rendering contracts", () => {
       /\.packageIntro\[data-phase="opening"\] \.packageIntroSpine\s*\{[^}]*var\(--ease-in-out\)/,
     );
     expect(styles).toMatch(
+      /\.packageIntro\[data-phase="opening"\] \.packageShell::before\s*\{[^}]*animation:\s*package-shell-depth-release 900ms var\(--ease-out\) forwards/,
+    );
+    expect(styles).toMatch(
       /data-intro-phase="opening"\] \.header\s*\{[^}]*interface-header-enter 300ms[^}]*900ms both/,
     );
     expect(styles).toMatch(
@@ -338,7 +341,7 @@ describe("production rendering contracts", () => {
     expect(shadowRule).toBeDefined();
     expect(shadowRule).not.toContain("transition:");
     expect(experienceStyles).toMatch(
-      /\.experience\[data-intro-phase="drop"\] \.groundShadow\s*\{[^}]*animation:\s*cube-shadow-drop 650ms linear both;/,
+      /\.experience\[data-intro-phase="drop"\] \.groundShadow\s*\{[^}]*animation:\s*cube-shadow-drop 650ms var\(--ease-in-out\) both;/,
     );
     expect(experienceStyles).toContain(
       "translate(-50%, -50%) rotate(-4deg) scale(var(--cube-shadow-scale))",

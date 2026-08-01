@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DESKTOP_CUBE_DROP_PROFILE,
   MOBILE_CUBE_DROP_PROFILE,
   sampleCubeDrop,
 } from "@/lib/motion/cube-drop";
@@ -16,10 +15,6 @@ describe("sampleCubeDrop", () => {
 
     expect(start.offsetY).toBeCloseTo(0.68, 10);
     expect(start.offsetY).toBeLessThan(1);
-    expect(DESKTOP_CUBE_DROP_PROFILE.initialTiltRadians).toBe(
-      (3 * Math.PI) / 180,
-    );
-    expect(Math.abs(start.rotationZ)).toBeCloseTo((3 * Math.PI) / 180, 10);
     for (let index = 1; index < airborne.length; index += 1) {
       expect(airborne[index]!.offsetY).toBeLessThanOrEqual(
         airborne[index - 1]!.offsetY,
@@ -51,9 +46,17 @@ describe("sampleCubeDrop", () => {
     });
   });
 
-  it("zeros orientation by .68 and advances the shadow monotonically to contact", () => {
-    expect(sampleCubeDrop(0.68).rotationX).toBeCloseTo(0, 12);
-    expect(sampleCubeDrop(0.68).rotationZ).toBeCloseTo(0, 12);
+  it("never rotates during the complete desktop or mobile arrival", () => {
+    for (const profile of [undefined, MOBILE_CUBE_DROP_PROFILE]) {
+      const samples = Array.from({ length: 257 }, (_, index) =>
+        sampleCubeDrop(index / 256, profile),
+      );
+      expect(samples.every((sample) => sample.rotationX === 0)).toBe(true);
+      expect(samples.every((sample) => sample.rotationZ === 0)).toBe(true);
+    }
+  });
+
+  it("advances the shadow monotonically to contact", () => {
     const samples = Array.from({ length: 257 }, (_, index) =>
       sampleCubeDrop(index / 256),
     );
@@ -86,7 +89,6 @@ describe("sampleCubeDrop", () => {
     );
 
     expect(start.offsetY).toBeCloseTo(0.62, 10);
-    expect(Math.abs(start.rotationZ)).toBeCloseTo((3 * Math.PI) / 180, 10);
     expect(Math.min(...settle.map((sample) => sample.offsetY))).toBeGreaterThanOrEqual(
       -0.026,
     );
