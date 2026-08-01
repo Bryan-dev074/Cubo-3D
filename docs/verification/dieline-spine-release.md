@@ -6,7 +6,7 @@ Rama verificada: `codex/dieline-spine`
 
 Base: `063637e52263979f1ffe70a51ebb850f07df7573`
 
-Implementación verificada: `42cc7fa`
+Implementación verificada: `235d59a`
 
 ## Resultado
 
@@ -29,14 +29,16 @@ caída parcial que el watchdog pueda recortar.
 | `experience.spec.ts` | PASS — 11/11 |
 | `responsive.spec.ts` | PASS — 32/32 |
 | `spine-motion.spec.ts` | PASS — 4/4 |
-| Total E2E de producto | PASS — 57/57 |
+| `webkit-smoke.spec.ts` | PASS — 1/1 en WebKit 26.5 tipo iPhone |
+| Total E2E de producto | PASS — 58/58 |
 | `npm run test:performance` | PASS — 2/2 |
 | `git diff --check` | PASS |
 | Detector Impeccable | PASS — 0 hallazgos |
 
-Los archivos WebGL se ejecutaron por spec en procesos Chromium limpios. Esto
+Los archivos WebGL de Chromium se ejecutaron por spec en procesos limpios. Esto
 evita que SwiftShader acumule lecturas de píxeles entre historias y no modifica
-el código ni el comportamiento que se prueba.
+el código ni el comportamiento que se prueba. El smoke WebKit valida además la
+intro real, WebGL, touch, layout, PT y la compra localizada en un perfil iPhone.
 
 ## Viewports y evidencia visual
 
