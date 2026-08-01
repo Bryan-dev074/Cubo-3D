@@ -219,7 +219,7 @@ test("captures the package opening and the real cube mid-drop from explicit phas
   await context.close();
 });
 
-test("honors the mechanical package checkpoints before the 650 ms drop", async ({
+test("honors the mechanical checkpoints from package to live interface", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -247,99 +247,74 @@ test("honors the mechanical package checkpoints before the 650 ms drop", async (
   await expect(experience).toHaveAttribute("data-page-visible", "false");
 
   const at160 = await readMechanicalCheckpoint(page, 160);
-  expect(at160.registrations).toHaveLength(4);
-  expect(at160.registrations.every((mark) => mark.opacity > 0.95)).toBe(true);
-  expect(at160.seal.opacity).toBeGreaterThan(0.9);
-  expect(at160.seal.transform).not.toBe("none");
+  expect(at160.packageShadow.opacity).toBeGreaterThan(0.08);
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
   await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
   await page.screenshot({
-    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-160.png"),
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-160.png"),
   });
 
   const at450 = await readMechanicalCheckpoint(page, 450);
   expect(
-    at450.interfaceSignals.some(
-      (signal) => signal.opacity >= 0.25 && signal.overlapArea >= 200,
-    ),
+    at450.panels.some((panel) => panel.hasDepth && panel.opacity > 0.9),
   ).toBe(true);
   await page.screenshot({
-    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-450.png"),
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-450.png"),
   });
-  expect(
-    at450.apertureExposure.exposedSamples,
-    `The 450ms aperture remained sealed: ${JSON.stringify(at450.apertureExposure)}`,
-  ).toBeGreaterThanOrEqual(8);
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at650 = await readMechanicalCheckpoint(page, 650);
-  expect(new Set(at650.flaps.map((flap) => flap.transform)).size).toBe(4);
-  expect(at650.paperOpacity).toBeLessThan(1);
-  expect(at650.innerFaceOpacity).toBeLessThan(1);
-  expect(at650.apertureBackground).toBe("rgba(0, 0, 0, 0)");
-  expect(
-    at650.interfaceSignals.some(
-      (signal) => signal.opacity >= 0.75 && signal.overlapArea >= 500,
-    ),
-  ).toBe(true);
+  expect(new Set(at650.panels.map((panel) => panel.transform)).size).toBe(4);
   await page.screenshot({
-    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-650.png"),
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-650.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at900 = await readMechanicalCheckpoint(page, 900);
-  expect(at900.flaps).toHaveLength(4);
-  expect(at900.flaps.every((flap) => flap.backfaceVisibility === "visible")).toBe(
-    true,
-  );
-  expect(at900.flaps.every((flap) => flap.opacity > 0.95)).toBe(true);
-  expect(at900.flaps.every((flap) => flap.area >= 1_000)).toBe(true);
-  expect(
-    at900.flapSurfaceSamples.every((samples) => samples >= 8),
-    `Every opened inner plane must win the visual stack: ${JSON.stringify(at900.flapSurfaceSamples)}`,
-  ).toBe(true);
+  expect(at900.panelDestinations).toEqual(["header", "telemetry", "dock", "hero"]);
+  expect(at900.planInkOpacity).toBeGreaterThan(0.01);
   await page.screenshot({
-    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-900.png"),
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-900.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at1100 = await readMechanicalCheckpoint(page, 1_100);
-  expect(at1100.paperOpacity).toBeLessThanOrEqual(0.01);
-  expect(at1100.innerFaceOpacity).toBeLessThanOrEqual(0.01);
-  expect(at1100.flaps.every((flap) => flap.opacity < 1)).toBe(true);
-  expect(at1100.flaps.every((flap) => flap.opacity >= 0.35)).toBe(true);
-  expect(
-    at1100.flapSurfaceSamples.every((samples) => samples >= 8),
-    `Every fading inner plane must remain perceptible: ${JSON.stringify(at1100.flapSurfaceSamples)}`,
-  ).toBe(true);
-  expect(at1100.headerOpacity).toBeGreaterThan(0.95);
-  expect(at1100.titleOpacity).toBeGreaterThan(0.9);
-  expect(at1100.telemetryOpacity).toBeGreaterThan(0.8);
+  expect(at1100.titleCoverage).toBeLessThanOrEqual(0.01);
+  expect(at1100.opaquePanelSamples).toBe(0);
   await page.screenshot({
-    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "mechanical-opening-1100.png"),
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1100.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
   const at1350 = await readMechanicalCheckpoint(page, 1_350);
   expect(at1350.timelineOpacity).toBeLessThanOrEqual(0.01);
-  expect(at1350.wrapperBackground).toBe("rgba(0, 0, 0, 0)");
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1350.png"),
+  });
   await restoreVisiblePage(page);
   await resumeIntroAnimations(page);
-  await expect.poll(
-    () => experience.getAttribute("data-intro-phase"),
-    { timeout: 2_000 },
-  ).toMatch(/^(?:drop|ready)$/);
-  expect([null, "none"]).toContain(
-    await page.getByTestId("package-intro").evaluateAll((elements) =>
-      elements.length === 0 ? null : getComputedStyle(elements[0]!).pointerEvents,
-    ),
-  );
+  await expect(experience).toHaveAttribute("data-intro-phase", "drop", {
+    timeout: 1_000,
+  });
+
+  await page.waitForTimeout(410);
+  const at1760 = await readMechanicalCheckpoint(page, 1_760);
+  expect(at1760.cubeRect.left).toBeGreaterThanOrEqual(at1760.stageRect.left);
+  expect(at1760.cubeRect.right).toBeLessThanOrEqual(at1760.stageRect.right);
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1760.png"),
+  });
 
   await expect(experience).toHaveAttribute(
     "data-intro-phase",
     "ready",
     { timeout: 2_000 },
   );
+  const at2000 = await readMechanicalCheckpoint(page, 2_000);
+  expect(at2000.phase).toBe("ready");
+  await page.screenshot({
+    path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-2000.png"),
+  });
   await expect(page.getByTestId("package-intro")).toHaveCount(0);
   await diagnostics.assertClean();
   await context.close();
@@ -562,8 +537,22 @@ async function readMechanicalCheckpoint(
   page: import("@playwright/test").Page,
   time: number,
 ) {
-  await setIntroAnimationTime(page, time);
+  if (await page.getByTestId("package-intro").count()) {
+    await setIntroAnimationTime(page, time);
+  }
   return page.evaluate(() => {
+    const readRect = (element: Element | null) => {
+      if (!element) {
+        throw new Error("Checkpoint rectangle element was unavailable");
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+      };
+    };
     const readMotion = (element: Element | null) => {
       if (!element) {
         throw new Error("Mechanical checkpoint element was unavailable");
@@ -573,6 +562,9 @@ async function readMechanicalCheckpoint(
       return {
         area: rect.width * rect.height,
         backfaceVisibility: style.backfaceVisibility,
+        hasDepth:
+          style.transformStyle === "preserve-3d" &&
+          style.transform !== "none",
         opacity: Number(style.opacity),
         transform: style.transform,
       };
@@ -583,136 +575,60 @@ async function readMechanicalCheckpoint(
     const timeline = document.querySelector<HTMLElement>(
       '[data-testid="package-intro-timeline"]',
     );
-    if (!intro || !timeline) {
+    if ((intro && !timeline) || (!intro && timeline)) {
       throw new Error("Mechanical package was unavailable for checkpoint");
     }
 
-    const aperture = document.querySelector<HTMLElement>(
-      '[data-testid="package-aperture"]',
+    const panelElements = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '[data-testid="package-intro-flap"]',
+      ),
     );
-    if (!aperture) {
-      throw new Error("Package aperture was unavailable for checkpoint");
-    }
-    const apertureRect = aperture.getBoundingClientRect();
-    const interfaceSignals = [
-      ...document.querySelectorAll<HTMLElement>('[data-testid="plotter-line"]'),
-      document.querySelector<HTMLElement>("#cube-stage"),
-      document.querySelector<HTMLElement>("header"),
-    ]
-      .filter((element): element is HTMLElement => Boolean(element))
-      .map((element) => {
-        const rect = element.getBoundingClientRect();
-        const overlapWidth = Math.max(
-          0,
-          Math.min(rect.right, apertureRect.right) -
-            Math.max(rect.left, apertureRect.left),
-        );
-        const overlapHeight = Math.max(
-          0,
-          Math.min(rect.bottom, apertureRect.bottom) -
-            Math.max(rect.top, apertureRect.top),
-        );
-        return {
-          opacity: Number(getComputedStyle(element).opacity),
-          overlapArea: overlapWidth * overlapHeight,
-        };
-      });
-
-    const packageBlocker = (element: Element) =>
-      element.closest('[data-testid="package-intro-flap"]') ??
-      element.closest('[data-testid="package-inner-face"]') ??
-      element.closest('[data-testid="package-spine"]');
-    const realInterface = (element: Element) =>
-      !element.closest('[data-testid="package-intro"]') &&
-      Boolean(
-        element.closest("header") ??
-          element.closest('[data-testid="workspace"]') ??
-          element.closest("#cube-stage") ??
-          element.closest('[data-testid="editorial-spine"]'),
-      );
-    const apertureExposure = { exposedSamples: 0, occludedSamples: 0 };
-    for (let row = 1; row <= 5; row += 1) {
-      for (let column = 1; column <= 7; column += 1) {
-        const x = apertureRect.left + (apertureRect.width * column) / 8;
-        const y = apertureRect.top + (apertureRect.height * row) / 6;
-        const stack = document.elementsFromPoint(x, y);
-        const interfaceIndex = stack.findIndex(realInterface);
-        if (interfaceIndex < 0) {
-          continue;
-        }
-        const isOccluded = stack
-          .slice(0, interfaceIndex)
-          .some((element) => Boolean(packageBlocker(element)));
-        if (isOccluded) {
-          apertureExposure.occludedSamples += 1;
-        } else {
-          apertureExposure.exposedSamples += 1;
+    const panels = panelElements.map((panel) => ({
+      ...readMotion(panel),
+      destination: panel.dataset.destination ?? "",
+    }));
+    const title = document.querySelector<HTMLElement>("#experience-title");
+    const titleRect = title?.getBoundingClientRect();
+    let opaquePanelSamples = 0;
+    let titleSamples = 0;
+    if (titleRect && titleRect.width > 0 && titleRect.height > 0) {
+      for (let row = 1; row <= 8; row += 1) {
+        for (let column = 1; column <= 12; column += 1) {
+          titleSamples += 1;
+          const x = titleRect.left + (titleRect.width * column) / 13;
+          const y = titleRect.top + (titleRect.height * row) / 9;
+          const opaquePanel = document.elementsFromPoint(x, y).find((element) => {
+            const panel = element.closest<HTMLElement>(
+              '[data-testid="package-intro-flap"]',
+            );
+            return panel && Number(getComputedStyle(panel).opacity) > 0.01;
+          });
+          if (opaquePanel) {
+            opaquePanelSamples += 1;
+          }
         }
       }
     }
 
-    const flapSurfaceSamples = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        '[data-testid="package-intro-flap"]',
-      ),
-      (flap) => {
-        const rect = flap.getBoundingClientRect();
-        let visibleSamples = 0;
-        for (let row = 1; row <= 7; row += 1) {
-          for (let column = 1; column <= 7; column += 1) {
-            const x = rect.left + (rect.width * column) / 8;
-            const y = rect.top + (rect.height * row) / 8;
-            const firstPackageSurface = document
-              .elementsFromPoint(x, y)
-              .map(packageBlocker)
-              .find(Boolean);
-            if (firstPackageSurface === flap) {
-              visibleSamples += 1;
-            }
-          }
-        }
-        return visibleSamples;
-      },
-    );
-
     return {
-      apertureExposure,
-      apertureBackground: getComputedStyle(
-        aperture,
-      ).backgroundColor,
-      flaps: Array.from(
-        document.querySelectorAll('[data-testid="package-intro-flap"]'),
-        readMotion,
-      ),
-      flapSurfaceSamples,
-      headerOpacity: Number(
-        getComputedStyle(document.querySelector("header")!).opacity,
-      ),
-      innerFaceOpacity: Number(
+      cubeRect: readRect(document.querySelector('[data-testid="cube-frame"]')),
+      opaquePanelSamples,
+      packageShadow: intro
+        ? readMotion(document.querySelector('[data-testid="package-ground-shadow"]'))
+        : { area: 0, backfaceVisibility: "visible", hasDepth: false, opacity: 0, transform: "none" },
+      panelDestinations: panels.map((panel) => panel.destination),
+      panels,
+      phase:
+        document.querySelector<HTMLElement>("main#cubo")?.dataset.introPhase ?? "",
+      planInkOpacity: Number(
         getComputedStyle(
-          document.querySelector('[data-testid="package-inner-face"]')!,
+          document.querySelector<HTMLElement>('[data-testid="packaging-plan"]')!,
         ).opacity,
       ),
-      interfaceSignals,
-      paperOpacity: Number(getComputedStyle(intro, "::before").opacity),
-      pointerEvents: getComputedStyle(intro).pointerEvents,
-      registrations: Array.from(
-        document.querySelectorAll('[data-testid="package-registration"]'),
-        readMotion,
-      ),
-      seal: readMotion(document.querySelector('[data-testid="package-seal"]')),
-      telemetryOpacity: Number(
-        getComputedStyle(
-          document.querySelector('[data-testid="live-telemetry"]')!,
-        ).opacity,
-      ),
-      timelineOpacity: Number(getComputedStyle(timeline).opacity),
-      titleOpacity: Number(
-        getComputedStyle(
-          document.querySelector('[data-testid="plotter-line"]')!,
-        ).opacity,
-      ),
-      wrapperBackground: getComputedStyle(intro).backgroundColor,
+      stageRect: readRect(document.querySelector("#cube-stage")),
+      timelineOpacity: timeline ? Number(getComputedStyle(timeline).opacity) : 0,
+      titleCoverage: titleSamples === 0 ? 0 : opaquePanelSamples / titleSamples,
     };
   });
 }

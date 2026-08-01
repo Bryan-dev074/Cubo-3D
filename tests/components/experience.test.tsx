@@ -1168,32 +1168,25 @@ describe("commercial CSS contract", () => {
     expect(reducedLight).not.toContain("transform:");
   });
 
-  it("reveals the real interface through a transparent package wrapper", () => {
+  it("turns the dimensional package into the live regions without a global early reveal", () => {
     const css = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),
       "utf8",
     );
-    const intro = css.match(/\.packageIntro\s*\{([^}]*)\}/)?.[1];
-    const paper = css.match(/\.packageIntro::before\s*\{([\s\S]*?)\n\}/)?.[1];
-    const reveal = css.match(
-      /\.packageIntro\[data-phase="reveal"\]::before,[\s\S]*?\{([^}]*)\}/,
-    )?.[1];
 
-    expect(intro).toMatch(/background:\s*transparent;/);
-    expect(paper).toMatch(/content:\s*"";/);
-    expect(paper).toMatch(/background:\s*var\(--paper\);/);
-    expect(reveal).toMatch(/opacity:\s*0;/);
-    expect(css).toMatch(
-      /\.packageIntro\[data-phase="reveal"\],[\s\S]*?\.packageIntro\[data-phase="drop"\]\s*\{[^}]*pointer-events:\s*none;/,
-    );
-    expect(css).toMatch(
-      /\.packageIntro\[data-phase="opening"\]::before,[\s\S]{0,140}package-intro-reduced\s+180ms/,
-    );
-    const reducedKeyframes = css.match(
-      /@keyframes package-intro-reduced\s*\{([\s\S]*?)\n\}/,
-    )?.[1];
-    expect(reducedKeyframes).toContain("opacity:");
-    expect(reducedKeyframes).not.toContain("transform:");
+    expect(css).toContain("animation: intro-package-finish 1350ms linear forwards");
+    for (const destination of ["header", "telemetry", "dock", "hero"]) {
+      expect(css).toContain(`[data-destination="${destination}"]`);
+    }
+    expect(css).toMatch(/\.packageGroundShadow\s*\{[^}]*translateX\(-50%\)/);
+    expect(css).toMatch(/@keyframes package-ground-settle[\s\S]*?scaleX\(/);
+    expect(css).toMatch(/@keyframes package-ground-settle[\s\S]*?opacity:/);
+    expect(css.match(/@keyframes package-ground-settle[\s\S]*?\n\}/)?.[0])
+      .not.toContain("translateY(");
+    expect(css).toMatch(/\.packageFlapFace\[data-face="inner"\]/);
+    expect(css).toContain('.packageSealHalf[data-side="start"]');
+    expect(css).toContain('.packageSealHalf[data-side="end"]');
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?package-intro-reduced 180ms/);
   });
 });
 
