@@ -20,7 +20,6 @@
   --ambient-plotter: 10.8s;
   --ambient-plan: 8.4s;
   --ambient-registration: 6.4s;
-  --ambient-spine: 7.2s;
   --ambient-spine-register: 6.4s;
   --ambient-matrix: 4.8s;
   --ambient-status: 3.2s;
@@ -1028,7 +1027,7 @@
 
   to {
     opacity: 0;
-    transform: translateZ(-2px) scaleX(0);
+    transform: translateZ(-2px) scaleX(0.04);
   }
 }
 
@@ -1167,44 +1166,44 @@
 }
 
 .experience[data-intro-phase="opening"] .cobaltSpine {
-  animation: interface-spine-enter 330ms var(--ease-out) 860ms both;
+  animation: interface-spine-enter 330ms var(--ease-out) 760ms both;
 }
 
 .experience[data-intro-phase="opening"] .header {
-  animation: interface-header-enter 300ms var(--ease-out) 900ms both;
+  animation: interface-header-enter 300ms var(--ease-out) 800ms both;
 }
 
 .experience[data-intro-phase="opening"] .registrationMark {
-  animation: interface-mark-enter 260ms var(--ease-out) 960ms both;
+  animation: interface-mark-enter 260ms var(--ease-out) 860ms both;
   transform-origin: left center;
 }
 
 .experience[data-intro-phase="opening"] .plotterLine:nth-child(1) {
-  animation: interface-title-enter 280ms var(--ease-out) 950ms both;
+  animation: interface-title-enter 280ms var(--ease-out) 850ms both;
 }
 
 .experience[data-intro-phase="opening"] .plotterLine:nth-child(2) {
-  animation: interface-title-enter 280ms var(--ease-out) 990ms both;
+  animation: interface-title-enter 280ms var(--ease-out) 890ms both;
 }
 
 .experience[data-intro-phase="opening"] .promise {
-  animation: interface-promise-enter 260ms var(--ease-out) 1020ms both;
+  animation: interface-promise-enter 260ms var(--ease-out) 920ms both;
 }
 
 .experience[data-intro-phase="opening"] .scrambleButton {
-  animation: interface-promise-enter 260ms var(--ease-out) 1050ms both;
+  animation: interface-promise-enter 260ms var(--ease-out) 950ms both;
 }
 
 .experience[data-intro-phase="opening"] .firstUseHint {
-  animation: interface-hint-enter 240ms var(--ease-out) 1080ms both;
+  animation: interface-hint-enter 240ms var(--ease-out) 980ms both;
 }
 
 .experience[data-intro-phase="opening"] .workspace {
-  animation: interface-stage-enter 360ms var(--ease-out) 940ms both;
+  animation: interface-stage-enter 360ms var(--ease-out) 840ms both;
 }
 
 .experience[data-intro-phase="opening"] .planDrawing {
-  animation: interface-plan-enter 320ms var(--ease-out) 820ms both;
+  animation: interface-plan-enter 320ms var(--ease-out) 720ms both;
 }
 
 .experience[data-intro-phase="opening"] .planCutLines,
@@ -1214,11 +1213,11 @@
 }
 
 .experience[data-intro-phase="opening"] .telemetry {
-  animation: interface-telemetry-enter 300ms var(--ease-out) 970ms both;
+  animation: interface-telemetry-enter 300ms var(--ease-out) 870ms both;
 }
 
 .experience[data-intro-phase="opening"] .controlDock {
-  animation: interface-dock-enter 280ms var(--ease-out) 1010ms both;
+  animation: interface-dock-enter 280ms var(--ease-out) 910ms both;
 }
 
 .experience[data-intro-phase="sealed"] .cubeFrame,
@@ -1578,7 +1577,6 @@
 .spineDiagram [data-spine-motion="true"] {
   opacity: 0.62;
   stroke-dasharray: 96;
-  stroke-dashoffset: 0;
   transform: translateY(0);
   transform-box: fill-box;
   transform-origin: center;
@@ -2941,22 +2939,6 @@
   transform: scale(0.97);
 }
 
-@keyframes spine-technical-breathe {
-  0%,
-  34%,
-  64%,
-  100% {
-    opacity: 0.48;
-    transform: translateY(0);
-  }
-
-  46%,
-  52% {
-    opacity: 0.64;
-    transform: translateY(10px);
-  }
-}
-
 @keyframes spine-beam-pass {
   0% {
     opacity: 0;
@@ -3060,13 +3042,11 @@
   82.8125%,
   100% {
     opacity: 0.62;
-    stroke-dashoffset: 0;
     transform: translateY(0);
   }
 
   74.21875% {
     opacity: 0.94;
-    stroke-dashoffset: 18;
     transform: translateY(calc(-1px * var(--spine-travel-scale)));
   }
 }

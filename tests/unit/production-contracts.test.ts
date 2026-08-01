@@ -208,13 +208,13 @@ describe("production rendering contracts", () => {
       /\.packageIntro\[data-phase="opening"\] \.packageShell::before\s*\{[^}]*animation:\s*package-shell-depth-release 900ms var\(--ease-out\) forwards/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.header\s*\{[^}]*interface-header-enter 300ms[^}]*900ms both/,
+      /data-intro-phase="opening"\] \.header\s*\{[^}]*interface-header-enter 300ms[^}]*800ms both/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*950ms both/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*850ms both/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*990ms both/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*890ms both/,
     );
     expect(styles).toMatch(
       /data-intro-phase="sealed"\][\s\S]*?\.cubeFrame[\s\S]*?opacity:\s*0/,
@@ -302,6 +302,10 @@ describe("production rendering contracts", () => {
       expect(keyframes).not.toMatch(
         /\b(?:clip-path|filter|mask|box-shadow|inset|top|right|bottom|left|width|height):/,
       );
+      if (name === "package-aperture-reveal") {
+        expect(keyframes).toContain("scaleX(0.04)");
+        expect(keyframes).not.toContain("scaleX(0)");
+      }
     }
 
     const packageShadowRule = styles.match(
@@ -336,13 +340,13 @@ describe("production rendering contracts", () => {
       /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(3px\)/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*950ms both/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*850ms both/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*990ms both/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*890ms both/,
     );
     expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.workspace\s*\{[^}]*interface-stage-enter 360ms[^}]*940ms both/,
+      /data-intro-phase="opening"\] \.workspace\s*\{[^}]*interface-stage-enter 360ms[^}]*840ms both/,
     );
     for (const [flap, destination] of [
       ["top", "header"],

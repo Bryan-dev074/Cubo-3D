@@ -991,9 +991,6 @@ describe("commercial CSS contract", () => {
     }
 
     expect(css).toMatch(
-      /@keyframes spine-technical-breathe[\s\S]*?opacity:\s*0\.48;[\s\S]*?opacity:\s*0\.64;/,
-    );
-    expect(css).toMatch(
       /\.planDrawing\s*\{[^}]*--plan-opacity-low:\s*0\.48;[^}]*--plan-opacity-high:\s*0\.56;/,
     );
     expect(css).toMatch(
@@ -1072,7 +1069,6 @@ describe("commercial CSS contract", () => {
       "--ambient-plotter: 10.8s",
       "--ambient-plan: 8.4s",
       "--ambient-registration: 6.4s",
-      "--ambient-spine: 7.2s",
       "--ambient-matrix: 4.8s",
       "--ambient-status: 3.2s",
       "--ambient-dock: 6.4s",
@@ -1117,7 +1113,7 @@ describe("commercial CSS contract", () => {
     );
 
     expect(css).toContain("--ambient-spine-register: 6.4s");
-    for (const name of [
+    const spineKeyframes = [
       "spine-beam-pass",
       "spine-title-register",
       "spine-tagline-register",
@@ -1127,8 +1123,17 @@ describe("commercial CSS contract", () => {
       "spine-diagram-draw",
       "spine-arc-register",
       "spine-mobile-rail",
-    ]) {
+    ];
+    for (const name of spineKeyframes) {
       expect(css).toContain(`@keyframes ${name}`);
+      const keyframesStart = css.indexOf(`@keyframes ${name}`);
+      const keyframesEnd = css.indexOf("@keyframes ", keyframesStart + 1);
+      const keyframes = css.slice(keyframesStart, keyframesEnd);
+      expect(keyframes).toMatch(/opacity:/);
+      expect(keyframes).toMatch(/transform:/);
+      expect(keyframes).not.toMatch(
+        /\b(?:stroke-dashoffset|filter|clip-path|mask|box-shadow|inset|top|right|bottom|left|width|height):/,
+      );
     }
     expect(css).toMatch(
       /\[data-motion-paused="true"\][\s\S]*?\[data-spine-motion="true"\][\s\S]*?animation-play-state:\s*paused\s*!important/,

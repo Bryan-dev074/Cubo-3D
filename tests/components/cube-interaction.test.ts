@@ -85,6 +85,30 @@ describe("procedural cube scene contracts", () => {
     expect(animation.angle).toBe(target);
   });
 
+  it.each([60, 30, 15, 10])(
+    "keeps an ordinary turn under 350ms at %ifps",
+    (framesPerSecond) => {
+      const target = Math.PI / 2;
+      const frameDelta = 1 / framesPerSecond;
+      let animation = { angle: 0, angularVelocity: 0, done: false };
+      let elapsed = 0;
+
+      while (!animation.done && elapsed < 1) {
+        animation = advanceMoveAnimation(
+          animation,
+          target,
+          frameDelta,
+          false,
+        );
+        elapsed += frameDelta;
+      }
+
+      expect(animation.done).toBe(true);
+      expect(elapsed).toBeLessThanOrEqual(0.35);
+      expect(animation.angle).toBe(target);
+    },
+  );
+
   it("snaps a reduced-motion move to its exact target in one step", () => {
     const target = Math.PI / 2;
 
@@ -102,7 +126,7 @@ describe("procedural cube scene contracts", () => {
     });
   });
 
-  it("caps a huge resumed-frame delta instead of finishing or jumping the turn", () => {
+  it("caps a huge resumed-frame delta instead of finishing or overshooting the turn", () => {
     const target = Math.PI / 2;
     const step = advanceMoveAnimation(
       { angle: 0, angularVelocity: 0 },
@@ -113,6 +137,6 @@ describe("procedural cube scene contracts", () => {
 
     expect(step.done).toBe(false);
     expect(step.angle).toBeGreaterThan(0);
-    expect(step.angle).toBeLessThan(target * 0.8);
+    expect(step.angle).toBeLessThan(target);
   });
 });

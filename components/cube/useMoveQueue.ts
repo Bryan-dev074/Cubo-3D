@@ -40,7 +40,10 @@ interface UseMoveQueueOptions {
   readonly reducedMotion: boolean;
 }
 
-const MAX_MOVE_FRAME_DELTA = 1 / 30;
+// Preserve the eased settle while keeping its real-world duration stable on
+// low-refresh devices. A 100 ms ceiling still prevents a resumed tab from
+// completing a turn in one discontinuous frame.
+const MAX_MOVE_FRAME_DELTA = 1 / 10;
 
 export function selectLayerCubieIds(
   cube: readonly CubieState[],

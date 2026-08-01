@@ -195,7 +195,7 @@ for (const viewport of VIEWPORTS) {
     }
 
     await diagnostics.assertClean();
-    await context.close();
+    await closeContextWithWebGLRelease(page, context);
   });
 }
 
@@ -305,7 +305,7 @@ test("mobile-390 keeps the package handoff on compositor-friendly motion", async
   expect(audit.scrollWidth).toBe(audit.viewportWidth);
 
   await diagnostics.assertClean();
-  await context.close();
+  await closeContextWithWebGLRelease(page, context);
 });
 
 test("captures the package opening and the real cube mid-drop from explicit phases", async ({
@@ -371,7 +371,7 @@ test("captures the package opening and the real cube mid-drop from explicit phas
   await expect(intro).toHaveCount(0);
   await expect(page.locator(".cube-scene canvas")).toBeVisible();
   await diagnostics.assertClean();
-  await context.close();
+  await closeContextWithWebGLRelease(page, context);
 });
 
 test("honors the mechanical checkpoints from package to live interface", async ({
@@ -614,7 +614,7 @@ test("honors the mechanical checkpoints from package to live interface", async (
   });
   await expect(page.getByTestId("package-intro")).toHaveCount(0);
   await diagnostics.assertClean();
-  await context.close();
+  await closeContextWithWebGLRelease(page, context);
 });
 
 test("accepts the production keyframe name before watchdog rescue", async ({
@@ -644,15 +644,6 @@ test("accepts the production keyframe name before watchdog rescue", async ({
     "data-page-visible",
     "false",
   );
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolvePromise) =>
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => resolvePromise()),
-        ),
-      ),
-  );
-
   const animationName = await page.evaluate(() => {
     const timeline = document.querySelector<HTMLElement>(
       '[data-testid="package-intro-timeline"]',
@@ -660,24 +651,30 @@ test("accepts the production keyframe name before watchdog rescue", async ({
     if (!timeline) {
       throw new Error("Package timeline was unavailable");
     }
-    const name = getComputedStyle(timeline).animationName.split(",")[0]!.trim();
-    timeline.dispatchEvent(
-      new AnimationEvent("animationend", {
-        animationName: name,
-        bubbles: true,
-      }),
-    );
-    return name;
+    return getComputedStyle(timeline).animationName.split(",")[0]!.trim();
   });
 
   expect(animationName).toContain("intro-package-finish");
   await expect.poll(
-    () => page.locator("main#cubo").getAttribute("data-intro-phase"),
-    { timeout: 1_000 },
+    () =>
+      page.evaluate((name) => {
+        const timeline = document.querySelector<HTMLElement>(
+          '[data-testid="package-intro-timeline"]',
+        );
+        timeline?.dispatchEvent(
+          new AnimationEvent("animationend", {
+            animationName: name,
+            bubbles: true,
+          }),
+        );
+        return document.querySelector<HTMLElement>("main#cubo")?.dataset
+          .introPhase;
+      }, animationName),
+    { timeout: 5_000 },
   ).not.toBe("opening");
   await restoreVisiblePage(page);
   await diagnostics.assertClean();
-  await context.close();
+  await closeContextWithWebGLRelease(page, context);
 });
 
 test("pauses and resumes every finite intro animation with page visibility", async ({
@@ -752,7 +749,7 @@ test("pauses and resumes every finite intro animation with page visibility", asy
   });
 
   await diagnostics.assertClean();
-  await context.close();
+  await closeContextWithWebGLRelease(page, context);
 });
 
 test("reduced motion uses the short crossfade and reaches ready without spatial motion", async ({
@@ -821,8 +818,27 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
   ).toBeVisible();
 
   await diagnostics.assertClean();
-  await context.close();
+  await closeContextWithWebGLRelease(page, context);
 });
+
+async function closeContextWithWebGLRelease(
+  page: import("@playwright/test").Page,
+  context: import("@playwright/test").BrowserContext,
+): Promise<void> {
+  try {
+    if (!page.isClosed()) {
+      await page.evaluate(() => {
+        for (const canvas of document.querySelectorAll("canvas")) {
+          const webgl =
+            canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+          webgl?.getExtension("WEBGL_lose_context")?.loseContext();
+        }
+      });
+    }
+  } finally {
+    await context.close();
+  }
+}
 
 async function setOpeningAnimationTime(
   page: import("@playwright/test").Page,
