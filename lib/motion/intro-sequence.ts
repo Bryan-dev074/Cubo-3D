@@ -44,7 +44,7 @@ export function introReducer(
     return {
       ...state,
       sceneReady: true,
-      phase: state.phase === "reveal" ? "drop" : state.phase,
+      phase: state.phase === "reveal" ? "ready" : state.phase,
     };
   }
   if (event.type === "start" && state.phase === "sealed") {

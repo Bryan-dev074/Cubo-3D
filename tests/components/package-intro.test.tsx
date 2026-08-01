@@ -304,7 +304,7 @@ describe("PackageIntro", () => {
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
   });
 
-  it("gives a late scene an abbreviated drop and ends at 2000 ms of visible time", () => {
+  it("settles a late scene immediately instead of showing a truncated drop", () => {
     const clock = installFrameClock();
     let visibility = "visible";
     Object.defineProperty(document, "visibilityState", {
@@ -329,12 +329,9 @@ describe("PackageIntro", () => {
     act(() => clock.frame(5_350));
 
     fireEvent.click(screen.getByRole("button", { name: "Escena montada" }));
-    expect(screen.getByTestId("intro-phase")).toHaveTextContent("drop");
+    expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
 
     act(() => clock.frame(5_649));
-    expect(screen.getByTestId("intro-phase")).toHaveTextContent("drop");
-
-    act(() => clock.frame(5_650));
     expect(screen.getByTestId("intro-phase")).toHaveTextContent("ready");
   });
 
