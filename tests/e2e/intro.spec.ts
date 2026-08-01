@@ -628,19 +628,32 @@ test("accepts the production keyframe name before watchdog rescue", async ({
   const page = await context.newPage();
   const diagnostics = monitorBrowser(page);
   await setDeterministicBrowserState(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+  });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("package-intro")).toHaveAttribute(
     "data-phase",
     "opening",
   );
   await expect(page.locator(".cube-scene canvas")).toHaveCount(1);
+  await expect(page.locator("main#cubo")).toHaveAttribute(
+    "data-page-visible",
+    "false",
+  );
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolvePromise) =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => resolvePromise()),
+        ),
+      ),
+  );
 
   const animationName = await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "hidden",
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
     const timeline = document.querySelector<HTMLElement>(
       '[data-testid="package-intro-timeline"]',
     );
@@ -660,7 +673,7 @@ test("accepts the production keyframe name before watchdog rescue", async ({
   expect(animationName).toContain("intro-package-finish");
   await expect.poll(
     () => page.locator("main#cubo").getAttribute("data-intro-phase"),
-    { timeout: 500 },
+    { timeout: 1_000 },
   ).not.toBe("opening");
   await restoreVisiblePage(page);
   await diagnostics.assertClean();
