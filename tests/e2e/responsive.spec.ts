@@ -535,12 +535,16 @@ test("mobile-390 keeps the fixed ground shadow unchanged during a real orbit", a
   const before = await shadow.boundingBox();
   const beforeStyle = await readGroundShadowStyle(shadow);
   await movePointerOutsideCanvas(page);
-  const beforeCanvas = sha256(await canvas.screenshot());
+  const beforeCanvas = sha256(
+    await canvas.screenshot({ animations: "disabled" }),
+  );
 
   await rightDragCanvas(page, canvas);
   await movePointerOutsideCanvas(page);
 
-  expect(sha256(await canvas.screenshot())).not.toBe(beforeCanvas);
+  expect(
+    sha256(await canvas.screenshot({ animations: "disabled" })),
+  ).not.toBe(beforeCanvas);
   expect(await shadow.boundingBox()).toEqual(before);
   expect(await readGroundShadowStyle(shadow)).toEqual(beforeStyle);
 

@@ -18,6 +18,7 @@ const PANELS = [
   { flap: "bottom", destination: "dock" },
   { flap: "left", destination: "hero" },
 ] as const;
+const BACKING_SIDES = ["top", "right", "bottom", "left"] as const;
 const RAILS = ["upper", "lower"] as const;
 const REGISTRATIONS = ["nw", "ne", "se", "sw"] as const;
 const PACKAGE_COMPLETION_ANIMATIONS = [
@@ -80,6 +81,21 @@ export function PackageIntro({
       data-reduced-motion={String(reducedMotion)}
       data-testid="package-intro"
     >
+      <div className={styles.packageBacking} data-testid="package-backing">
+        {BACKING_SIDES.map((side) => (
+          <span
+            className={styles.packageBackingPanel}
+            data-side={side}
+            data-testid="package-backing-panel"
+            key={side}
+          >
+            <i
+              className={styles.packageBackingSurface}
+              data-testid="package-backing-surface"
+            />
+          </span>
+        ))}
+      </div>
       <div
         className={styles.packageIntroTimeline}
         data-testid="package-intro-timeline"

@@ -133,6 +133,104 @@ test("production interaction path meets the local Chromium lab gates", async ({
   await diagnostics.assertClean();
 });
 
+test("mobile-390 intro sustains a usable compositor cadence", async ({
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: "no-preference",
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const page = await context.newPage();
+    const diagnostics = monitorBrowser(page);
+    await setDeterministicBrowserState(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("package-intro")).toHaveAttribute(
+      "data-phase",
+      "opening",
+    );
+
+    const raw = await page.evaluate(
+      () =>
+        new Promise<{ deltas: number[]; elapsedMs: number }>((resolve, reject) => {
+          const deltas: number[] = [];
+          const startedAt = performance.now();
+          let previous: number | null = null;
+          const frame = (now: number) => {
+            if (previous !== null) {
+              deltas.push(now - previous);
+            }
+            previous = now;
+            const phase = document.querySelector<HTMLElement>("main#cubo")?.dataset
+              .introPhase;
+            if (phase === "ready") {
+              resolve({ deltas, elapsedMs: now - startedAt });
+              return;
+            }
+            if (now - startedAt > 4_000) {
+              reject(new Error(`Mobile intro remained in ${phase ?? "unknown"}`));
+              return;
+            }
+            requestAnimationFrame(frame);
+          };
+          requestAnimationFrame(frame);
+        }),
+    );
+    const ordered = [...raw.deltas].sort((left, right) => left - right);
+    const steadyOrdered = ordered.filter((duration) => duration <= 250);
+    const percentile = (values: readonly number[], ratio: number) =>
+      values[Math.min(values.length - 1, Math.ceil(values.length * ratio) - 1)] ??
+      Number.POSITIVE_INFINITY;
+    const metrics = {
+      elapsedMs: raw.elapsedMs,
+      framesOver100Ms: raw.deltas.filter((duration) => duration > 100).length,
+      framesOver250Ms: raw.deltas.filter((duration) => duration > 250).length,
+      framesOver34Ms: raw.deltas.filter((duration) => duration > 34).length,
+      longFrameRatio:
+        raw.deltas.filter((duration) => duration > 34).length / raw.deltas.length,
+      longestFramesMs: [...raw.deltas]
+        .sort((left, right) => right - left)
+        .slice(0, 8),
+      maximumFrameMs: Math.max(...raw.deltas),
+      medianFrameMs: percentile(ordered, 0.5),
+      p95FrameMs: percentile(ordered, 0.95),
+      sampleCount: raw.deltas.length,
+      steadyP95FrameMs: percentile(steadyOrdered, 0.95),
+      viewport: { height: 844, width: 390 },
+    };
+    const serializedMetrics = `${JSON.stringify(metrics, null, 2)}\n`;
+    const durableMetricsDirectory = resolve(
+      process.cwd(),
+      ".superpowers",
+      "sdd",
+    );
+    await mkdir(durableMetricsDirectory, { recursive: true });
+    await Promise.all([
+      writeFile(
+        testInfo.outputPath("mobile-intro-performance.json"),
+        serializedMetrics,
+      ),
+      writeFile(
+        resolve(durableMetricsDirectory, "mobile-intro-performance.json"),
+        serializedMetrics,
+      ),
+    ]);
+
+    expect(metrics.sampleCount).toBeGreaterThanOrEqual(45);
+    expect(metrics.medianFrameMs).toBeLessThanOrEqual(25);
+    expect(metrics.steadyP95FrameMs).toBeLessThanOrEqual(100);
+    expect(metrics.longFrameRatio).toBeLessThanOrEqual(0.2);
+    expect(metrics.framesOver250Ms).toBeLessThanOrEqual(3);
+    expect(raw.elapsedMs).toBeLessThanOrEqual(2_700);
+    await diagnostics.assertClean();
+  } finally {
+    await context.close();
+  }
+});
+
 async function mark(
   page: import("@playwright/test").Page,
   name: string,

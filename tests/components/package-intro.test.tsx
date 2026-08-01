@@ -31,6 +31,12 @@ describe("PackageIntro", () => {
     expect(screen.getByTestId("package-intro")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("package-ground-shadow")).toBeInTheDocument();
     expect(screen.getByTestId("package-origin")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("package-backing-panel")
+        .map((panel) => panel.getAttribute("data-side")),
+    ).toEqual(["top", "right", "bottom", "left"]);
+    expect(screen.getAllByTestId("package-backing-surface")).toHaveLength(4);
     expect(screen.getAllByTestId("package-intro-flap").map((panel) => [
       panel.getAttribute("data-flap"),
       panel.getAttribute("data-destination"),

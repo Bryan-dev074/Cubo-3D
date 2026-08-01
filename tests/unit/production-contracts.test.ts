@@ -248,7 +248,7 @@ describe("production rendering contracts", () => {
 
     expect(hiddenPauseRule).toBeDefined();
     for (const participant of [
-      ".packageIntro::before",
+      ".packageBackingPanel",
       ".packageIntroTimeline",
       ".packageIntroRegistration",
       ".packageSeal",
@@ -272,6 +272,53 @@ describe("production rendering contracts", () => {
     ]) {
       expect(hiddenPauseRule).toContain(participant);
     }
+  });
+
+  it("keeps every large intro handoff on compositor-friendly properties", () => {
+    const packageSource = readFileSync(
+      resolve(process.cwd(), "components/experience/PackageIntro.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(packageSource).toContain('data-testid="package-backing-panel"');
+    expect(packageSource).toContain('data-testid="package-backing-surface"');
+    expect(styles).not.toContain("@keyframes package-backing-reveal");
+
+    for (const name of [
+      "package-backing-panel-open",
+      "package-aperture-reveal",
+      "interface-stage-enter",
+      "interface-plan-enter",
+    ]) {
+      const start = styles.indexOf(`@keyframes ${name}`);
+      expect(start, `${name} keyframes missing`).toBeGreaterThan(-1);
+      const next = styles.indexOf("@keyframes ", start + 1);
+      const keyframes = styles.slice(start, next === -1 ? undefined : next);
+      expect(keyframes).toMatch(/transform:/);
+      expect(keyframes).not.toMatch(
+        /\b(?:clip-path|filter|mask|box-shadow|inset|top|right|bottom|left|width|height):/,
+      );
+    }
+
+    const packageShadowRule = styles.match(
+      /\.packageGroundShadow\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    const packageFlapRule = styles.match(
+      /\.packageFlap\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    const outerFaceRule = styles.match(
+      /\.packageFlapFace\[data-face="outer"\]\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+    expect(packageShadowRule).toBeDefined();
+    expect(packageShadowRule).not.toContain("filter:");
+    expect(packageFlapRule).toBeDefined();
+    expect(packageFlapRule).not.toContain("filter:");
+    expect(packageFlapRule).not.toContain("will-change:");
+    expect(outerFaceRule).toContain("box-shadow:");
   });
 
   it("keeps opened flap backs visible and brings real interface signals forward", () => {
@@ -627,7 +674,7 @@ describe("production rendering contracts", () => {
     expect(source.match(/await releaseWebGLContexts\(page\)/g)).toHaveLength(1);
     expect(
       source.match(/releaseAndCloseWebGLContext\(page, context\)/g),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(source).toMatch(
       /async function releaseAndCloseWebGLContext[\s\S]*?try\s*\{\s*await releaseWebGLContexts\(page\);\s*\}\s*finally\s*\{\s*await context\.close\(\);/,
     );

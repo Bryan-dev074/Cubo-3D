@@ -9,7 +9,7 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { Canvas, useThree, type RootState } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type RootState } from "@react-three/fiber";
 import {
   AdaptiveDpr,
   OrbitControls,
@@ -48,6 +48,10 @@ import {
   IDLE_CURSOR_INTENT,
   type CursorIntent,
 } from "@/lib/motion/cursor-intent";
+import {
+  ORBIT_DAMPING_FACTOR_AT_60_FPS,
+  resolveOrbitDampingFactor,
+} from "@/lib/motion/orbit-damping";
 
 export {
   resolveCubePresentation,
@@ -326,6 +330,10 @@ function CubeStudio({
         reducedMotion={reducedMotion}
       />
 
+      <TimeNormalizedOrbitDamping
+        controlsRef={controlsRef}
+        reducedMotion={reducedMotion}
+      />
       <OrbitControls
         ref={controlsRef}
         makeDefault
@@ -336,7 +344,7 @@ function CubeStudio({
         }
         autoRotate={false}
         enableDamping={!reducedMotion}
-        dampingFactor={0.075}
+        dampingFactor={ORBIT_DAMPING_FACTOR_AT_60_FPS}
         enablePan={false}
         enableZoom={false}
         mouseButtons={ORBIT_MOUSE_BUTTONS}
@@ -349,6 +357,25 @@ function CubeStudio({
       />
     </>
   );
+}
+
+function TimeNormalizedOrbitDamping({
+  controlsRef,
+  reducedMotion,
+}: {
+  readonly controlsRef: RefObject<OrbitControlsImpl | null>;
+  readonly reducedMotion: boolean;
+}) {
+  useFrame((_, delta) => {
+    const controls = controlsRef.current;
+    if (!controls || reducedMotion || !controls.enableDamping) {
+      return;
+    }
+
+    controls.dampingFactor = resolveOrbitDampingFactor(delta);
+  }, -2);
+
+  return null;
 }
 
 interface CubeInteractionAggregateOptions {

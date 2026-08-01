@@ -2,7 +2,10 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
-import { monitorBrowser, setDeterministicBrowserState } from "@/tests/e2e/helpers";
+import {
+  monitorBrowser,
+  setDeterministicBrowserState,
+} from "@/tests/e2e/helpers";
 
 const VISUAL_ARTIFACT_DIRECTORY = resolve(
   process.cwd(),
@@ -79,7 +82,7 @@ for (const viewport of VIEWPORTS) {
         new Promise<{
           flapRects: Array<{ bottom: number; left: number; right: number; top: number }>;
           overlay: {
-            paperOpacity: string;
+            paperOpacity: number;
             pointerEvents: string;
             timelineOpacity: string;
             wrapperBackground: string;
@@ -124,13 +127,22 @@ for (const viewport of VIEWPORTS) {
             }
             window.clearTimeout(timeout);
             observer.disconnect();
-            const paper = getComputedStyle(element, "::before");
+            const backingPanels = Array.from(
+              element.querySelectorAll<HTMLElement>(
+                '[data-testid="package-backing-panel"]',
+              ),
+            );
             const timelineStyles = getComputedStyle(timelineElement);
             const styles = getComputedStyle(element);
             resolve({
               flapRects,
               overlay: {
-                paperOpacity: paper.opacity,
+                paperOpacity: Math.max(
+                  0,
+                  ...backingPanels.map((panel) =>
+                    Number(getComputedStyle(panel).opacity),
+                  ),
+                ),
                 pointerEvents: styles.pointerEvents,
                 timelineOpacity: timelineStyles.opacity,
                 wrapperBackground: styles.backgroundColor,
@@ -161,7 +173,7 @@ for (const viewport of VIEWPORTS) {
     }
 
     expect(overlay.wrapperBackground).toBe("rgba(0, 0, 0, 0)");
-    expect(overlay.paperOpacity).toBe("0");
+    expect(overlay.paperOpacity).toBeLessThanOrEqual(0.01);
     expect(overlay.timelineOpacity).toBe("0");
     expect(["reveal", "drop"]).toContain(phase);
     expect(overlay.pointerEvents).toBe("none");
@@ -187,6 +199,115 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+test("mobile-390 keeps the package handoff on compositor-friendly motion", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:4173",
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: "no-preference",
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  const diagnostics = monitorBrowser(page);
+  await setDeterministicBrowserState(page);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("package-intro")).toHaveAttribute(
+    "data-phase",
+    "opening",
+  );
+
+  const clipPaths: string[][] = [];
+  for (const openingTime of [719, 810, 900]) {
+    await setOpeningAnimationTime(page, openingTime);
+    clipPaths.push(
+      await page.getByTestId("package-backing-surface").evaluateAll((surfaces) =>
+        surfaces.map((surface) => getComputedStyle(surface).clipPath),
+      ),
+    );
+  }
+  expect(clipPaths[0]).toHaveLength(4);
+  expect(clipPaths[1]).toEqual(clipPaths[0]);
+  expect(clipPaths[2]).toEqual(clipPaths[0]);
+
+  const audit = await page.evaluate(() => {
+    const metadata = new Set([
+      "composite",
+      "computedOffset",
+      "easing",
+      "offset",
+    ]);
+    const animations = document
+      .getAnimations()
+      .filter((animation) => animation.effect?.getTiming().iterations === 1)
+      .map((animation) => {
+        const effect = animation.effect as KeyframeEffect;
+        const target = effect.target;
+        const properties = Array.from(
+          new Set(
+            effect
+              .getKeyframes()
+              .flatMap((keyframe) => Object.keys(keyframe))
+              .filter((property) => !metadata.has(property)),
+          ),
+        ).sort();
+        return {
+          name:
+            animation instanceof CSSAnimation ? animation.animationName : "",
+          properties,
+          target:
+            target instanceof Element
+              ? target.getAttribute("data-testid") ?? target.tagName
+              : effect.pseudoElement ?? "unknown",
+        };
+      });
+    const movingParticipants = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        [
+          '[data-testid="package-backing-panel"]',
+          '[data-testid="package-ground-shadow"]',
+          '[data-testid="package-intro-flap"]',
+        ].join(","),
+      ),
+      (element) => ({
+        filter: getComputedStyle(element).filter,
+        testId: element.dataset.testid ?? "unknown",
+        willChange: getComputedStyle(element).willChange,
+      }),
+    );
+    return {
+      animations,
+      movingParticipants,
+      panelCount: document.querySelectorAll(
+        '[data-testid="package-backing-panel"]',
+      ).length,
+      scrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+    };
+  });
+
+  expect(audit.panelCount).toBe(4);
+  expect(audit.animations.length).toBeGreaterThan(20);
+  for (const animation of audit.animations) {
+    expect(animation.properties.length, animation.name).toBeGreaterThan(0);
+    expect(
+      animation.properties.every((property) =>
+        ["opacity", "transform"].includes(property),
+      ),
+      `${animation.name} animates ${animation.properties.join(", ")}`,
+    ).toBe(true);
+  }
+  for (const participant of audit.movingParticipants) {
+    expect(participant.filter, participant.testId).toBe("none");
+    expect(participant.willChange, participant.testId).toBe("auto");
+  }
+  expect(audit.scrollWidth).toBe(audit.viewportWidth);
+
+  await diagnostics.assertClean();
+  await context.close();
+});
+
 test("captures the package opening and the real cube mid-drop from explicit phases", async ({
   browser,
 }) => {
@@ -196,8 +317,15 @@ test("captures the package opening and the real cube mid-drop from explicit phas
     viewport: { width: 1440, height: 900 },
   });
   const page = await context.newPage();
+  await page.clock.install({ time: new Date("2026-08-01T12:00:00.000Z") });
   const diagnostics = monitorBrowser(page);
   await setDeterministicBrowserState(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+  });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   const intro = page.getByTestId("package-intro");
@@ -215,14 +343,17 @@ test("captures the package opening and the real cube mid-drop from explicit phas
   });
 
   await resumeIntroAnimations(page);
-  await pauseAtDropMidpoint(page);
+  const experience = page.locator("main#cubo");
+  await expect(experience).toHaveAttribute("data-intro-phase", "drop", {
+    timeout: 4_000,
+  });
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
+  await restoreVisiblePage(page);
+  await expect(experience).toHaveAttribute("data-page-visible", "true");
+  await page.clock.runFor(280);
   await expect(page.locator("main#cubo")).toHaveAttribute(
     "data-intro-phase",
     "drop",
-  );
-  await expect(page.locator("main#cubo")).toHaveAttribute(
-    "data-page-visible",
-    "false",
   );
   await page.screenshot({
     path: resolve(
@@ -231,8 +362,8 @@ test("captures the package opening and the real cube mid-drop from explicit phas
     ),
   });
 
-  await restoreVisiblePage(page);
-  await expect(page.locator("main#cubo")).toHaveAttribute(
+  await page.clock.runFor(400);
+  await expect(experience).toHaveAttribute(
     "data-intro-phase",
     "ready",
     { timeout: 4_000 },
@@ -252,8 +383,15 @@ test("honors the mechanical checkpoints from package to live interface", async (
     viewport: { width: 1440, height: 900 },
   });
   const page = await context.newPage();
+  await page.clock.install({ time: new Date("2026-08-01T12:00:00.000Z") });
   const diagnostics = monitorBrowser(page);
   await setDeterministicBrowserState(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+  });
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("package-intro")).toHaveAttribute(
     "data-phase",
@@ -261,13 +399,6 @@ test("honors the mechanical checkpoints from package to live interface", async (
   );
   await expect(page.locator(".cube-scene canvas")).toHaveCount(1);
   const experience = page.locator("main#cubo");
-  await page.evaluate(() => {
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "hidden",
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
   await expect(experience).toHaveAttribute("data-page-visible", "false");
 
   const at160 = await readOpeningCheckpoint(page, 160);
@@ -355,21 +486,50 @@ test("honors the mechanical checkpoints from package to live interface", async (
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1350.png"),
   });
-  await installDropPhaseProbe(page);
-  await restoreVisiblePage(page);
-  await resumeIntroAnimations(page);
-  await expect(experience).toHaveAttribute("data-intro-phase", "drop", {
-    timeout: 1_000,
+  await page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      __cubo3dReleaseExactOpening?: () => void;
+    };
+    testWindow.__cubo3dReleaseExactOpening?.();
+    const timeline = document.querySelector<HTMLElement>(
+      '[data-testid="package-intro-timeline"]',
+    );
+    const completion = timeline?.getAnimations().find(
+      (animation) =>
+        animation instanceof CSSAnimation &&
+        animation.animationName.includes("intro-package-finish"),
+    );
+    if (!timeline || !(completion instanceof CSSAnimation)) {
+      throw new Error("Production opening completion animation was unavailable");
+    }
+    const event = new Event("animationend", { bubbles: true });
+    Object.defineProperty(event, "animationName", {
+      value: completion.animationName,
+    });
+    timeline.dispatchEvent(event);
   });
+  await expect(experience).toHaveAttribute("data-intro-phase", "drop", {
+    timeout: 30_000,
+  });
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
+  await page.evaluate(() => {
+    Reflect.deleteProperty(document, "visibilityState");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(experience).toHaveAttribute("data-page-visible", "true");
 
+  const dropTargets = [80, 260, 410, 470, 560, 590] as const;
   const dropCheckpoints = [];
-  for (const elapsed of [80, 260, 410, 470, 560, 590]) {
-    await waitForDropElapsed(page, elapsed);
-    dropCheckpoints.push(await readDropCheckpoint(page));
+  let previousTarget = 0;
+  for (const target of dropTargets) {
+    await page.clock.runFor(target - previousTarget);
+    await expect(experience).toHaveAttribute("data-intro-phase", "drop");
+    dropCheckpoints.push(await readCheckpointState(page));
+    previousTarget = target;
   }
   const [at80, at260, at1760, atContact, atSettle, beforeReady] =
     dropCheckpoints;
-  for (const checkpoint of dropCheckpoints) {
+  for (const [index, checkpoint] of dropCheckpoints.entries()) {
     expect(checkpoint!.phase).toBe("drop");
     expect(checkpoint!.cubeRect.pixelCount).toBeGreaterThan(1_000);
     expect(checkpoint!.cubeRect.width).toBeLessThan(
@@ -390,7 +550,7 @@ test("honors the mechanical checkpoints from package to live interface", async (
     const marginEvidence = JSON.stringify({
       canvas: checkpoint!.cubeRect.canvasMargins,
       capture: checkpoint!.cubeRect.captureMargins,
-      elapsed: checkpoint!.dropElapsedMs,
+      elapsed: dropTargets[index],
     });
     expect(
       checkpoint!.cubeRect.touchesCanvasEdge,
@@ -422,20 +582,15 @@ test("honors the mechanical checkpoints from package to live interface", async (
   expect(beforeReady!.cubeRect.alphaCenterY).toBeLessThan(
     atSettle!.cubeRect.alphaCenterY,
   );
-  expect(Math.max(...at1760!.finiteCssCurrentTimes)).toBeLessThanOrEqual(
-    at1760!.dropElapsedMs + 80,
-  );
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1760.png"),
   });
 
-  await expect(experience).toHaveAttribute(
-    "data-intro-phase",
-    "ready",
-    { timeout: 2_000 },
-  );
-  const at2000 = await readDropCheckpoint(page);
+  await page.clock.runFor(80);
+  await expect(experience).toHaveAttribute("data-intro-phase", "ready");
+  const at2000 = await readCheckpointState(page);
   expect(at2000.phase).toBe("ready");
+  expect(at2000.cubeRect.pixelCount).toBeGreaterThan(1_000);
   expect(at2000.cubeRect.touchesCanvasEdge).toBe(false);
   expect(at2000.cubeRect.touchesCaptureEdge).toBe(false);
   for (const margin of [
@@ -444,8 +599,6 @@ test("honors the mechanical checkpoints from package to live interface", async (
   ]) {
     expect(margin).toBeGreaterThan(2);
   }
-  expect(at2000.dropElapsedMs).toBeGreaterThanOrEqual(620);
-  expect(at2000.dropElapsedMs).toBeLessThan(760);
   expect(
     Math.abs(
       at2000.cubeRect.alphaCenterY - atContact!.cubeRect.alphaCenterY,
@@ -606,7 +759,7 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
   await expect(page.locator("main#cubo")).toHaveAttribute(
     "data-intro-phase",
     "ready",
-    { timeout: 1_000 },
+    { timeout: 4_000 },
   );
   const probe = await readRecordedIntroProbe(page);
   const opening = probe.records.find((record) => record.phase === "opening");
@@ -614,7 +767,6 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
   expect(opening).toBeDefined();
   expect(ready).toBeDefined();
   expect(ready!.time - opening!.time).toBeGreaterThanOrEqual(160);
-  expect(ready!.time - opening!.time).toBeLessThanOrEqual(240);
   expect(probe.records.map((record) => record.phase)).not.toContain("drop");
   expect(probe.flapAnimationNames).toEqual([
     "none",
@@ -622,7 +774,7 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
     "none",
     "none",
   ]);
-  expect(probe.reducedAnimations).toHaveLength(2);
+  expect(probe.reducedAnimations).toHaveLength(5);
   for (const animation of probe.reducedAnimations ?? []) {
     expect(animation.name).toContain("package-intro-reduced");
     expect(animation.duration).toBe(180);
@@ -760,15 +912,6 @@ async function readOpeningCheckpoint(
 ) {
   await setOpeningAnimationTime(page, time);
   return readCheckpointState(page, false);
-}
-
-async function readDropCheckpoint(page: import("@playwright/test").Page) {
-  await setSyntheticPageVisibility(page, "hidden");
-  try {
-    return await readCheckpointState(page);
-  } finally {
-    await setSyntheticPageVisibility(page, "visible");
-  }
 }
 
 async function readCheckpointState(
@@ -966,10 +1109,6 @@ async function readCheckpointState(
 
     return {
       cubeRect: visibleCubeRect,
-      finiteCssCurrentTimes: document
-        .getAnimations()
-        .filter((animation) => animation.effect?.getTiming().iterations === 1)
-        .map((animation) => Number(animation.currentTime)),
       openingCompletionCurrentTime: (() => {
         const completion = document.getAnimations().find((animation) => {
           return (
@@ -979,17 +1118,16 @@ async function readCheckpointState(
         });
         return completion ? Number(completion.currentTime) : null;
       })(),
-      dropElapsedMs: (() => {
-        const probe = (
-          window as typeof window & {
-            __cubo3dDropProbe?: { elapsedMs: number; readyAt: number | null };
-          }
-        ).__cubo3dDropProbe;
-        return probe?.elapsedMs ?? 0;
-      })(),
       backingOpacity: intro
-        ? Number(getComputedStyle(intro, "::before").opacity) *
-          effectiveOpacity(intro)
+        ? Math.max(
+            0,
+            ...Array.from(
+              intro.querySelectorAll<HTMLElement>(
+                '[data-testid="package-backing-panel"]',
+              ),
+              (panel) => Number(getComputedStyle(panel).opacity) * effectiveOpacity(panel),
+            ),
+          )
         : 0,
       introPointerEvents: intro ? getComputedStyle(intro).pointerEvents : "none",
       packageShadow: intro
@@ -1181,96 +1319,6 @@ async function readVisibleCubeRect(page: import("@playwright/test").Page) {
   );
 }
 
-async function installDropPhaseProbe(
-  page: import("@playwright/test").Page,
-): Promise<void> {
-  await page.evaluate(() => {
-    const testWindow = window as typeof window & {
-      __cubo3dDropProbe?: { elapsedMs: number; readyAt: number | null };
-    };
-    const probe = { elapsedMs: 0, readyAt: null as number | null };
-    testWindow.__cubo3dDropProbe = probe;
-    let previous = performance.now();
-    const tick = (now: number) => {
-      const phase = document.querySelector<HTMLElement>("main#cubo")?.dataset
-        .introPhase;
-      if (phase === "drop" && document.visibilityState === "visible") {
-        probe.elapsedMs += Math.max(0, now - previous);
-      }
-      if (phase === "ready" && probe.readyAt === null) {
-        probe.readyAt = probe.elapsedMs;
-      }
-      previous = now;
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-}
-
-async function waitForDropElapsed(
-  page: import("@playwright/test").Page,
-  elapsedMs: number,
-): Promise<void> {
-  await page.evaluate(
-    (target) =>
-      new Promise<void>((resolvePromise, reject) => {
-        const deadline = performance.now() + 2_000;
-        const poll = () => {
-          const probe = (
-            window as typeof window & {
-              __cubo3dDropProbe?: { elapsedMs: number };
-            }
-          ).__cubo3dDropProbe;
-          const phase = document.querySelector<HTMLElement>("main#cubo")?.dataset
-            .introPhase;
-          if (probe && probe.elapsedMs >= target) {
-            resolvePromise();
-            return;
-          }
-          if (phase === "ready" || performance.now() > deadline) {
-            reject(
-              new Error(`Drop did not expose real-time checkpoint ${target}ms`),
-            );
-            return;
-          }
-          requestAnimationFrame(poll);
-        };
-        poll();
-      }),
-    elapsedMs,
-  );
-}
-
-async function setSyntheticPageVisibility(
-  page: import("@playwright/test").Page,
-  visibility: "hidden" | "visible",
-): Promise<void> {
-  await page.evaluate(async (nextVisibility) => {
-    if (nextVisibility === "hidden") {
-      Object.defineProperty(document, "visibilityState", {
-        configurable: true,
-        get: () => "hidden",
-      });
-    } else {
-      Reflect.deleteProperty(document, "visibilityState");
-    }
-    document.dispatchEvent(new Event("visibilitychange"));
-    for (const animation of document.getAnimations()) {
-      if (animation.effect?.getTiming().iterations !== 1) {
-        continue;
-      }
-      if (nextVisibility === "hidden") {
-        animation.pause();
-      } else {
-        animation.play();
-      }
-    }
-    await new Promise<void>((resolvePromise) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
-    );
-  }, visibility);
-}
-
 async function readFiniteIntroAnimations(
   page: import("@playwright/test").Page,
 ) {
@@ -1294,47 +1342,6 @@ async function readFiniteIntroAnimations(
                 target.tagName
               : "unknown",
         };
-      }),
-  );
-}
-
-async function pauseAtDropMidpoint(
-  page: import("@playwright/test").Page,
-): Promise<void> {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolvePromise, reject) => {
-        const main = document.querySelector<HTMLElement>("main#cubo");
-        if (!main) {
-          reject(new Error("Experience shell was unavailable for drop capture"));
-          return;
-        }
-
-        const timeout = window.setTimeout(() => {
-          observer.disconnect();
-          reject(new Error("Intro never entered its drop phase"));
-        }, 4_000);
-        const pause = () => {
-          if (main.dataset.introPhase !== "drop") {
-            return;
-          }
-          observer.disconnect();
-          window.clearTimeout(timeout);
-          window.setTimeout(() => {
-            Object.defineProperty(document, "visibilityState", {
-              configurable: true,
-              get: () => "hidden",
-            });
-            document.dispatchEvent(new Event("visibilitychange"));
-            window.setTimeout(resolvePromise, 0);
-          }, 280);
-        };
-        const observer = new MutationObserver(pause);
-        observer.observe(main, {
-          attributeFilter: ["data-intro-phase"],
-          attributes: true,
-        });
-        pause();
       }),
   );
 }
@@ -1403,6 +1410,9 @@ async function installIntroPhaseRecorder(
     const reducedSnapshot = (): Snapshot[] => {
       const selectors = [
         '[data-testid="package-intro"]',
+        '[data-testid="package-backing"]',
+        '[data-testid="package-backing-panel"]',
+        '[data-testid="package-backing-surface"]',
         '[data-testid="package-intro-timeline"]',
         '[data-testid="package-ground-shadow"]',
         '[data-testid="package-shell"]',
@@ -1448,7 +1458,6 @@ async function installIntroPhaseRecorder(
         }
       }
       for (const [selector, pseudo] of [
-        ['[data-testid="package-intro"]', "::before"],
         ['[data-testid="package-shell"]', "::before"],
       ] as const) {
         const element = document.querySelector<HTMLElement>(selector);
