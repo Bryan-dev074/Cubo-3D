@@ -21,6 +21,7 @@
   --ambient-plan: 8.4s;
   --ambient-registration: 6.4s;
   --ambient-spine: 7.2s;
+  --ambient-spine-register: 6.4s;
   --ambient-matrix: 4.8s;
   --ambient-status: 3.2s;
   --ambient-dock: 6.4s;
@@ -1360,6 +1361,7 @@
 }
 
 .cobaltSpine {
+  --spine-travel-scale: 1;
   position: relative;
   z-index: 5;
   display: flex;
@@ -1376,6 +1378,10 @@
 
 .cobaltSpine::before,
 .cobaltSpine::after {
+  --spine-arc-lower-opacity: 0.48;
+  --spine-arc-lower-travel: 0px;
+  --spine-arc-upper-opacity: 0.48;
+  --spine-arc-upper-travel: 0px;
   position: absolute;
   right: -1.45rem;
   width: 2.9rem;
@@ -1385,18 +1391,35 @@
   border-radius: 0 2rem 2rem 0;
   opacity: 0.48;
   transform: translateY(0);
-  animation: spine-technical-breathe var(--ambient-spine) var(--ease-in-out)
-    -0.6s infinite;
+  animation: spine-arc-register var(--ambient-spine-register) linear infinite;
   content: "";
 }
 
 .cobaltSpine::before {
+  --spine-arc-upper-opacity: 0.68;
+  --spine-arc-upper-travel: 8px;
   top: 10%;
 }
 
 .cobaltSpine::after {
+  --spine-arc-lower-opacity: 0.68;
+  --spine-arc-lower-travel: -8px;
   bottom: 10%;
-  animation-delay: -4.2s;
+}
+
+.spineInspectionBeam {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.82);
+  opacity: 0;
+  transform: translateY(-1rem) scaleX(0.32);
+  transform-origin: left center;
+  animation: spine-beam-pass var(--ambient-spine-register) linear infinite;
+  pointer-events: none;
 }
 
 .spineIntro,
@@ -1414,6 +1437,7 @@
 
 .spineIntro::after,
 .spineFooter::before {
+  display: none;
   width: 3rem;
   height: 1px;
   background: rgba(255, 255, 255, 0.48);
@@ -1441,6 +1465,29 @@
   max-width: 7.1rem;
 }
 
+.spineIntroTitle {
+  opacity: 0.86;
+  transform: translateY(0);
+  animation: spine-title-register var(--ambient-spine-register) linear infinite;
+}
+
+.spineIntroTagline {
+  opacity: 0.8;
+  transform: translateY(0);
+  animation: spine-tagline-register var(--ambient-spine-register) linear infinite;
+}
+
+.spineRule {
+  display: block;
+  width: 3rem;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.64);
+  opacity: 0.58;
+  transform: scaleX(0.42);
+  transform-origin: left center;
+  animation: spine-rule-print var(--ambient-spine-register) linear infinite;
+}
+
 .spineWordmark {
   position: relative;
   z-index: 1;
@@ -1452,6 +1499,14 @@
   white-space: nowrap;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
+}
+
+.spineGlyph {
+  display: inline-block;
+  opacity: 0.84;
+  transform: translateY(0) scale(1);
+  animation: spine-glyph-print var(--ambient-spine-register) linear infinite;
+  animation-delay: calc(var(--spine-index) * 210ms);
 }
 
 .spineFooter {
@@ -1467,6 +1522,22 @@
   font-size: clamp(0.6rem, 0.65vw, 0.68rem);
 }
 
+.spineFooter > [data-spine-motion="true"] {
+  --spine-footer-active-transform: translateY(
+    calc(-2px * var(--spine-travel-scale))
+  );
+  --spine-footer-rest-transform: translateY(0);
+  opacity: 0.82;
+  transform: var(--spine-footer-rest-transform);
+  animation: spine-footer-register var(--ambient-spine-register) linear infinite;
+  animation-delay: calc(var(--spine-index, 0) * 145ms);
+}
+
+.spineFooter > .spineRule {
+  --spine-footer-active-transform: scaleX(1);
+  --spine-footer-rest-transform: scaleX(0.42);
+}
+
 .spineDiagram {
   width: 4.6rem;
   height: auto;
@@ -1476,6 +1547,24 @@
   stroke-linecap: square;
   stroke-linejoin: miter;
   stroke-width: 0.75;
+}
+
+.spineDiagram [data-spine-motion="true"] {
+  opacity: 0.62;
+  stroke-dasharray: 96;
+  stroke-dashoffset: 0;
+  transform: translateY(0);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spine-diagram-draw var(--ambient-spine-register) linear infinite;
+}
+
+.spineDiagram [data-spine-motion="true"]:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.spineDiagram [data-spine-motion="true"]:nth-child(3) {
+  animation-delay: 300ms;
 }
 
 .header {
@@ -2297,6 +2386,9 @@
 .experience[data-motion-paused="true"] .planRegistrationMotion,
 .experience[data-motion-paused="true"] .cobaltSpine::before,
 .experience[data-motion-paused="true"] .cobaltSpine::after,
+.experience[data-motion-paused="true"]
+  .cobaltSpine
+  [data-spine-motion="true"],
 .experience[data-motion-paused="true"] .pieceMatrix::after,
 .experience[data-motion-paused="true"] .statusDot,
 .experience[data-motion-paused="true"] .telemetrySummaryRail,
@@ -2304,6 +2396,11 @@
 .experience[data-motion-paused="true"] .purchaseButton::after,
 .experience[data-motion-paused="true"] .heroRule::after,
 .experience[data-motion-paused="true"] .cubeFrame {
+  animation-play-state: paused !important;
+}
+
+.experience[data-motion-paused="true"][data-intro-phase="ready"]
+  .cobaltSpine {
   animation-play-state: paused !important;
 }
 
@@ -2834,6 +2931,159 @@
   }
 }
 
+@keyframes spine-beam-pass {
+  0% {
+    opacity: 0;
+    transform: translateY(-1rem) scaleX(0.32);
+  }
+
+  2.5% {
+    opacity: 0.7;
+  }
+
+  8.59375% {
+    opacity: 0;
+    transform: translateY(calc(10rem * var(--spine-travel-scale))) scaleX(0.94);
+  }
+
+  8.59376%,
+  100% {
+    opacity: 0;
+    transform: translateY(-1rem) scaleX(0.32);
+  }
+}
+
+@keyframes spine-title-register {
+  0%,
+  4.6875%,
+  14.84375%,
+  100% {
+    opacity: 0.86;
+    transform: translateY(0);
+  }
+
+  9.375% {
+    opacity: 1;
+    transform: translateY(calc(-2px * var(--spine-travel-scale)));
+  }
+}
+
+@keyframes spine-tagline-register {
+  0%,
+  9.6875%,
+  20%,
+  100% {
+    opacity: 0.8;
+    transform: translateY(0);
+  }
+
+  14.84375% {
+    opacity: 0.96;
+    transform: translateY(calc(-2px * var(--spine-travel-scale)));
+  }
+}
+
+@keyframes spine-rule-print {
+  0%,
+  9.6875%,
+  20%,
+  100% {
+    opacity: 0.58;
+    transform: scaleX(0.42);
+  }
+
+  14.84375% {
+    opacity: 0.92;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes spine-glyph-print {
+  0%,
+  18.4375%,
+  32.8125%,
+  100% {
+    opacity: 0.84;
+    transform: translateY(0) scale(1);
+  }
+
+  25.625% {
+    opacity: 1;
+    transform: translateY(calc(-2px * var(--spine-travel-scale))) scale(1.02);
+  }
+}
+
+@keyframes spine-footer-register {
+  0%,
+  46.875%,
+  64.296875%,
+  100% {
+    opacity: 0.82;
+    transform: var(--spine-footer-rest-transform);
+  }
+
+  55.5859375% {
+    opacity: 1;
+    transform: var(--spine-footer-active-transform);
+  }
+}
+
+@keyframes spine-diagram-draw {
+  0%,
+  69.53125%,
+  82.8125%,
+  100% {
+    opacity: 0.62;
+    stroke-dashoffset: 0;
+    transform: translateY(0);
+  }
+
+  74.21875% {
+    opacity: 0.94;
+    stroke-dashoffset: 18;
+    transform: translateY(calc(-1px * var(--spine-travel-scale)));
+  }
+}
+
+@keyframes spine-arc-register {
+  0%,
+  8.59375%,
+  85.15625%,
+  96.09375%,
+  100% {
+    opacity: 0.48;
+    transform: translateY(0);
+  }
+
+  4.296875% {
+    opacity: var(--spine-arc-upper-opacity);
+    transform: translateY(
+      calc(var(--spine-arc-upper-travel) * var(--spine-travel-scale))
+    );
+  }
+
+  90.625% {
+    opacity: var(--spine-arc-lower-opacity);
+    transform: translateY(
+      calc(var(--spine-arc-lower-travel) * var(--spine-travel-scale))
+    );
+  }
+}
+
+@keyframes spine-mobile-rail {
+  0%,
+  16%,
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  7% {
+    opacity: 0.84;
+    transform: scaleX(0.94);
+  }
+}
+
 @keyframes plan-drawing-breathe {
   0%,
   30%,
@@ -3175,6 +3425,15 @@
     height: 0.42rem;
     min-height: 0;
     padding: 0;
+    transform-origin: left center;
+  }
+
+  .experience[data-intro-phase="ready"] .cobaltSpine {
+    animation: spine-mobile-rail 4.8s linear infinite;
+  }
+
+  .cobaltSpine [data-spine-motion="true"] {
+    animation-name: none;
   }
 
   .cobaltSpine::before,
@@ -3453,6 +3712,12 @@
   }
 }
 
+@media (max-height: 720px) and (min-width: 901px) {
+  .cobaltSpine {
+    --spine-travel-scale: 0.7;
+  }
+}
+
 @media (max-width: 900px) {
   .packageIntroTimeline {
     width: min(90vw, 34rem);
@@ -3707,6 +3972,11 @@
   .plotterGlyph,
   .plotterRegister,
   .cubeFrame {
+    animation-name: none !important;
+  }
+
+  .cobaltSpine,
+  .cobaltSpine [data-spine-motion="true"] {
     animation-name: none !important;
   }
 

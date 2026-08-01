@@ -1110,6 +1110,34 @@ describe("commercial CSS contract", () => {
     expect(shadowKeyframes).not.toContain("translateY(");
   });
 
+  it("runs every spine group from one 6.4 second register director", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "components/experience/experience.module.css"),
+      "utf8",
+    );
+
+    expect(css).toContain("--ambient-spine-register: 6.4s");
+    for (const name of [
+      "spine-beam-pass",
+      "spine-title-register",
+      "spine-tagline-register",
+      "spine-rule-print",
+      "spine-glyph-print",
+      "spine-footer-register",
+      "spine-diagram-draw",
+      "spine-arc-register",
+      "spine-mobile-rail",
+    ]) {
+      expect(css).toContain(`@keyframes ${name}`);
+    }
+    expect(css).toMatch(
+      /\[data-motion-paused="true"\][\s\S]*?\[data-spine-motion="true"\][\s\S]*?animation-play-state:\s*paused\s*!important/,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\[data-spine-motion="true"\][\s\S]*?animation-name:\s*none\s*!important/,
+    );
+  });
+
   it("uses the reference column split and collapses the cobalt spine without inherited padding", () => {
     const css = readFileSync(
       resolve(process.cwd(), "components/experience/experience.module.css"),

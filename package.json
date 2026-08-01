@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test tests/e2e/intro.spec.ts tests/e2e/experience.spec.ts tests/e2e/responsive.spec.ts",
+    "test:e2e": "playwright test tests/e2e/intro.spec.ts tests/e2e/experience.spec.ts tests/e2e/responsive.spec.ts tests/e2e/spine-motion.spec.ts",
     "test:performance": "playwright test tests/e2e/performance.spec.ts --workers=1"
   },
   "dependencies": {
