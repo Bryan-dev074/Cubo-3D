@@ -6,14 +6,16 @@ Rama verificada: `codex/dieline-spine`
 
 Base: `063637e52263979f1ffe70a51ebb850f07df7573`
 
-Implementación verificada: `b1dd757`
+Implementación verificada: `42cc7fa`
 
 ## Resultado
 
 La entrada mecánica, la transformación caja-interfaz, la caída real del cubo,
 el registro ambiental, las interacciones de mouse/touch/teclado y la composición
 responsive cumplen los contratos del proyecto. La intro conserva 1.350 ms de
-apertura y 650 ms de caída/asentamiento, para un total de 2.000 ms.
+apertura y 650 ms de caída/asentamiento cuando la escena ya está disponible,
+para un total de 2.000 ms. Una escena tardía entra asentada y nunca inicia una
+caída parcial que el watchdog pueda recortar.
 
 ## Puerta reproducible
 
@@ -64,6 +66,8 @@ plano, franja y telemetría durante la transformación.
   capa si comienza en una pieza. El botón derecho siempre orbita.
 - El gesto de capa congela pieza, cara, eje, capa y puntero originales hasta
   `pointerup`, incluso al cruzar otras piezas durante un arrastre en L.
+- Cada frame de asentamiento de una capa queda limitado a 45°; a 10–15 FPS el
+  giro puede durar hasta 500 ms para conservar varios estados visibles.
 - Touch separa arrastre de pieza y órbita de fondo; teclado, skip link, foco de
   diálogo, objetivos de 44 px, `aria-live` y textos ES/PT quedan cubiertos.
 - El canvas usa `frameloop="demand"`, no autorrota y vuelve a cero draw calls
@@ -76,18 +80,18 @@ Artefactos: `.superpowers/sdd/cinematic-performance.json` y
 
 | Métrica | Resultado | Límite |
 | --- | ---: | ---: |
-| LCP local | 248 ms | < 2.500 ms |
+| LCP local | 288 ms | < 2.500 ms |
 | CLS local | 0,0000766 | < 0,1 |
-| Respuesta máxima del hilo principal | 33,2 ms | < 200 ms |
-| Input delay máximo | 15,9 ms | registrado |
-| Trabajo de handler máximo | 22,1 ms | registrado |
-| Apertura móvil | 1.371,3 ms | <= 2.700 ms |
-| Muestras de apertura móvil | 63 | >= 45 |
-| Mediana / P95 estable | 16,7 / 33,4 ms | <= 25 / 100 ms |
+| Respuesta máxima del hilo principal | 40,5 ms | < 200 ms |
+| Input delay máximo | 13,6 ms | registrado |
+| Trabajo de handler máximo | 27,2 ms | registrado |
+| Apertura móvil | 1.369,6 ms | <= 2.700 ms |
+| Muestras de apertura móvil | 73 | >= 45 |
+| Mediana / P95 estable | 16,7 / 33,3 ms | <= 25 / 100 ms |
 | Frames de apertura >250 ms | 0 | <= 3 |
 
-El `PerformanceEventTiming.duration` completo alcanzó 736 ms en el navegador
-headless porque SwiftShader demoró hasta 722,1 ms la presentación del siguiente
+El `PerformanceEventTiming.duration` completo alcanzó 552 ms en el navegador
+headless porque SwiftShader demoró hasta 546,7 ms la presentación del siguiente
 frame. El artefacto conserva ese dato; no se presenta como INP de hardware. La
 puerta local aplica el límite de 200 ms al input delay más el procesamiento de
 la aplicación, y la cadencia CSS se mide por separado con todos sus umbrales
@@ -101,6 +105,8 @@ originales. El INP final debe confirmarse en el despliegue con GPU real.
 | White panels over loaded UI | Surfaces hand off to matching live regions | Makes the box become the interface |
 | Cube falls from outside the composition | Cube releases from the central aperture | Connects product arrival to the package |
 | Only side arcs move | One 6.4 s top-to-bottom register cycle | Gives every spine object purposeful life |
+| Late WebGL starts a drop the watchdog can truncate | Late scene enters settled `ready` state | Prevents a partial fall followed by a teleport |
+| A 100 ms frame can consume about 85.5° | Every layer frame is capped at 45° | Preserves perceptible intermediate states at low FPS |
 
 Todos los loops de la franja usan únicamente `transform` y `opacity`; no queda
 `stroke-dashoffset`, escala degenerada ni CSS ambiental sin consumidor. Las 20
