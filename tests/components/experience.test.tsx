@@ -533,6 +533,22 @@ describe("MagicCubeExperience locale and commerce", () => {
     expect(within(spine).getByTestId("spine-diagram")).toBeInTheDocument();
   });
 
+  it("addresses every visible spine object for one top-to-bottom print cycle", () => {
+    render(<MagicCubeExperience />);
+    const spine = screen.getByTestId("editorial-spine");
+
+    expect(within(spine).getAllByTestId("spine-glyph")).toHaveLength(6);
+    expect(within(spine).getAllByTestId("spine-footer-line")).toHaveLength(3);
+    expect(within(spine).getAllByTestId("spine-rule")).toHaveLength(2);
+    expect(within(spine).getByTestId("spine-inspection-beam")).toBeInTheDocument();
+    expect(
+      within(spine)
+        .getAllByTestId("spine-diagram-layer")
+        .map((layer) => layer.getAttribute("data-layer")),
+    ).toEqual(["base", "risers", "faces"]);
+    expect(spine.querySelectorAll('[data-spine-motion="true"]')).toHaveLength(18);
+  });
+
   it("renders the localized packaging plan as a workspace backdrop", () => {
     render(<MagicCubeExperience />);
 

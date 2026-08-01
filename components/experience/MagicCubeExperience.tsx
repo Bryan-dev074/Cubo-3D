@@ -58,6 +58,7 @@ type Announcement =
 
 const SHADOW_START = sampleCubeDrop(0);
 const SHADOW_FINAL = sampleCubeDrop(1);
+const SPINE_WORDMARK = Array.from("CUBO3D");
 
 export interface AmbientMotionConditions {
   readonly celebrationActive: boolean;
@@ -322,30 +323,110 @@ export function MagicCubeExperience() {
         className={styles.cobaltSpine}
         data-testid="editorial-spine"
       >
+        <span
+          aria-hidden="true"
+          className={styles.spineInspectionBeam}
+          data-spine-motion="true"
+          data-testid="spine-inspection-beam"
+        />
         <div className={styles.spineIntro}>
-          <strong>{dictionary.spineTitle}</strong>
-          <span>{dictionary.spineTagline}</span>
+          <strong
+            className={styles.spineIntroTitle}
+            data-spine-motion="true"
+          >
+            {dictionary.spineTitle}
+          </strong>
+          <span
+            className={styles.spineIntroTagline}
+            data-spine-motion="true"
+          >
+            {dictionary.spineTagline}
+          </span>
+          <i
+            aria-hidden="true"
+            className={styles.spineRule}
+            data-spine-motion="true"
+            data-testid="spine-rule"
+          />
         </div>
 
         <strong aria-hidden="true" className={styles.spineWordmark}>
-          CUBO 3D
+          {SPINE_WORDMARK.map((glyph, index) => (
+            <span
+              className={styles.spineGlyph}
+              data-spine-motion="true"
+              data-testid="spine-glyph"
+              data-word-break={index === 4 ? "true" : undefined}
+              key={`${glyph}-${index}`}
+              style={{ "--spine-index": index } as CSSProperties}
+            >
+              {glyph}
+            </span>
+          ))}
         </strong>
 
         <div className={styles.spineFooter}>
-          <strong>{dictionary.spineProduct}</strong>
-          <span>{dictionary.spinePlay}</span>
-          <span>{dictionary.spineEngineering}</span>
-          <span>{dictionary.spinePrecision}</span>
+          <i
+            aria-hidden="true"
+            className={styles.spineRule}
+            data-spine-motion="true"
+            data-testid="spine-rule"
+          />
+          <strong
+            data-spine-motion="true"
+            style={{ "--spine-index": 0 } as CSSProperties}
+          >
+            {dictionary.spineProduct}
+          </strong>
+          <span
+            data-spine-motion="true"
+            data-testid="spine-footer-line"
+            style={{ "--spine-index": 1 } as CSSProperties}
+          >
+            {dictionary.spinePlay}
+          </span>
+          <span
+            data-spine-motion="true"
+            data-testid="spine-footer-line"
+            style={{ "--spine-index": 2 } as CSSProperties}
+          >
+            {dictionary.spineEngineering}
+          </span>
+          <span
+            data-spine-motion="true"
+            data-testid="spine-footer-line"
+            style={{ "--spine-index": 3 } as CSSProperties}
+          >
+            {dictionary.spinePrecision}
+          </span>
           <svg
             aria-hidden="true"
             className={styles.spineDiagram}
             data-testid="spine-diagram"
             viewBox="0 0 64 64"
           >
-            <path d="M32 4 57 18 32 32 7 18 32 4Z" />
-            <path d="M7 18v28l25 14 25-14V18M32 32v28" />
-            <path d="m19.5 11 25 14v28M44.5 11l-25 14v28" />
-            <path d="M7 32 32 46 57 32" />
+            <g
+              data-layer="base"
+              data-spine-motion="true"
+              data-testid="spine-diagram-layer"
+            >
+              <path d="M32 4 57 18 32 32 7 18 32 4Z" />
+            </g>
+            <g
+              data-layer="risers"
+              data-spine-motion="true"
+              data-testid="spine-diagram-layer"
+            >
+              <path d="M7 18v28l25 14 25-14V18M32 32v28" />
+            </g>
+            <g
+              data-layer="faces"
+              data-spine-motion="true"
+              data-testid="spine-diagram-layer"
+            >
+              <path d="m19.5 11 25 14v28M44.5 11l-25 14v28" />
+              <path d="M7 32 32 46 57 32" />
+            </g>
           </svg>
         </div>
       </aside>
