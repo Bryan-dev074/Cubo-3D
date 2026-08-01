@@ -16,7 +16,7 @@ export interface CubeDropProfile {
 
 export const DESKTOP_CUBE_DROP_PROFILE: CubeDropProfile = Object.freeze({
   contactAt: 0.72,
-  initialTiltRadians: (4 * Math.PI) / 180,
+  initialTiltRadians: (3 * Math.PI) / 180,
   motionScale: 1,
   settleDepth: 0.032,
   startOffsetY: 0.68,

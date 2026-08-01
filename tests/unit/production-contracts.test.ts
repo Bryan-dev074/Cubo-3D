@@ -261,45 +261,35 @@ describe("production rendering contracts", () => {
     expect(flapRule).toContain("backface-visibility: visible");
     expect(flapRule).not.toContain("backface-visibility: hidden");
     expect(flapRule).toContain("background: transparent");
+    expect(styles).not.toMatch(/\.packageFlap::(?:before|after)/);
     expect(styles).toMatch(
-      /\.packageFlap::after\s*\{[\s\S]*?backface-visibility:\s*hidden;[\s\S]*?translateZ\(1px\)/,
+      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(3px\)/,
     );
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="top"\]::before,[\s\S]*?\.packageFlap\[data-flap="bottom"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateX\(180deg\)/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)\s*\{[^}]*interface-title-enter 280ms[^}]*950ms both/,
     );
     expect(styles).toMatch(
-      /\.packageFlap\[data-flap="left"\]::before,[\s\S]*?\.packageFlap\[data-flap="right"\]::before\s*\{[\s\S]*?translateZ\(-3px\) rotateY\(180deg\)/,
+      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)\s*\{[^}]*interface-title-enter 280ms[^}]*990ms both/,
     );
     expect(styles).toMatch(
-      /\.packageFlapEdge\s*\{[\s\S]*?translateZ\(2px\)/,
+      /data-intro-phase="opening"\] \.workspace\s*\{[^}]*interface-stage-enter 360ms[^}]*940ms both/,
     );
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(1\)[\s\S]*?360ms/,
-    );
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.plotterLine:nth-child\(2\)[\s\S]*?410ms/,
-    );
-    expect(styles).toMatch(
-      /data-intro-phase="opening"\] \.stage,[\s\S]*?380ms/,
-    );
-    for (const [flap, delay] of [
-      ["top", "120ms"],
-      ["right", "165ms"],
-      ["bottom", "210ms"],
-      ["left", "255ms"],
+    for (const [flap, destination] of [
+      ["top", "header"],
+      ["right", "telemetry"],
+      ["bottom", "dock"],
+      ["left", "hero"],
     ] as const) {
       expect(styles).toMatch(
         new RegExp(
-          `data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\][\\s\\S]*?${delay} forwards`,
+          `data-phase="opening"\\] \\.packageFlap\\[data-flap="${flap}"\\]\\s*\\{[^}]*package-panel-${destination} 1230ms[^}]*0ms forwards[^}]*package-opened-flap-fade 170ms linear 930ms forwards`,
         ),
       );
     }
     expect(styles).toMatch(
       /data-phase="opening"\] \.packageIntroSpine\s*\{[\s\S]*?package-spine-release/,
     );
-    expect(styles).toContain(
-      "package-opened-flap-fade 240ms linear 980ms",
-    );
+    expect(styles).toContain("package-opened-flap-fade 170ms linear 930ms");
     expect(styles).toMatch(
       /data-phase="opening"\] \.packageFlap\[data-flap="left"\]\s*\{[\s\S]*?z-index:\s*8/,
     );

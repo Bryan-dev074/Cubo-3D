@@ -76,6 +76,7 @@
   content: "";
 }
 
+.packageIntro[data-phase="opening"],
 .packageIntro[data-phase="reveal"],
 .packageIntro[data-phase="drop"] {
   pointer-events: none;
@@ -363,26 +364,6 @@
   transform-style: preserve-3d;
 }
 
-.packageFlap::before {
-  display: none;
-  content: none;
-}
-
-.packageFlap[data-flap="top"]::before,
-.packageFlap[data-flap="bottom"]::before {
-  transform: translateZ(-3px) rotateX(180deg);
-}
-
-.packageFlap[data-flap="left"]::before,
-.packageFlap[data-flap="right"]::before {
-  transform: translateZ(-3px) rotateY(180deg);
-}
-
-.packageFlap::after {
-  display: none;
-  content: none;
-}
-
 .packageFlapFace {
   position: absolute;
   inset: 0;
@@ -404,6 +385,11 @@
     inset 0 0 0 1px rgba(32, 38, 42, 0.28),
     inset 0.35rem 0.45rem 0.8rem rgba(32, 38, 42, 0.13);
   transform: translateZ(-2px) rotateY(180deg);
+}
+
+.packageFlap[data-flap="top"] .packageFlapFace[data-face="inner"],
+.packageFlap[data-flap="bottom"] .packageFlapFace[data-face="inner"] {
+  transform: translateZ(-2px) rotateX(180deg);
 }
 
 .packageFlapPrint {
@@ -810,10 +796,19 @@
 }
 
 @keyframes package-ground-settle {
-  0%,
-  28% {
+  0% {
     opacity: 0.12;
     transform: translateX(-50%) scaleX(1);
+  }
+
+  14.55% {
+    opacity: 0.16;
+    transform: translateX(-50%) scaleX(1.025);
+  }
+
+  28% {
+    opacity: 0.18;
+    transform: translateX(-50%) scaleX(1.04);
   }
 
   46% {
@@ -3702,7 +3697,13 @@
   .packageIntro[data-phase="opening"] .packageSealHalf,
   .experience[data-intro-phase="opening"] .cobaltSpine,
   .experience[data-intro-phase="opening"] .header,
+  .experience[data-intro-phase="opening"] .registrationMark,
+  .experience[data-intro-phase="opening"] .plotterLine,
+  .experience[data-intro-phase="opening"] .promise,
+  .experience[data-intro-phase="opening"] .scrambleButton,
+  .experience[data-intro-phase="opening"] .firstUseHint,
   .experience[data-intro-phase="opening"] .workspace,
+  .experience[data-intro-phase="opening"] .planDrawing,
   .experience[data-intro-phase="opening"] .telemetry,
   .experience[data-intro-phase="opening"] .controlDock {
     animation: none !important;

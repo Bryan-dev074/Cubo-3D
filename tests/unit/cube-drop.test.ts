@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DESKTOP_CUBE_DROP_PROFILE,
   MOBILE_CUBE_DROP_PROFILE,
   sampleCubeDrop,
 } from "@/lib/motion/cube-drop";
@@ -15,7 +16,10 @@ describe("sampleCubeDrop", () => {
 
     expect(start.offsetY).toBeCloseTo(0.68, 10);
     expect(start.offsetY).toBeLessThan(1);
-    expect(Math.abs(start.rotationZ)).toBeCloseTo((4 * Math.PI) / 180, 10);
+    expect(DESKTOP_CUBE_DROP_PROFILE.initialTiltRadians).toBe(
+      (3 * Math.PI) / 180,
+    );
+    expect(Math.abs(start.rotationZ)).toBeCloseTo((3 * Math.PI) / 180, 10);
     for (let index = 1; index < airborne.length; index += 1) {
       expect(airborne[index]!.offsetY).toBeLessThanOrEqual(
         airborne[index - 1]!.offsetY,

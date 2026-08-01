@@ -12,10 +12,34 @@ const VISUAL_ARTIFACT_DIRECTORY = resolve(
 
 interface IntroPhaseProbe {
   readonly flapAnimationNames: readonly string[] | null;
+  readonly infiniteAnimationCounts: {
+    readonly midpoint: number | null;
+    readonly opening: number | null;
+    readonly ready: number | null;
+  };
+  readonly reducedAnimations:
+    | readonly {
+        readonly duration: number;
+        readonly iterations: number;
+        readonly name: string;
+        readonly properties: readonly string[];
+      }[]
+    | null;
+  readonly reducedMidpoint: readonly ReducedElementSnapshot[] | null;
+  readonly reducedOpening: readonly ReducedElementSnapshot[] | null;
   readonly records: readonly {
     readonly phase: string;
     readonly time: number;
   }[];
+}
+
+interface ReducedElementSnapshot {
+  readonly bottom: number;
+  readonly key: string;
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly transform: string;
 }
 
 const VIEWPORTS = [
@@ -179,7 +203,7 @@ test("captures the package opening and the real cube mid-drop from explicit phas
   const intro = page.getByTestId("package-intro");
   await expect(intro).toBeVisible();
   await expect(intro).toHaveAttribute("data-phase", "opening");
-  const pausedAnimations = await setIntroAnimationTime(page, 650);
+  const pausedAnimations = await setOpeningAnimationTime(page, 650);
   expect(pausedAnimations).toBeGreaterThan(0);
 
   await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
@@ -246,61 +270,135 @@ test("honors the mechanical checkpoints from package to live interface", async (
   });
   await expect(experience).toHaveAttribute("data-page-visible", "false");
 
-  const at160 = await readMechanicalCheckpoint(page, 160);
-  expect(at160.packageShadow.opacity).toBeGreaterThan(0.08);
+  const at160 = await readOpeningCheckpoint(page, 160);
+  expect(
+    at160.packageShadow.animationNames.some((name) =>
+      name.includes("package-ground-settle"),
+    ),
+  ).toBe(true);
+  expect(at160.packageShadow.opacity).toBeGreaterThan(0.12);
+  expect(at160.registrations.every((mark) => mark.animationNames.length > 0)).toBe(
+    true,
+  );
+  expect(at160.sealHalves.every((half) => half.transform !== "none")).toBe(true);
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
   await mkdir(VISUAL_ARTIFACT_DIRECTORY, { recursive: true });
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-160.png"),
   });
 
-  const at450 = await readMechanicalCheckpoint(page, 450);
-  expect(
-    at450.panels.some((panel) => panel.hasDepth && panel.opacity > 0.9),
-  ).toBe(true);
+  const at450 = await readOpeningCheckpoint(page, 450);
+  expect(at450.panels.every((panel) => panel.openAngle > 70)).toBe(true);
+  expect(at450.panels.every((panel) => panel.innerFaceVisible)).toBe(true);
+  expect(at450.panels.every((panel) => panel.edgeVisible)).toBe(true);
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-450.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
-  const at650 = await readMechanicalCheckpoint(page, 650);
-  expect(new Set(at650.panels.map((panel) => panel.transform)).size).toBe(4);
+  const at650 = await readOpeningCheckpoint(page, 650);
+  expect(
+    at650.panels.every(
+      (panel) =>
+        panel.openAngle >= 82 &&
+        panel.openAngle <= 96 &&
+        panel.projectionRatio < 0.35,
+    ),
+  ).toBe(true);
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-650.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
-  const at900 = await readMechanicalCheckpoint(page, 900);
+  const at900 = await readOpeningCheckpoint(page, 900);
   expect(at900.panelDestinations).toEqual(["header", "telemetry", "dock", "hero"]);
+  const panelsByDestination = Object.fromEntries(
+    at900.panels.map((panel) => [panel.destination, panel]),
+  );
+  expect(panelsByDestination.header!.centerY).toBeLessThan(
+    at900.shellRect.centerY - 150,
+  );
+  expect(panelsByDestination.telemetry!.centerX).toBeGreaterThan(
+    at900.shellRect.centerX + 250,
+  );
+  expect(panelsByDestination.dock!.centerY).toBeGreaterThan(
+    at900.shellRect.centerY + 180,
+  );
+  expect(panelsByDestination.hero!.centerX).toBeLessThan(
+    at900.shellRect.centerX - 250,
+  );
+  expect(at900.panels.every((panel) => panel.travelDistance > 180)).toBe(true);
   expect(at900.planInkOpacity).toBeGreaterThan(0.01);
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-900.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
-  const at1100 = await readMechanicalCheckpoint(page, 1_100);
+  const at1100 = await readOpeningCheckpoint(page, 1_100);
   expect(at1100.titleCoverage).toBeLessThanOrEqual(0.01);
-  expect(at1100.opaquePanelSamples).toBe(0);
+  expect(at1100.backingOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1100.shellBackingOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1100.packageSurfaceOpacity).toBeLessThanOrEqual(0.01);
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1100.png"),
   });
   await expect(experience).toHaveAttribute("data-intro-phase", "opening");
 
-  const at1350 = await readMechanicalCheckpoint(page, 1_350);
+  const at1350 = await readOpeningCheckpoint(page, 1_350);
   expect(at1350.timelineOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1350.backingOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1350.shellBackingOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1350.packageSurfaceOpacity).toBeLessThanOrEqual(0.01);
+  expect(at1350.introPointerEvents).toBe("none");
+  await expect(experience).toHaveAttribute("data-intro-phase", "opening");
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1350.png"),
   });
+  await installDropPhaseProbe(page);
   await restoreVisiblePage(page);
   await resumeIntroAnimations(page);
   await expect(experience).toHaveAttribute("data-intro-phase", "drop", {
     timeout: 1_000,
   });
 
-  await page.waitForTimeout(410);
-  const at1760 = await readMechanicalCheckpoint(page, 1_760);
-  expect(at1760.cubeRect.left).toBeGreaterThanOrEqual(at1760.stageRect.left);
-  expect(at1760.cubeRect.right).toBeLessThanOrEqual(at1760.stageRect.right);
+  const dropCheckpoints = [];
+  for (const elapsed of [80, 260, 410, 470, 560, 590]) {
+    await waitForDropElapsed(page, elapsed);
+    dropCheckpoints.push(await readDropCheckpoint(page));
+  }
+  const [at80, at260, at1760, atContact, atSettle, beforeReady] =
+    dropCheckpoints;
+  for (const checkpoint of dropCheckpoints) {
+    expect(checkpoint!.phase).toBe("drop");
+    expect(checkpoint!.cubeRect.pixelCount).toBeGreaterThan(1_000);
+    expect(checkpoint!.cubeRect.width).toBeLessThan(
+      checkpoint!.stageRect.width * 0.9,
+    );
+    expect(checkpoint!.cubeRect.left).toBeGreaterThanOrEqual(
+      checkpoint!.stageRect.left - 1,
+    );
+    expect(checkpoint!.cubeRect.right).toBeLessThanOrEqual(
+      checkpoint!.stageRect.right + 1,
+    );
+    expect(checkpoint!.cubeRect.top).toBeGreaterThanOrEqual(
+      checkpoint!.stageRect.top - 1,
+    );
+    expect(checkpoint!.cubeRect.bottom).toBeLessThanOrEqual(
+      checkpoint!.stageRect.bottom + 1,
+    );
+  }
+  expect(at80!.cubeRect.centerY).toBeLessThan(at260!.cubeRect.centerY);
+  expect(at260!.cubeRect.centerY).toBeLessThan(at1760!.cubeRect.centerY);
+  expect(at1760!.cubeRect.centerY).toBeLessThan(atContact!.cubeRect.centerY);
+  expect(atSettle!.cubeRect.centerY).toBeGreaterThan(
+    atContact!.cubeRect.centerY,
+  );
+  expect(beforeReady!.cubeRect.centerY).toBeLessThan(
+    atSettle!.cubeRect.centerY,
+  );
+  expect(Math.max(...at1760!.finiteCssCurrentTimes)).toBeLessThanOrEqual(
+    at1760!.dropElapsedMs + 80,
+  );
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-1760.png"),
   });
@@ -310,8 +408,16 @@ test("honors the mechanical checkpoints from package to live interface", async (
     "ready",
     { timeout: 2_000 },
   );
-  const at2000 = await readMechanicalCheckpoint(page, 2_000);
+  const at2000 = await readDropCheckpoint(page);
   expect(at2000.phase).toBe("ready");
+  expect(at2000.dropElapsedMs).toBeGreaterThanOrEqual(620);
+  expect(at2000.dropElapsedMs).toBeLessThan(760);
+  expect(Math.abs(at2000.cubeRect.centerY - atContact!.cubeRect.centerY)).toBeLessThan(
+    5,
+  );
+  expect(Math.abs(at2000.cubeRect.centerY - beforeReady!.cubeRect.centerY)).toBeLessThan(
+    5,
+  );
   await page.screenshot({
     path: resolve(VISUAL_ARTIFACT_DIRECTORY, "dieline-2000.png"),
   });
@@ -469,7 +575,8 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
   const ready = probe.records.find((record) => record.phase === "ready");
   expect(opening).toBeDefined();
   expect(ready).toBeDefined();
-  expect(ready!.time - opening!.time).toBeLessThanOrEqual(500);
+  expect(ready!.time - opening!.time).toBeGreaterThanOrEqual(160);
+  expect(ready!.time - opening!.time).toBeLessThanOrEqual(240);
   expect(probe.records.map((record) => record.phase)).not.toContain("drop");
   expect(probe.flapAnimationNames).toEqual([
     "none",
@@ -477,6 +584,30 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
     "none",
     "none",
   ]);
+  expect(probe.reducedAnimations).toHaveLength(2);
+  for (const animation of probe.reducedAnimations ?? []) {
+    expect(animation.name).toContain("package-intro-reduced");
+    expect(animation.duration).toBe(180);
+    expect(animation.iterations).toBe(1);
+    expect(animation.properties).toEqual(["opacity"]);
+  }
+  expect(probe.infiniteAnimationCounts).toEqual({
+    midpoint: 0,
+    opening: 0,
+    ready: 0,
+  });
+  expect(probe.reducedOpening).not.toBeNull();
+  expect(probe.reducedMidpoint).not.toBeNull();
+  expect(probe.reducedMidpoint).toHaveLength(probe.reducedOpening!.length);
+  for (const [index, start] of probe.reducedOpening!.entries()) {
+    const midpoint = probe.reducedMidpoint![index]!;
+    expect(midpoint.key).toBe(start.key);
+    expect(midpoint.transform).toBe(start.transform);
+    expect(midpoint.left).toBeCloseTo(start.left, 2);
+    expect(midpoint.right).toBeCloseTo(start.right, 2);
+    expect(midpoint.top).toBeCloseTo(start.top, 2);
+    expect(midpoint.bottom).toBeCloseTo(start.bottom, 2);
+  }
   await expect(page.getByTestId("package-intro")).toHaveCount(0);
   await expect(page.getByTestId("adaptive-cursor")).toHaveCount(0);
   await expect(page.locator("body")).not.toHaveAttribute(
@@ -490,11 +621,14 @@ test("reduced motion uses the short crossfade and reaches ready without spatial 
   await context.close();
 });
 
-async function setIntroAnimationTime(
+async function setOpeningAnimationTime(
   page: import("@playwright/test").Page,
-  globalTimeMs: number,
+  openingTimeMs: number,
 ): Promise<number> {
-  return page.evaluate((timelineTime) => {
+  if (openingTimeMs < 0 || openingTimeMs > 1_350) {
+    throw new Error("Opening animation time must stay within 0-1350ms");
+  }
+  return page.evaluate((requestedTimelineTime) => {
     const intro = document.querySelector<HTMLElement>(
       '[data-testid="package-intro"]',
     );
@@ -508,6 +642,7 @@ async function setIntroAnimationTime(
     const animations = document
       .getAnimations()
       .filter(openingAnimation);
+    const timelineTime = Math.min(requestedTimelineTime, 1_349);
     for (const animation of animations) {
       animation.pause();
       // All package animations share one opening clock. CSS delays retain the
@@ -515,7 +650,7 @@ async function setIntroAnimationTime(
       animation.currentTime = timelineTime;
     }
     return animations.length;
-  }, globalTimeMs);
+  }, openingTimeMs);
 }
 
 async function resumeIntroAnimations(
@@ -533,14 +668,41 @@ async function resumeIntroAnimations(
   });
 }
 
-async function readMechanicalCheckpoint(
+async function readOpeningCheckpoint(
   page: import("@playwright/test").Page,
   time: number,
 ) {
-  if (await page.getByTestId("package-intro").count()) {
-    await setIntroAnimationTime(page, time);
+  await setOpeningAnimationTime(page, time);
+  return readCheckpointState(page, false);
+}
+
+async function readDropCheckpoint(page: import("@playwright/test").Page) {
+  await setSyntheticPageVisibility(page, "hidden");
+  try {
+    return await readCheckpointState(page);
+  } finally {
+    await setSyntheticPageVisibility(page, "visible");
   }
-  return page.evaluate(() => {
+}
+
+async function readCheckpointState(
+  page: import("@playwright/test").Page,
+  measureCube = true,
+) {
+  const cubeRect = measureCube
+    ? await readVisibleCubeRect(page)
+    : {
+        bottom: 0,
+        centerX: 0,
+        centerY: 0,
+        height: 0,
+        left: 0,
+        pixelCount: 0,
+        right: 0,
+        top: 0,
+        width: 0,
+      };
+  return page.evaluate((visibleCubeRect) => {
     const readRect = (element: Element | null) => {
       if (!element) {
         throw new Error("Checkpoint rectangle element was unavailable");
@@ -548,9 +710,13 @@ async function readMechanicalCheckpoint(
       const rect = element.getBoundingClientRect();
       return {
         bottom: rect.bottom,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+        height: rect.height,
         left: rect.left,
         right: rect.right,
         top: rect.top,
+        width: rect.width,
       };
     };
     const readMotion = (element: Element | null) => {
@@ -559,9 +725,19 @@ async function readMechanicalCheckpoint(
       }
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
+      const animations = document.getAnimations().filter((animation) => {
+        const effect = animation.effect as KeyframeEffect | null;
+        return effect?.target === element;
+      });
       return {
+        animationNames: animations.map((animation) =>
+          animation instanceof CSSAnimation ? animation.animationName : "",
+        ),
         area: rect.width * rect.height,
         backfaceVisibility: style.backfaceVisibility,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+        currentTimes: animations.map((animation) => Number(animation.currentTime)),
         hasDepth:
           style.transformStyle === "preserve-3d" &&
           style.transform !== "none",
@@ -584,13 +760,66 @@ async function readMechanicalCheckpoint(
         '[data-testid="package-intro-flap"]',
       ),
     );
-    const panels = panelElements.map((panel) => ({
-      ...readMotion(panel),
-      destination: panel.dataset.destination ?? "",
-    }));
+    const shellRect = intro
+      ? readRect(document.querySelector('[data-testid="package-shell"]'))
+      : {
+          bottom: 0,
+          centerX: 0,
+          centerY: 0,
+          height: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          width: 0,
+        };
+    const panels = panelElements.map((panel) => {
+      const motion = readMotion(panel);
+      const matrix = new DOMMatrixReadOnly(motion.transform);
+      const horizontal = panel.dataset.flap === "top" || panel.dataset.flap === "bottom";
+      const openAngle = Math.abs(
+        (Math.atan2(
+          horizontal ? matrix.m23 : matrix.m13,
+          horizontal ? matrix.m22 : matrix.m11,
+        ) *
+          180) /
+          Math.PI,
+      );
+      const panelRect = panel.getBoundingClientRect();
+      const inner = panel.querySelector<HTMLElement>('[data-face="inner"]');
+      const edge = panel.querySelector<HTMLElement>('[data-testid="package-flap-edge"]');
+      if (!inner || !edge) {
+        throw new Error("Panel face geometry was unavailable");
+      }
+      const innerMatrix = new DOMMatrixReadOnly(getComputedStyle(inner).transform);
+      const innerRect = inner.getBoundingClientRect();
+      const edgeRect = edge.getBoundingClientRect();
+      const intersection = (a: DOMRect, b: DOMRect) =>
+        Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+        Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+      return {
+        ...motion,
+        destination: panel.dataset.destination ?? "",
+        edgeVisible:
+          getComputedStyle(edge).boxShadow !== "none" &&
+          intersection(panelRect, edgeRect) > 1,
+        innerFaceVisible:
+          (horizontal
+            ? innerMatrix.m22 < -0.9
+            : innerMatrix.m11 < -0.9) &&
+          intersection(panelRect, innerRect) > 1,
+        openAngle,
+        projectionRatio: horizontal
+          ? panelRect.height / panel.offsetHeight
+          : panelRect.width / panel.offsetWidth,
+        travelDistance: Math.hypot(
+          motion.centerX - shellRect.centerX,
+          motion.centerY - shellRect.centerY,
+        ),
+      };
+    });
     const title = document.querySelector<HTMLElement>("#experience-title");
     const titleRect = title?.getBoundingClientRect();
-    let opaquePanelSamples = 0;
+    let packageSamples = 0;
     let titleSamples = 0;
     if (titleRect && titleRect.width > 0 && titleRect.height > 0) {
       for (let row = 1; row <= 8; row += 1) {
@@ -598,27 +827,87 @@ async function readMechanicalCheckpoint(
           titleSamples += 1;
           const x = titleRect.left + (titleRect.width * column) / 13;
           const y = titleRect.top + (titleRect.height * row) / 9;
-          const opaquePanel = document.elementsFromPoint(x, y).find((element) => {
-            const panel = element.closest<HTMLElement>(
-              '[data-testid="package-intro-flap"]',
-            );
-            return panel && Number(getComputedStyle(panel).opacity) > 0.01;
-          });
-          if (opaquePanel) {
-            opaquePanelSamples += 1;
+          if (
+            document
+              .elementsFromPoint(x, y)
+              .some((element) => element.closest('[data-testid="package-intro"]'))
+          ) {
+            packageSamples += 1;
           }
         }
       }
     }
+    const effectiveOpacity = (element: Element) => {
+      let opacity = 1;
+      for (let node: Element | null = element; node; node = node.parentElement) {
+        opacity *= Number(getComputedStyle(node).opacity);
+        if (node === intro) {
+          break;
+        }
+      }
+      return opacity;
+    };
+    const packageSurfaceOpacity = intro
+      ? Math.max(
+          0,
+          ...Array.from(
+            intro.querySelectorAll<HTMLElement>(
+              [
+                '[data-testid="package-origin"]',
+                '[data-testid="package-inner-face"]',
+                '[data-testid="package-aperture"]',
+                '[data-testid="package-spine"]',
+                '[data-testid="package-serial"]',
+                '[data-testid="package-registration"]',
+                '[data-testid="package-rail"]',
+                '[data-testid="package-hinge"]',
+                '[data-testid="package-flap-face"]',
+                '[data-testid="package-flap-print"]',
+                '[data-testid="package-flap-edge"]',
+                '[data-testid="package-seal"]',
+                '[data-testid="package-seal-half"]',
+              ].join(","),
+            ),
+            effectiveOpacity,
+          ),
+        )
+      : 0;
 
     return {
-      cubeRect: readRect(document.querySelector('[data-testid="cube-frame"]')),
-      opaquePanelSamples,
+      cubeRect: visibleCubeRect,
+      finiteCssCurrentTimes: document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getTiming().iterations === 1)
+        .map((animation) => Number(animation.currentTime)),
+      dropElapsedMs: (() => {
+        const probe = (
+          window as typeof window & {
+            __cubo3dDropProbe?: { elapsedMs: number; readyAt: number | null };
+          }
+        ).__cubo3dDropProbe;
+        return probe?.elapsedMs ?? 0;
+      })(),
+      backingOpacity: intro
+        ? Number(getComputedStyle(intro, "::before").opacity) *
+          effectiveOpacity(intro)
+        : 0,
+      introPointerEvents: intro ? getComputedStyle(intro).pointerEvents : "none",
       packageShadow: intro
         ? readMotion(document.querySelector('[data-testid="package-ground-shadow"]'))
-        : { area: 0, backfaceVisibility: "visible", hasDepth: false, opacity: 0, transform: "none" },
+        : {
+            animationNames: [],
+            area: 0,
+            backfaceVisibility: "visible",
+            centerX: 0,
+            centerY: 0,
+            currentTimes: [],
+            hasDepth: false,
+            opacity: 0,
+            transform: "none",
+          },
       panelDestinations: panels.map((panel) => panel.destination),
       panels,
+      packageSurfaceOpacity,
       phase:
         document.querySelector<HTMLElement>("main#cubo")?.dataset.introPhase ?? "",
       planInkOpacity: Number(
@@ -626,11 +915,227 @@ async function readMechanicalCheckpoint(
           document.querySelector<HTMLElement>('[data-testid="packaging-plan"]')!,
         ).opacity,
       ),
+      registrations: Array.from(
+        document.querySelectorAll('[data-testid="package-registration"]'),
+        readMotion,
+      ),
+      sealHalves: Array.from(
+        document.querySelectorAll('[data-testid="package-seal-half"]'),
+        readMotion,
+      ),
+      shellBackingOpacity: intro
+        ? Number(
+            getComputedStyle(
+              document.querySelector<HTMLElement>('[data-testid="package-shell"]')!,
+              "::before",
+            ).opacity,
+          ) * effectiveOpacity(
+            document.querySelector<HTMLElement>('[data-testid="package-shell"]')!,
+          )
+        : 0,
+      shellRect,
       stageRect: readRect(document.querySelector("#cube-stage")),
       timelineOpacity: timeline ? Number(getComputedStyle(timeline).opacity) : 0,
-      titleCoverage: titleSamples === 0 ? 0 : opaquePanelSamples / titleSamples,
+      titleCoverage: titleSamples === 0 ? 0 : packageSamples / titleSamples,
     };
+  }, cubeRect);
+}
+
+async function readVisibleCubeRect(page: import("@playwright/test").Page) {
+  const canvas = page.locator(".cube-scene canvas");
+  const box = await canvas.boundingBox();
+  if (!box) {
+    throw new Error("Cube canvas had no screenshot bounds");
+  }
+  await page.evaluate(() => {
+    const canvasElement = document.querySelector(".cube-scene canvas");
+    if (!canvasElement) {
+      throw new Error("Cube canvas was unavailable for isolated capture");
+    }
+    for (let node: Element | null = canvasElement; node; node = node.parentElement) {
+      node.setAttribute("data-cubo-alpha-path", "true");
+    }
+    const style = document.createElement("style");
+    style.id = "cubo-alpha-capture-style";
+    style.textContent = `
+      body * { visibility: hidden !important; }
+      [data-cubo-alpha-path="true"] { visibility: visible !important; }
+      html, body, body *, body *::before, body *::after {
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        color: transparent !important;
+        filter: none !important;
+        outline: none !important;
+      }
+    `;
+    document.head.append(style);
   });
+
+  let pngBase64: string;
+  try {
+    pngBase64 = (await page.screenshot({
+      clip: box,
+      omitBackground: true,
+    })).toString("base64");
+  } finally {
+    await page.evaluate(() => {
+      document.querySelector("#cubo-alpha-capture-style")?.remove();
+      for (const element of document.querySelectorAll("[data-cubo-alpha-path]")) {
+        element.removeAttribute("data-cubo-alpha-path");
+      }
+    });
+  }
+
+  return page.evaluate(
+    async ({ captureBox, png }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const scratch = document.createElement("canvas");
+      scratch.width = image.naturalWidth;
+      scratch.height = image.naturalHeight;
+      const context = scratch.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        throw new Error("2D alpha scan context was unavailable");
+      }
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(
+        0,
+        0,
+        scratch.width,
+        scratch.height,
+      ).data;
+      let left = scratch.width;
+      let right = -1;
+      let top = scratch.height;
+      let bottom = -1;
+      let pixelCount = 0;
+      for (let y = 0; y < scratch.height; y += 1) {
+        for (let x = 0; x < scratch.width; x += 1) {
+          if (pixels[(y * scratch.width + x) * 4 + 3]! <= 8) {
+            continue;
+          }
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y);
+          pixelCount += 1;
+        }
+      }
+      if (pixelCount === 0) {
+        throw new Error("Isolated cube capture had no visible alpha pixels");
+      }
+      const scaleX = captureBox.width / scratch.width;
+      const scaleY = captureBox.height / scratch.height;
+      const cssLeft = captureBox.x + left * scaleX;
+      const cssRight = captureBox.x + (right + 1) * scaleX;
+      const cssTop = captureBox.y + top * scaleY;
+      const cssBottom = captureBox.y + (bottom + 1) * scaleY;
+      return {
+        bottom: cssBottom,
+        centerX: (cssLeft + cssRight) / 2,
+        centerY: (cssTop + cssBottom) / 2,
+        height: cssBottom - cssTop,
+        left: cssLeft,
+        pixelCount,
+        right: cssRight,
+        top: cssTop,
+        width: cssRight - cssLeft,
+      };
+    },
+    { captureBox: box, png: pngBase64 },
+  );
+}
+
+async function installDropPhaseProbe(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      __cubo3dDropProbe?: { elapsedMs: number; readyAt: number | null };
+    };
+    const probe = { elapsedMs: 0, readyAt: null as number | null };
+    testWindow.__cubo3dDropProbe = probe;
+    let previous = performance.now();
+    const tick = (now: number) => {
+      const phase = document.querySelector<HTMLElement>("main#cubo")?.dataset
+        .introPhase;
+      if (phase === "drop" && document.visibilityState === "visible") {
+        probe.elapsedMs += Math.max(0, now - previous);
+      }
+      if (phase === "ready" && probe.readyAt === null) {
+        probe.readyAt = probe.elapsedMs;
+      }
+      previous = now;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+async function waitForDropElapsed(
+  page: import("@playwright/test").Page,
+  elapsedMs: number,
+): Promise<void> {
+  await page.evaluate(
+    (target) =>
+      new Promise<void>((resolvePromise, reject) => {
+        const deadline = performance.now() + 2_000;
+        const poll = () => {
+          const probe = (
+            window as typeof window & {
+              __cubo3dDropProbe?: { elapsedMs: number };
+            }
+          ).__cubo3dDropProbe;
+          const phase = document.querySelector<HTMLElement>("main#cubo")?.dataset
+            .introPhase;
+          if (probe && probe.elapsedMs >= target) {
+            resolvePromise();
+            return;
+          }
+          if (phase === "ready" || performance.now() > deadline) {
+            reject(
+              new Error(`Drop did not expose real-time checkpoint ${target}ms`),
+            );
+            return;
+          }
+          requestAnimationFrame(poll);
+        };
+        poll();
+      }),
+    elapsedMs,
+  );
+}
+
+async function setSyntheticPageVisibility(
+  page: import("@playwright/test").Page,
+  visibility: "hidden" | "visible",
+): Promise<void> {
+  await page.evaluate(async (nextVisibility) => {
+    if (nextVisibility === "hidden") {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "hidden",
+      });
+    } else {
+      Reflect.deleteProperty(document, "visibilityState");
+    }
+    document.dispatchEvent(new Event("visibilitychange"));
+    for (const animation of document.getAnimations()) {
+      if (animation.effect?.getTiming().iterations !== 1) {
+        continue;
+      }
+      if (nextVisibility === "hidden") {
+        animation.pause();
+      } else {
+        animation.play();
+      }
+    }
+    await new Promise<void>((resolvePromise) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolvePromise())),
+    );
+  }, visibility);
 }
 
 async function readFiniteIntroAnimations(
@@ -714,20 +1219,121 @@ async function installIntroPhaseRecorder(
   page: import("@playwright/test").Page,
 ): Promise<void> {
   await page.addInitScript(() => {
-    const testWindow = window as typeof window & {
-      __cubo3dIntroProbe?: {
-        flapAnimationNames: string[] | null;
-        records: Array<{ phase: string; time: number }>;
-      };
+    type Snapshot = {
+      bottom: number;
+      key: string;
+      left: number;
+      right: number;
+      top: number;
+      transform: string;
     };
-    const probe: {
+    type Probe = {
       flapAnimationNames: string[] | null;
+      infiniteAnimationCounts: {
+        midpoint: number | null;
+        opening: number | null;
+        ready: number | null;
+      };
+      reducedAnimations: Array<{
+        duration: number;
+        iterations: number;
+        name: string;
+        properties: string[];
+      }> | null;
+      reducedMidpoint: Snapshot[] | null;
+      reducedOpening: Snapshot[] | null;
       records: Array<{ phase: string; time: number }>;
-    } = {
+    };
+    const testWindow = window as typeof window & {
+      __cubo3dIntroProbe?: Probe;
+    };
+    const probe: Probe = {
       flapAnimationNames: null,
+      infiniteAnimationCounts: {
+        midpoint: null,
+        opening: null,
+        ready: null,
+      },
+      reducedAnimations: null,
+      reducedMidpoint: null,
+      reducedOpening: null,
       records: [],
     };
     testWindow.__cubo3dIntroProbe = probe;
+
+    const infiniteAnimationCount = () =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations === Infinity,
+        ).length;
+    const reducedSnapshot = (): Snapshot[] => {
+      const selectors = [
+        '[data-testid="package-intro"]',
+        '[data-testid="package-intro-timeline"]',
+        '[data-testid="package-ground-shadow"]',
+        '[data-testid="package-shell"]',
+        '[data-testid="package-origin"]',
+        '[data-testid="package-inner-face"]',
+        '[data-testid="package-aperture"]',
+        '[data-testid="package-spine"]',
+        '[data-testid="package-serial"]',
+        '[data-testid="package-registration"]',
+        '[data-testid="package-rail"]',
+        '[data-testid="package-hinge"]',
+        '[data-testid="package-intro-flap"]',
+        '[data-testid="package-flap-face"]',
+        '[data-testid="package-flap-edge"]',
+        '[data-testid="package-seal"]',
+        '[data-testid="package-seal-half"]',
+        'main#cubo > aside',
+        'main#cubo header',
+        'main#cubo [class*="workspace"]',
+        'main#cubo [class*="registrationMark"]',
+        'main#cubo [class*="plotterLine"]',
+        'main#cubo [class*="promise"]',
+        'main#cubo [class*="scrambleButton"]',
+        'main#cubo [class*="firstUseHint"]',
+        '[data-testid="packaging-plan"]',
+        'main#cubo [class*="telemetry"]',
+        'main#cubo [class*="controlDock"]',
+      ];
+      const snapshots: Snapshot[] = [];
+      for (const selector of selectors) {
+        for (const [index, element] of Array.from(
+          document.querySelectorAll<HTMLElement>(selector),
+        ).entries()) {
+          const rect = element.getBoundingClientRect();
+          snapshots.push({
+            bottom: rect.bottom,
+            key: `${selector}:${index}`,
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            transform: getComputedStyle(element).transform,
+          });
+        }
+      }
+      for (const [selector, pseudo] of [
+        ['[data-testid="package-intro"]', "::before"],
+        ['[data-testid="package-shell"]', "::before"],
+      ] as const) {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) {
+          continue;
+        }
+        const rect = element.getBoundingClientRect();
+        snapshots.push({
+          bottom: rect.bottom,
+          key: `${selector}${pseudo}`,
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          transform: getComputedStyle(element, pseudo).transform,
+        });
+      }
+      return snapshots;
+    };
 
     let previous = "";
     const record = () => {
@@ -744,6 +1350,55 @@ async function installIntroPhaseRecorder(
           document.querySelectorAll('[data-testid="package-intro-flap"]'),
           (flap) => getComputedStyle(flap).animationName,
         );
+        requestAnimationFrame(() => {
+          probe.reducedOpening = reducedSnapshot();
+          probe.infiniteAnimationCounts.opening = infiniteAnimationCount();
+          probe.reducedAnimations = document
+            .getAnimations()
+            .filter((animation) => {
+              const effect = animation.effect as KeyframeEffect | null;
+              return (
+                animation.playState === "running" &&
+                effect?.target instanceof Element &&
+                effect.target.closest("main#cubo")
+              );
+            })
+            .map((animation) => {
+              const effect = animation.effect as KeyframeEffect;
+              const properties = new Set<string>();
+              for (const keyframe of effect.getKeyframes()) {
+                for (const property of Object.keys(keyframe)) {
+                  if (
+                    ![
+                      "composite",
+                      "computedOffset",
+                      "easing",
+                      "offset",
+                    ].includes(property)
+                  ) {
+                    properties.add(property);
+                  }
+                }
+              }
+              const timing = effect.getTiming();
+              return {
+                duration: Number(timing.duration),
+                iterations: Number(timing.iterations),
+                name:
+                  animation instanceof CSSAnimation
+                    ? animation.animationName
+                    : "",
+                properties: [...properties].sort(),
+              };
+            });
+          window.setTimeout(() => {
+            probe.reducedMidpoint = reducedSnapshot();
+            probe.infiniteAnimationCounts.midpoint = infiniteAnimationCount();
+          }, 80);
+        });
+      }
+      if (phase === "ready") {
+        probe.infiniteAnimationCounts.ready = infiniteAnimationCount();
       }
     };
     const observer = new MutationObserver(record);
@@ -764,13 +1419,18 @@ async function readRecordedIntroProbe(
     () =>
       (
         window as typeof window & {
-          __cubo3dIntroProbe?: {
-            flapAnimationNames: string[] | null;
-            records: Array<{ phase: string; time: number }>;
-          };
+          __cubo3dIntroProbe?: IntroPhaseProbe;
         }
       ).__cubo3dIntroProbe ?? {
         flapAnimationNames: null,
+        infiniteAnimationCounts: {
+          midpoint: null,
+          opening: null,
+          ready: null,
+        },
+        reducedAnimations: null,
+        reducedMidpoint: null,
+        reducedOpening: null,
         records: [],
       },
   );
