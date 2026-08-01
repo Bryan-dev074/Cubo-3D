@@ -16,6 +16,10 @@ const VISUAL_ARTIFACT_DIRECTORY = resolve(
 );
 const SPINE_SELECTOR = '[data-spine-motion="true"]';
 const MASTER_DURATION_MS = 6_400;
+const REST_SNAPSHOT_TIME_MS = 6_300;
+const OPACITY_REST_TOLERANCE = 0.000_5;
+const STROKE_REST_TOLERANCE = 0.001;
+const TRANSFORM_REST_TOLERANCE = 0.001;
 
 const NODE_SURFACE_META = [
   { group: "beam", key: "beam" },
@@ -50,6 +54,7 @@ interface MotionSurfaceSnapshot {
   readonly opacity: number;
   readonly pseudoElement: "::after" | "::before" | null;
   readonly right: number;
+  readonly strokeDashoffset: number;
   readonly top: number;
   readonly transform: string;
 }
@@ -66,7 +71,7 @@ interface AnimationContract {
 
 interface MotionSample {
   readonly activeSurfaceKeys: readonly string[];
-  readonly changedSurfaces: number;
+  readonly changedSurfaces: readonly string[];
   readonly maximumTextTravel: number;
   readonly minimumTextOpacity: number;
   readonly surfaces: readonly MotionSurfaceSnapshot[];
@@ -111,15 +116,10 @@ test("records one exact top-to-bottom register pass across all 20 spine surfaces
     const changedSurfaces = previous
       ? surfaces.filter((surface, index) =>
           hasVisibleChange(surface, previous![index]!),
-        )
-          .length
-      : 0;
+        ).map(({ key }) => key)
+      : [];
     if (previous) {
-      surfaces.forEach((surface, index) => {
-        if (hasVisibleChange(surface, previous![index]!)) {
-          changedSurfaceKeys.add(surface.key);
-        }
-      });
+      changedSurfaces.forEach((key) => changedSurfaceKeys.add(key));
     }
     const textSurfaces = surfaces.filter((surface) => surface.isText);
     samples.push({
@@ -152,28 +152,52 @@ test("records one exact top-to-bottom register pass across all 20 spine surfaces
     }
     previous = surfaces;
   }
+  await seekSpineAnimations(page, REST_SNAPSHOT_TIME_MS);
+  const restSurfaces = await readSpineSurfaces(page);
+  const restSnapshot = {
+    surfaces: restSurfaces,
+    time: REST_SNAPSHOT_TIME_MS,
+  };
+  expectExactSurfaceTime(restSurfaces, REST_SNAPSHOT_TIME_MS);
+  expect(activeSurfaceKeysAt(windows, REST_SNAPSHOT_TIME_MS)).toEqual([]);
+
+  const observedChangeEvents = assertObservedChangesStayInAuthoredWindows(
+    samples,
+    windows,
+  );
+  const inactiveRestComparisons = assertInactiveSamplesMatchRest(
+    samples,
+    windows,
+    restSurfaces,
+  );
+  expect(
+    Math.max(...samples.map((sample) => sample.changedSurfaces.length)),
+  ).toBeLessThanOrEqual(5);
+
+  const proofArtifact = {
+    masterDurationMs: MASTER_DURATION_MS,
+    maximumSimultaneousActive,
+    maximumSimultaneousChanged: Math.max(
+      ...samples.map((sample) => sample.changedSurfaces.length),
+    ),
+    maximumTextTravel: Math.max(
+      ...samples.map((sample) => sample.maximumTextTravel),
+    ),
+    inactiveRestComparisons,
+    minimumTextOpacity: Math.min(
+      ...samples.map((sample) => sample.minimumTextOpacity),
+    ),
+    observedChangeEvents,
+    restSnapshot,
+    samples,
+    surfaceCount: contracts.length,
+    windows,
+  };
+  expect(proofArtifact.restSnapshot.time).toBe(6_300);
+  expect(Array.isArray(proofArtifact.samples[0]!.changedSurfaces)).toBe(true);
   await writeFile(
     resolve(VISUAL_ARTIFACT_DIRECTORY, "spine-motion-samples.json"),
-    JSON.stringify(
-      {
-        masterDurationMs: MASTER_DURATION_MS,
-        maximumSimultaneousActive,
-        maximumSimultaneousChanged: Math.max(
-          ...samples.map((sample) => sample.changedSurfaces),
-        ),
-        maximumTextTravel: Math.max(
-          ...samples.map((sample) => sample.maximumTextTravel),
-        ),
-        minimumTextOpacity: Math.min(
-          ...samples.map((sample) => sample.minimumTextOpacity),
-        ),
-        samples,
-        surfaceCount: contracts.length,
-        windows,
-      },
-      null,
-      2,
-    ),
+    JSON.stringify(proofArtifact, null, 2),
     "utf8",
   );
 
@@ -185,7 +209,7 @@ test("records one exact top-to-bottom register pass across all 20 spine surfaces
     expect(
       samples
         .slice(second * 5, second * 5 + 5)
-        .some((sample) => sample.changedSurfaces > 0),
+        .some((sample) => sample.changedSurfaces.length > 0),
     ).toBe(true);
   }
   expect(changedSurfaceKeys).toEqual(
@@ -499,6 +523,7 @@ async function readSpineSurfaces(
           opacity: Number(styles.opacity),
           pseudoElement: null,
           right: box.right,
+          strokeDashoffset: Number.parseFloat(styles.strokeDashoffset) || 0,
           top: box.top,
           transform: styles.transform,
         };
@@ -527,6 +552,7 @@ async function readSpineSurfaces(
             opacity: Number(styles.opacity),
             pseudoElement,
             right: 0,
+            strokeDashoffset: Number.parseFloat(styles.strokeDashoffset) || 0,
             top: 0,
             transform: styles.transform,
           };
@@ -711,7 +737,8 @@ function hasVisibleChange(
 ): boolean {
   return (
     Math.abs(current.opacity - previous.opacity) > 0.002 ||
-    surfaceTravel(current, previous) > 0.02 ||
+    Math.abs(current.strokeDashoffset - previous.strokeDashoffset) >
+      STROKE_REST_TOLERANCE ||
     current.transform !== previous.transform
   );
 }
@@ -782,23 +809,176 @@ function activeSurfaceKeysAt(
   windows: readonly SurfaceWindow[],
   time: number,
 ): readonly string[] {
-  const phase = time % MASTER_DURATION_MS;
   return windows
-    .filter(({ end, start }) => phase >= start && phase < end)
+    .filter((window) => isSurfaceActiveAt(window, time))
     .map(({ key }) => key);
 }
 
-function expectExactSampleTime(sample: MotionSample, time: number): void {
-  expect(sample.surfaces).toHaveLength(20);
+function isSurfaceActiveAt(window: SurfaceWindow, time: number): boolean {
+  const iteration = Math.floor((time - window.start) / MASTER_DURATION_MS);
+  const start = window.start + iteration * MASTER_DURATION_MS;
+  const end = window.end + iteration * MASTER_DURATION_MS;
+  return time >= start && time < end;
+}
+
+function authoredWindowIntersectsInterval(
+  window: SurfaceWindow,
+  intervalStart: number,
+  intervalEnd: number,
+): boolean {
+  const firstIteration =
+    Math.floor((intervalStart - window.end) / MASTER_DURATION_MS) - 1;
+  const lastIteration =
+    Math.ceil((intervalEnd - window.start) / MASTER_DURATION_MS) + 1;
+  for (
+    let iteration = firstIteration;
+    iteration <= lastIteration;
+    iteration += 1
+  ) {
+    const start = window.start + iteration * MASTER_DURATION_MS;
+    const end = window.end + iteration * MASTER_DURATION_MS;
+    if (start <= intervalEnd && end >= intervalStart) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function assertObservedChangesStayInAuthoredWindows(
+  samples: readonly MotionSample[],
+  windows: readonly SurfaceWindow[],
+): number {
+  const windowsByKey = new Map(windows.map((window) => [window.key, window]));
+  const violations: string[] = [];
+  let observedChangeEvents = 0;
+
+  for (let index = 1; index < samples.length; index += 1) {
+    const previous = samples[index - 1]!;
+    const current = samples[index]!;
+    expect(current.time - previous.time).toBe(200);
+    for (const key of current.changedSurfaces) {
+      observedChangeEvents += 1;
+      const authoredWindow = windowsByKey.get(key);
+      if (!authoredWindow) {
+        violations.push(`${previous.time}-${current.time}ms ${key}: no window`);
+      } else if (
+        !authoredWindowIntersectsInterval(
+          authoredWindow,
+          previous.time,
+          current.time,
+        )
+      ) {
+        violations.push(
+          `${previous.time}-${current.time}ms ${key}: outside ${authoredWindow.start}-${authoredWindow.end}ms/${MASTER_DURATION_MS}ms`,
+        );
+      }
+    }
+  }
   expect(
-    sample.surfaces.every(
+    violations,
+    `observed off-window motion:\n${violations.join("\n")}`,
+  ).toEqual([]);
+  return observedChangeEvents;
+}
+
+function assertInactiveSamplesMatchRest(
+  samples: readonly MotionSample[],
+  windows: readonly SurfaceWindow[],
+  restSurfaces: readonly MotionSurfaceSnapshot[],
+): number {
+  const windowsByKey = new Map(windows.map((window) => [window.key, window]));
+  const restByKey = new Map(
+    restSurfaces.map((restSurface) => [restSurface.key, restSurface]),
+  );
+  const checkedSurfaceKeys = new Set<string>();
+  const violations: string[] = [];
+  let inactiveRestComparisons = 0;
+
+  expect(restByKey.size).toBe(20);
+  for (const sample of samples) {
+    for (const observed of sample.surfaces) {
+      const authoredWindow = windowsByKey.get(observed.key);
+      if (!authoredWindow) {
+        violations.push(`${sample.time}ms ${observed.key}: no authored window`);
+        continue;
+      }
+      if (isSurfaceActiveAt(authoredWindow, sample.time)) {
+        continue;
+      }
+      const rest = restByKey.get(observed.key);
+      if (!rest) {
+        violations.push(`${sample.time}ms ${observed.key}: no 6300ms rest state`);
+        continue;
+      }
+      inactiveRestComparisons += 1;
+      checkedSurfaceKeys.add(observed.key);
+      const opacityDelta = Math.abs(observed.opacity - rest.opacity);
+      const transformDelta = transformMaximumDelta(
+        observed.transform,
+        rest.transform,
+      );
+      const strokeDelta = Math.abs(
+        observed.strokeDashoffset - rest.strokeDashoffset,
+      );
+      if (opacityDelta > OPACITY_REST_TOLERANCE) {
+        violations.push(
+          `${sample.time}ms ${observed.key}: opacity delta ${opacityDelta} > ${OPACITY_REST_TOLERANCE}`,
+        );
+      }
+      if (transformDelta > TRANSFORM_REST_TOLERANCE) {
+        violations.push(
+          `${sample.time}ms ${observed.key}: transform delta ${transformDelta} > ${TRANSFORM_REST_TOLERANCE}`,
+        );
+      }
+      if (strokeDelta > STROKE_REST_TOLERANCE) {
+        violations.push(
+          `${sample.time}ms ${observed.key}: stroke delta ${strokeDelta} > ${STROKE_REST_TOLERANCE}`,
+        );
+      }
+    }
+  }
+
+  expect(checkedSurfaceKeys).toEqual(new Set(restByKey.keys()));
+  expect(
+    violations,
+    `inactive surfaces diverged from the independent 6300ms rest snapshot:\n${violations.join("\n")}`,
+  ).toEqual([]);
+  return inactiveRestComparisons;
+}
+
+function transformMaximumDelta(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+  const numberPattern = /-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi;
+  const leftValues = left.match(numberPattern)?.map(Number) ?? [];
+  const rightValues = right.match(numberPattern)?.map(Number) ?? [];
+  if (leftValues.length !== rightValues.length || leftValues.length === 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.max(
+    ...leftValues.map((value, index) => Math.abs(value - rightValues[index]!)),
+  );
+}
+
+function expectExactSampleTime(sample: MotionSample, time: number): void {
+  expectExactSurfaceTime(sample.surfaces, time);
+}
+
+function expectExactSurfaceTime(
+  surfaces: readonly MotionSurfaceSnapshot[],
+  time: number,
+): void {
+  expect(surfaces).toHaveLength(20);
+  expect(
+    surfaces.every(
       ({ animationCurrentTime }) =>
         typeof animationCurrentTime === "number" &&
         Math.abs(animationCurrentTime - time) < 0.01,
     ),
   ).toBe(true);
   expect(
-    sample.surfaces.every(
+    surfaces.every(
       ({ animationDuration }) => animationDuration === "6.4s",
     ),
   ).toBe(true);
